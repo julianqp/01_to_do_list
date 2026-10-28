@@ -56,7 +56,7 @@ No se añaden: `dotenv` (se usa `--env-file` / `process.loadEnvFile()` de Node),
 | C-16 | ✅ | `User` solo tiene `id`, `email` y `passwordHash`; `Session` solo `id`, `tokenHash`, `userId` y `expiresAt`. Sin `createdAt`. `onDelete: Cascade`. Caducidad de 7 días; las sesiones caducadas del usuario se borran al detectarlas y al iniciar sesión (D-3) |
 | C-17 | ✅ | Cada RF tiene al menos un test (§6) |
 | C-18 | ✅ | Vitest + Testing Library (web), Supertest contra un Postgres de test real (api) y Playwright para el flujo registro → zona privada → cerrar sesión → iniciar sesión |
-| C-19 | ✅ | Scripts `pnpm test`, `pnpm lint` y `pnpm typecheck` en la raíz |
+| C-19 | ⚠️ | Scripts `pnpm test`, `pnpm lint` y `pnpm typecheck` en la raíz. **Excepción temporal:** de T-013 a T-035 (`tasks.md`), `pnpm test` puede tener en rojo los tests de tareas aún no hechas, porque la fase de contratos y tests los escribe antes que el código (test primero). Límites: `pnpm lint` y `pnpm typecheck` siempre en verde, gracias a los stubs de T-011 y T-012; cada tarea del núcleo o de UI pone en verde sus tests; ningún test que ya estaba en verde puede pasar a rojo; desde T-036, `pnpm test` pasa entero y C-19 se cumple sin excepción. *Por qué:* escribir los tests primero obliga a que fallen antes de que exista el código, y la alternativa (escribir cada test justo antes de su tarea) rompe la fase de contratos y tests del flujo SDD |
 | C-20 | ✅ | Etiquetas visibles, `aria-invalid`, `aria-describedby`, `role="alert"`, foco en el primer campo con error y `focus-visible`. No hay arrastre en esta spec |
 | C-21 | ✅ | Ninguna funcionalidad fuera de la spec. "Recordarme", limitar intentos y similares siguen fuera |
 | C-22 | ✅ | Abstracciones con ≥ 2 usos: `validateBody` (signup, login), `FormField` (4 campos), `withQueryClient` (3 islas), `apiFetch` (4 llamadas) |
@@ -64,7 +64,7 @@ No se añaden: `dotenv` (se usa `--env-file` / `process.loadEnvFile()` de Node),
 | C-24 | ✅ | Rama `feat/001-cuentas-de-usuario`; commits con el ID de la tarea |
 | C-25 | ✅ | `eslint.config.js` (flat) con typescript-eslint, plugin de Astro y reglas de hooks; Prettier con el plugin de Astro |
 
-Sin excepciones.
+Una excepción temporal: C-19 (ver la fila de la tabla).
 
 ## 4. Diseño
 
