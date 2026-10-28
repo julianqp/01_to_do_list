@@ -1,11 +1,11 @@
 ---
 id: 001
 titulo: Cuentas de usuario
-estado: borrador          # borrador | aprobada | en-implementacion | implementada | obsoleta
-version: 0.2
+estado: aprobada          # borrador | aprobada | en-implementacion | implementada | obsoleta
+version: 1.0
 autor: Julian Querol Polo
 creada: 2026-10-28
-aprobada:                 # AAAA-MM-DD, por quién
+aprobada: 2026-10-28, Julian Querol Polo
 ticket:
 ---
 
@@ -180,3 +180,4 @@ Como usuario, quiero seguir dentro de la app al volver a abrirla, para no tener 
 |---------|-------|--------|--------|
 | 0.1     | 2026-10-28 | Borrador inicial | Primera spec del roadmap |
 | 0.2     | 2026-10-28 | Resueltas 4 aclaraciones; RF-010 pasa a ser el error de conexión (E-7); nuevos RF-018 y CA-5.3; E-1 y E-4 aclarados | `/sdd-clarificar` |
+| 1.0     | 2026-10-28 | Spec aprobada | Revisión con el checklist de spec superada |
