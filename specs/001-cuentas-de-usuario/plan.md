@@ -266,6 +266,9 @@ Props: `FormField({ id, label, type, autoComplete, value, onChange, error })`. `
 - **D-14** *(añadida en T-001)* Además de `engine-strict=true` en `.npmrc` (C-3), `pnpm-workspace.yaml` lleva `engineStrict: true`.
   - *Por qué:* pnpm 11.20 ya no lee ese ajuste desde `.npmrc`. Con `engines.node` incompatible, `pnpm install` solo avisaba y terminaba con 0. Con la clave en `pnpm-workspace.yaml` falla con `ERR_PNPM_UNSUPPORTED_ENGINE` (código 1), que es lo que busca C-3. Se mantiene `.npmrc` porque C-3 lo pide de forma literal y npm sí lo respeta.
   - *Alternativas descartadas:* dejar solo `.npmrc` (no bloquea nada con pnpm 11); quitar `.npmrc` (incumple la letra de C-3). Si se quiere evitar la duplicación, se propone enmendar C-3.
+- **D-15** *(añadida en T-004)* Los scripts de instalación de dependencias se deciden uno a uno en `allowBuilds` de `pnpm-workspace.yaml`. `esbuild` (lo trae `tsx` y Vitest) queda en `false`.
+  - *Por qué:* pnpm 11 bloquea esos scripts y `pnpm install` termina con error (`ERR_PNPM_IGNORED_BUILDS`) si alguno queda sin decidir. El `postinstall` de `esbuild` solo comprueba el binario, que ya llega por `@esbuild/<plataforma>`; con `false`, `tsx` y Vitest funcionan igual. Cada script que se permita tiene que justificarse aquí (C-2).
+  - *Consecuencia:* T-006 tendrá que decidir lo mismo para los paquetes de Prisma que lo pidan.
 
 ## 6. Trazabilidad
 

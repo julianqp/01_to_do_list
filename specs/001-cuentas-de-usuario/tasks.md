@@ -1,7 +1,7 @@
 ---
 spec: 001
 plan_aprobado: 2026-10-28
-progreso: 3/41
+progreso: 4/41
 ---
 
 # Tareas · Spec 001 · Cuentas de usuario
@@ -39,7 +39,7 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
   - Cubre: C-10, C-18, D-6 (ADR-0002)
   - Hecho cuando: `pnpm test` termina con 0 sin tests (`passWithNoTests`); `pnpm typecheck` incluye `shared` y pasa; `packages/shared/package.json` solo depende de `zod`
 
-- [ ] **T-004** Crear el esqueleto de la API con el entorno validado
+- [x] **T-004** Crear el esqueleto de la API con el entorno validado
   - Depende de: T-003
   - Ficheros: `apps/api/package.json` (`express@5.3.0`, `zod`, `@todo/shared: workspace:*`; dev: `tsx`, `@types/express`, `supertest`, `@types/supertest`; scripts `dev` con `tsx watch --env-file`, `typecheck`), `apps/api/tsconfig.json`, `apps/api/src/config/env.ts` (`DATABASE_URL`, `PORT`, `NODE_ENV` con Zod), `apps/api/src/config/env.test.ts`, `apps/api/src/app.ts` (`createApp()` con `express.json()`), `apps/api/src/server.ts`, `.env.example`, `vitest.config.ts` (proyecto `api`)
   - Cubre: C-5, C-8, C-15
@@ -347,4 +347,5 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 |-------|--------|-------|
 | T-001 | 3a67945 | `engineStrict: true` añadido en `pnpm-workspace.yaml` porque pnpm 11 ignora `engine-strict` de `.npmrc` (plan D-14). Volta da pnpm 11.20.0 en local sin `corepack enable`; comprobado que `corepack pnpm --version` respeta `packageManager` (11.20.0) |
 | T-002 | e090a1a | `lint` = `eslint . && prettier --check .` (C-25 cubre los dos). `.prettierignore` excluye la documentación SDD (`specs/`, `docs/`, `.sdd/`, `.claude/`, `CLAUDE.md`). `@eslint/js` fijado en 10.0.1 (R-3 no lo listaba) |
-| T-003 | (pendiente) | `packages/shared/tsconfig.json` con `types: []`: el compilador rechaza `process` y cualquier API de Node en `shared` (C-10). `typescript` lo aporta la raíz; `shared` solo depende de `zod` |
+| T-003 | bf0048b | `packages/shared/tsconfig.json` con `types: []`: el compilador rechaza `process` y cualquier API de Node en `shared` (C-10). `typescript` lo aporta la raíz; `shared` solo depende de `zod` |
+| T-004 | (pendiente) | `env.ts` exporta `parseEnv(source)` (función pura); `server.ts` la llama con `process.env`. `allowBuilds` con `esbuild: false` en `pnpm-workspace.yaml` (plan D-15). Con un entorno no válido, `tsx src/server.ts` sale con código 1; en `pnpm --filter api dev` (`tsx watch`) se muestra el error y el vigilante sigue esperando cambios en vez de salir. Versiones no listadas en R-3: `tsx` 4.23.15, `@types/express` 5.0.6, `supertest` 7.3.1, `@types/supertest` 7.2.1 |

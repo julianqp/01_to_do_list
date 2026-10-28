@@ -3,3 +3,8 @@ packages:
   - packages/*
 
 engineStrict: true
+
+# Scripts de instalación de dependencias (pnpm 11 los bloquea y exige decidir cada uno).
+# esbuild: su postinstall solo comprueba el binario, que ya llega por @esbuild/<plataforma>.
+allowBuilds:
+  esbuild: false
