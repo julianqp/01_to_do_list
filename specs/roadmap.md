@@ -31,6 +31,7 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 - Casilla "Recordarme" / duración de sesión elegida por el usuario — *origen: spec 001, fuera de alcance*
 - Ver y cerrar las sesiones abiertas en otros navegadores — *origen: spec 001, fuera de alcance*
 - Perfil de usuario (nombre, foto, preferencias) — *origen: spec 001, fuera de alcance*
+- Enlaces entre las pantallas de inicio de sesión y registro: hoy un visitante sin cuenta al que se lleva a `/login` solo llega a `/signup` escribiendo la dirección. Posible hueco de HU-1; valorar `/sdd-cambiar-spec` antes de cerrar 001 — *origen: spec 001, T-036*
 - Roles o cuentas de administrador — *origen: spec 001, fuera de alcance*
 - Interfaz en otros idiomas — *origen: spec 001, fuera de alcance*
 - Limitar los intentos fallidos de inicio de sesión (revisar con el ADR de despliegue) — *origen: spec 001, aclaración*
