@@ -24,6 +24,10 @@ Cambio solicitado: $ARGUMENTS
    3. `tasks.md`: añade tareas nuevas, desmarca y anota las que hay que rehacer, tacha (`~~T-00x~~ obsoleta: motivo`) las que sobran.
 6. No modifiques código en este comando.
 
+## Reglas
+
+- **Los IDs son permanentes** (RF, RNF, CA, E, HU, D, T). Nunca se renumeran ni se reutilizan para otra cosa. Si un elemento se elimina, se deja la línea como `~~RF-010~~ Eliminado: <motivo> (ver Aclaraciones)` y lo nuevo recibe el siguiente número libre.
+
 ## Al terminar
 
 Resume los cambios en cada artefacto y la siguiente tarea a implementar.

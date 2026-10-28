@@ -32,6 +32,7 @@ Spec indicada: $ARGUMENTS (si está vacío, usa la spec activa según `CLAUDE.md
 
 ## Reglas
 
+- **Los IDs son permanentes** (RF, RNF, CA, E, HU, D, T). Nunca se renumeran ni se reutilizan para otra cosa. Si un elemento se elimina, se deja la línea como `~~RF-010~~ Eliminado: <motivo> (ver Aclaraciones)` y lo nuevo recibe el siguiente número libre.
 - No preguntes lo que puedes deducir del código, la constitución u otras specs.
 - No preguntes detalles técnicos de implementación (eso es el plan).
 - Si tras las 5 preguntas quedan dudas relevantes, dilo y propón otra ronda.
