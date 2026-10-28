@@ -130,7 +130,7 @@ Migración `prisma/migrations/<timestamp>_auth_init`. Cliente generado con el ge
 export const emailSchema: z.ZodType<string>;     // trim → minúsculas → obligatorio → máx. 254 → z.email()
 export const passwordSchema: z.ZodType<string>;  // sin recortar; solo espacios = obligatorio; 8–128 puntos de código
 export const signupInputSchema = z.object({ email: emailSchema, password: passwordSchema });
-export const loginInputSchema = z.object({ email: requiredEmail, password: requiredPassword }); // solo obligatorios
+export const loginInputSchema = z.object({ email: requiredEmail, password: requiredPassword }); // solo obligatorios; el email se normaliza igual (RF-003, precisado en T-024)
 export type SignupInput = z.infer<typeof signupInputSchema>;
 export type LoginInput = z.infer<typeof loginInputSchema>;
 export type PublicUser = { id: string; email: string };
