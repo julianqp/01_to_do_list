@@ -216,7 +216,13 @@ class NetworkError extends Error {}
 apiFetch<T>(path: `/api/${string}`, init?: { method?: 'GET' | 'POST'; body?: unknown }): Promise<T>;
 ```
 
-Props: `FormField({ id, label, type, autoComplete, value, onChange, error })`. `PrivateArea`, `LoginForm` y `SignupForm` no reciben props.
+```ts
+// apps/web/src/lib/messages.ts (firma fijada en T-012)
+type FormMessage = { text: string; field?: 'email' };          // field: dónde se muestra (RF-004)
+messageFor(code: ErrorCode | 'NETWORK_ERROR'): FormMessage;    // 'NETWORK_ERROR' = RF-010
+```
+
+Props: `FormField({ id, label, type, autoComplete, value, onChange, error })`. `PrivateArea`, `LoginForm` y `SignupForm` no reciben props. Tipos fijados en T-012: `type: 'email' | 'password'`, `autoComplete: 'email' | 'new-password' | 'current-password'` (D-12), `onChange: (value: string) => void` y `error?: string`.
 
 ### 4.4 Componentes / módulos
 
