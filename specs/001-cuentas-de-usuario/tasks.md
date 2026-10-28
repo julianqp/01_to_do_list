@@ -1,7 +1,7 @@
 ---
 spec: 001
 plan_aprobado: 2026-10-28
-progreso: 4/41
+progreso: 5/41
 ---
 
 # Tareas · Spec 001 · Cuentas de usuario
@@ -45,7 +45,7 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
   - Cubre: C-5, C-8, C-15
   - Hecho cuando: `env.test.ts` pasa (entorno válido → objeto tipado; `DATABASE_URL` ausente o `PORT` no numérico → error); con `.env` copiado de `.env.example`, `pnpm --filter api dev` escucha en `http://localhost:3000`; sin `DATABASE_URL` el proceso sale con código ≠ 0
 
-- [ ] **T-005** Levantar Postgres local con las bases de desarrollo y de test
+- [x] **T-005** Levantar Postgres local con las bases de desarrollo y de test
   - Depende de: T-001
   - Ficheros: `docker-compose.yml` (Postgres 18, contraseña leída de `.env`), `docker/init-test-db.sql` (crea `todo_test`), `package.json` (script `db:up`), `.env.example` (variables de Postgres sin valores reales)
   - Cubre: C-5, C-15
@@ -348,4 +348,5 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 | T-001 | 3a67945 | `engineStrict: true` añadido en `pnpm-workspace.yaml` porque pnpm 11 ignora `engine-strict` de `.npmrc` (plan D-14). Volta da pnpm 11.20.0 en local sin `corepack enable`; comprobado que `corepack pnpm --version` respeta `packageManager` (11.20.0) |
 | T-002 | e090a1a | `lint` = `eslint . && prettier --check .` (C-25 cubre los dos). `.prettierignore` excluye la documentación SDD (`specs/`, `docs/`, `.sdd/`, `.claude/`, `CLAUDE.md`). `@eslint/js` fijado en 10.0.1 (R-3 no lo listaba) |
 | T-003 | bf0048b | `packages/shared/tsconfig.json` con `types: []`: el compilador rechaza `process` y cualquier API de Node en `shared` (C-10). `typescript` lo aporta la raíz; `shared` solo depende de `zod` |
-| T-004 | (pendiente) | `env.ts` exporta `parseEnv(source)` (función pura); `server.ts` la llama con `process.env`. `allowBuilds` con `esbuild: false` en `pnpm-workspace.yaml` (plan D-15). Con un entorno no válido, `tsx src/server.ts` sale con código 1; en `pnpm --filter api dev` (`tsx watch`) se muestra el error y el vigilante sigue esperando cambios en vez de salir. Versiones no listadas en R-3: `tsx` 4.23.15, `@types/express` 5.0.6, `supertest` 7.3.1, `@types/supertest` 7.2.1 |
+| T-004 | cba92f0 | `env.ts` exporta `parseEnv(source)` (función pura); `server.ts` la llama con `process.env`. `allowBuilds` con `esbuild: false` en `pnpm-workspace.yaml` (plan D-15). Con un entorno no válido, `tsx src/server.ts` sale con código 1; en `pnpm --filter api dev` (`tsx watch`) se muestra el error y el vigilante sigue esperando cambios en vez de salir. Versiones no listadas en R-3: `tsx` 4.23.15, `@types/express` 5.0.6, `supertest` 7.3.1, `@types/supertest` 7.2.1 |
+| T-005 | (pendiente) | Imagen `postgres:18`, puerto publicado solo en `127.0.0.1`, volumen en `/var/lib/postgresql` (ruta que pide la imagen 18) y `healthcheck` con `pg_isready`. `db:up` = `docker compose up -d --wait`. Las credenciales usan `${VAR:?}`: sin `.env`, Compose falla diciendo qué variable falta. `init-test-db.sql` solo se ejecuta al crear el volumen |
