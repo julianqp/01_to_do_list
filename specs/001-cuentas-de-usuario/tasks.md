@@ -1,7 +1,7 @@
 ---
 spec: 001
 plan_aprobado: 2026-10-28
-progreso: 17/41
+progreso: 18/41
 ---
 
 # Tareas · Spec 001 · Cuentas de usuario
@@ -130,7 +130,7 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
   - Casos: `/me` sin cookie o con token desconocido → 401 `UNAUTHENTICATED`; `expiresAt` = ahora − 1 día → 401 `SESSION_EXPIRED` y la sesión se borra de BD; `expiresAt` = ahora + 1 día → 200, `expiresAt` ≈ ahora + 7 días y `Set-Cookie` renovada; logout → 204 con cookie borrada y `/me` con la misma cookie → 401; logout sin cookie → 204 (idempotente); dos logins (A y B), logout con A → `/me` con B → 200; al iniciar sesión se borran las sesiones caducadas de ese usuario; borrar un `User` borra sus `Session`
   - Hecho cuando: los tests existen y fallan porque las rutas no existen
 
-- [ ] **T-018** [P] Escribir los tests de integración del formato de error y CSRF
+- [x] **T-018** [P] Escribir los tests de integración del formato de error y CSRF
   - Depende de: T-007, T-011
   - Ficheros: `apps/api/test/errors.test.ts`
   - Cubre: C-9, C-14, D-13, C-12
@@ -361,4 +361,5 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 | T-014 | 8df1fc7 | 12 tests, todos en rojo por `not implemented`. PHC comprobado con una expresión regular: parámetros exactos y sal de 22 caracteres en base64 (16 bytes). El SHA-256 se compara con el vector conocido de `"abc"`, sin recalcularlo con `crypto`. El token se comprueba como 43 caracteres base64url que decodifican a 32 bytes. `readCookie` no debe confundir `sid` con `xsid` ni `sidx` |
 | T-015 | 8272241 | 10 tests, todos en rojo por 404 (cada test comprueba primero el status, para que ese sea el motivo del fallo). Además de los casos de la tarea: el email se guarda normalizado (RF-003); en CA-1.2 la cuenta existente no cambia; RNF-002: el `passwordHash` guardado no contiene la contraseña, y ni la contraseña ni el token aparecen en el cuerpo. La cuenta previa se crea con el propio endpoint (caja negra) |
 | T-016 | a87e210 | 6 tests, todos en rojo por 404 (la cuenta previa se crea con el registro). RF-009 se comprueba con cuerpos idénticos, no solo el mismo `code`, y sin `Set-Cookie`. E-4 incluye que la misma contraseña sin los espacios de los extremos falla (401), lo que demuestra que no se recorta. CA-2.1 confirma la sesión con `/me` |
-| T-017 | (pendiente) | 9 tests, todos en rojo por 404. La caducidad se prueba cambiando `expiresAt` en BD (plan §7): CA-5.2 = ahora − 1 día y CA-5.3 = ahora + 1 día. La renovación se acota entre «antes + 7 días» y «después + 7 días», sin margen arbitrario, y exige que se vuelva a emitir la **misma** cookie (D-3 renueva, no rota el token). El borrado de la cookie admite `Expires` de 1970 o `Max-Age=0`. Limpieza D-3: con 3 sesiones y la primera caducada, al iniciar sesión solo desaparece esa |
+| T-017 | 5646d50 | 9 tests, todos en rojo por 404. La caducidad se prueba cambiando `expiresAt` en BD (plan §7): CA-5.2 = ahora − 1 día y CA-5.3 = ahora + 1 día. La renovación se acota entre «antes + 7 días» y «después + 7 días», sin margen arbitrario, y exige que se vuelva a emitir la **misma** cookie (D-3 renueva, no rota el token). El borrado de la cookie admite `Expires` de 1970 o `Max-Age=0`. Limpieza D-3: con 3 sesiones y la primera caducada, al iniciar sesión solo desaparece esa |
+| T-018 | (pendiente) | 10 tests en rojo: 404 y JSON mal formado reciben el HTML por defecto de Express (cuerpo `{}`); el resto, 404 de rutas inexistentes. El 415 se prueba en signup y login con formulario, `text/plain` y sin `Content-Type`. Error no controlado: `vi.spyOn(authService, 'login')` (comprobado que funciona sobre exportaciones ESM en Vitest 5). Se exige que `console.error` se llame (plan §9) y que ninguna llamada, formateada con `util.format`, contenga la contraseña ni el email |
