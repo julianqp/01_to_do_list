@@ -16,7 +16,8 @@ Tarea indicada: $ARGUMENTS (vacío = la primera tarea pendiente cuyas dependenci
 5. Implementa **lo mínimo** para que pase, siguiendo el plan.
 6. Ejecuta tests, linter y comprobación de tipos (comandos en `CLAUDE.md`). Arregla hasta que todo esté en verde.
 7. Marca la tarea `[x]` en `tasks.md`, actualiza `progreso` y si `estado` de la spec era `aprobada`, cámbialo a `en-implementacion`.
-8. Propón un mensaje de commit: `<tipo>(<ámbito>): T-00x <resumen> [spec NNN]`. Commitea solo si el usuario lo ha pedido o lo indica `CLAUDE.md`.
+8. Anota en el **Registro** de `tasks.md` lo relevante: versiones reales instaladas, nombres que el plan no fijaba, problemas encontrados y cómo se resolvieron. Si cambia o se añade una decisión técnica, regístrala también en el plan como `D-x (añadida en T-00x)`.
+9. Propón un mensaje de commit: `<tipo>(<ámbito>): T-00x <resumen> [spec NNN]`. Commitea solo si el usuario lo ha pedido o lo indica `CLAUDE.md`.
 
 ## Reglas
 

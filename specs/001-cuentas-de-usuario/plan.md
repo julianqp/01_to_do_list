@@ -216,12 +216,15 @@ class NetworkError extends Error {}
 apiFetch<T>(path: `/api/${string}`, init?: { method?: 'GET' | 'POST'; body?: unknown }): Promise<T>;
 // Precisado en T-019: fetch rechazado o respuesta 5xx → NetworkError (RF-010: "mismo trato que la red";
 // con la API caída, el proxy de Vite responde 5xx en vez de rechazar). 4xx con { error } → ApiError. 204 → undefined.
+// Precisado en T-031: un 4xx sin { error } con un code del catálogo, o un 2xx con JSON no válido, también → NetworkError.
 ```
 
 ```ts
 // apps/web/src/lib/messages.ts (firma fijada en T-012)
 type FormMessage = { text: string; field?: 'email' };          // field: dónde se muestra (RF-004)
 messageFor(code: ErrorCode | 'NETWORK_ERROR'): FormMessage;    // 'NETWORK_ERROR' = RF-010
+// Precisado en T-031: los códigos sin texto en la spec (VALIDATION_ERROR, UNSUPPORTED_MEDIA_TYPE,
+// UNAUTHENTICATED, NOT_FOUND, INTERNAL_ERROR) dan el texto de RF-010: para el usuario son un error inesperado.
 ```
 
 Props: `FormField({ id, label, type, autoComplete, value, onChange, error })`. `PrivateArea`, `LoginForm` y `SignupForm` no reciben props. Tipos fijados en T-012: `type: 'email' | 'password'`, `autoComplete: 'email' | 'new-password' | 'current-password'` (D-12), `onChange: (value: string) => void` y `error?: string`.
