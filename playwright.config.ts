@@ -12,7 +12,8 @@ export default defineConfig({
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    // D-18: el Firefox de Playwright no arranca en macOS 27; se prueba con el Google Chrome instalado.
+    { name: 'chrome', use: { ...devices['Desktop Chrome'], channel: 'chrome' } },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
   webServer: {

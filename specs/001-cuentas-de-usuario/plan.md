@@ -230,7 +230,7 @@ Props: `FormField({ id, label, type, autoComplete, value, onChange, error })`. `
 
 | Módulo | Ruta | Responsabilidad | Nuevo/Modificado |
 |--------|------|-----------------|------------------|
-| Raíz del monorepo | `package.json`, `pnpm-workspace.yaml`, `.npmrc`, `.nvmrc`, `tsconfig.base.json`, `eslint.config.js`, `.prettierrc`, `.gitignore`, `.env.example`, `vitest.config.ts`, `playwright.config.ts` | Configuración común y scripts `dev`, `test`, `test:e2e`, `lint`, `typecheck`, `db:up`, `db:migrate` | Nuevo |
+| Raíz del monorepo | `package.json`, `pnpm-workspace.yaml`, `.npmrc`, `.nvmrc`, `tsconfig.base.json`, `eslint.config.js`, `.prettierrc`, `.gitignore`, `.env.example`, `vitest.config.ts`, `playwright.config.ts`, `tsconfig.json` (solo para `typecheck` de `e2e/` y de los ficheros `.ts` de la raíz) | Configuración común y scripts `dev`, `test`, `test:e2e`, `lint`, `typecheck`, `db:up`, `db:migrate` | Nuevo |
 | Postgres local | `docker-compose.yml`, `docker/init-test-db.sql` | Postgres 18 con las bases `todo` y `todo_test` | Nuevo |
 | Shared | `packages/shared/src/{index,auth,errors}.ts` | Esquemas, tipos y catálogo de errores | Nuevo |
 | Arranque de la API | `apps/api/src/{server,app}.ts`, `src/config/env.ts` | `createApp()` (lo usa Supertest) y `listen` | Nuevo |
@@ -298,6 +298,10 @@ Props: `FormField({ id, label, type, autoComplete, value, onChange, error })`. `
 - **D-17** *(añadida en T-009)* El script `dev` de `apps/web` es `astro dev --ignore-lock`.
   - *Por qué:* Astro 7 detecta si lo ejecuta un agente de IA y entonces arranca `astro dev` en segundo plano y su script termina. Si Playwright lanza `pnpm dev` desde un agente, el `astro dev` desligado queda vivo en el puerto 4321 al acabar (comprobado). `--ignore-lock` es la opción documentada para forzar el primer plano. Solo se pierden `astro dev stop/status/logs`, que solo sirven en segundo plano.
   - *Alternativa descartada:* definir `ASTRO_DEV_BACKGROUND` en el entorno de Playwright, que es una variable interna de Astro para marcar el proceso hijo.
+- **D-18** *(añadida en T-023, la eligió el usuario)* El proyecto `firefox` de Playwright se sustituye por `chrome`, que usa el Google Chrome instalado en el equipo (`channel: 'chrome'`). Los proyectos E2E son `chromium`, `chrome` y `webkit`.
+  - *Por qué:* el Firefox de Playwright 1.64.1 no arranca en macOS 27.0.1 (riesgo de §8) y no hay una versión más nueva de Playwright. Chrome es el navegador que usa el usuario.
+  - *Alternativas descartadas:* ejecutar Firefox en un contenedor Linux de Playwright (infraestructura nueva); cambiar RNF-004 con `/sdd-cambiar-spec` en este momento.
+  - *Consecuencia:* la compatibilidad con Firefox que pide RNF-004 no tiene E2E automático. Hay que decidirlo antes de `/sdd-verificar` (T-041): comprobarlo a mano, recuperar el proyecto `firefox` si una versión de Playwright lo arregla, o cambiar la spec. `channel: 'chrome'` necesita Google Chrome instalado; en otro equipo o en CI se instala con `pnpm exec playwright install chrome`.
 
 ## 6. Trazabilidad
 
@@ -327,7 +331,7 @@ U = unitario (Vitest), I = integración de la API (Supertest + Postgres de test)
 | RNF-001 | `FormField` (etiqueta, `aria-invalid`, `aria-describedby`), mensaje del formulario con `role="alert"`, foco en el primer campo con error, `focus-visible` de Tailwind | C: consultas por rol y etiqueta; tras un envío inválido el foco está en el primer campo con error. E: registro e inicio de sesión solo con teclado (Tab/Enter). Manual: contraste ≥ 4.5:1 con la herramienta del navegador |
 | RNF-002 | D-4; `PublicUser` como única forma de salida | U: `hashPassword` no contiene la contraseña y `verifyPassword` acierta y falla. I: los cuerpos de signup, login y me tienen exactamente las claves `id` y `email` |
 | RNF-003 | Modelo de §4.2 | Revisión del esquema en `/sdd-verificar` (manual). I: borrar un `User` borra sus `Session` (cascada, C-16) |
-| RNF-004 | Playwright con proyectos `chromium`, `firefox` y `webkit`; D-1 | E: el flujo completo en los tres motores. Edge usa Chromium: queda cubierto por `chromium` |
+| RNF-004 | Playwright con proyectos `chromium`, `chrome` (Google Chrome instalado) y `webkit`; D-1, D-18 | E: el flujo completo en los tres proyectos. Edge usa Chromium: queda cubierto por `chromium`. Firefox sin E2E automático (D-18) |
 | E-1 | Esquemas (RF-007) | U + C (como RF-007) |
 | E-2 | `emailSchema` | U: 254 válido, 255 no válido |
 | E-3 | `passwordSchema` | U: 8 y 128 válidos, 129 no válido |
@@ -344,7 +348,7 @@ U = unitario (Vitest), I = integración de la API (Supertest + Postgres de test)
 - **Unitarias** (`packages/shared`, `apps/api/src/services/{password,session-token}`, `apps/web/src/lib/api`): esquemas con todos los valores límite de la spec, hash y verificación de contraseñas, generación y hash de tokens, `readCookie`, y cómo `apiFetch` clasifica los errores.
 - **Integración** (`apps/api/**/*.test.ts`): Supertest contra `createApp()` y el Postgres `todo_test`. El `globalSetup` ejecuta `prisma migrate deploy` y antes de cada test se vacían las tablas (`TRUNCATE "Session", "User"`). Los archivos de test van en serie (`fileParallelism: false`) porque comparten base de datos. Como Supertest no envía cookies `Secure` por HTTP, `helpers.ts` saca `sid` de `Set-Cookie` y la manda en la cabecera `Cookie` a mano. La caducidad se prueba modificando `expiresAt` directamente en la BD, sin simular relojes.
 - **Componentes** (`apps/web/**/*.test.tsx`, jsdom): formularios y `PrivateArea` con `fetch` simulado vía `vi.stubGlobal`, y `location.replace` espiado.
-- **E2E** (`e2e/auth.spec.ts`, script `pnpm test:e2e`): Playwright arranca `pnpm dev` con `DATABASE_URL` apuntando a `todo_test` y `ignoreHTTPSErrors`. El flujo: registro → zona privada → recargar → cerrar sesión → "atrás" → login con mayúsculas → abrir `/login` con sesión. Todo con teclado y en los tres motores. Los emails son únicos por ejecución.
+- **E2E** (`e2e/auth.spec.ts`, script `pnpm test:e2e`): Playwright arranca `pnpm dev` con `DATABASE_URL` apuntando a `todo_test` y `ignoreHTTPSErrors`. El flujo: registro → zona privada → recargar → cerrar sesión → "atrás" → login con mayúsculas → abrir `/login` con sesión. Todo con teclado y en los proyectos `chromium`, `chrome` y `webkit` (D-18). Los emails son únicos por ejecución. *Precisado en T-023:* el registro y el cierre navegan con `location.replace`, así que el flujo abre `/` una vez más antes de cerrar sesión para que "atrás" vuelva a una entrada de la zona privada (si no, saldría de la app).
 - `pnpm test` ejecuta Vitest con proyectos `shared`, `api` y `web`. Necesita Postgres levantado (`pnpm db:up`). El E2E va aparte porque arranca servidores; se ejecuta en cada tarea que toque el flujo y en `/sdd-verificar`.
 - **Manual:** contraste de colores (RNF-001) y revisión del esquema de datos (RNF-003): no merece la pena una dependencia extra para algo que se revisa una vez.
 
@@ -355,7 +359,7 @@ U = unitario (Vitest), I = integración de la API (Supertest + Postgres de test)
 | `crypto.argon2` cambia de API, porque no está claro si es estable en Node 24 | Baja | Medio | Aislado en `password.ts` con tests; plan B: `@node-rs/argon2` (R-2) |
 | El certificado autofirmado molesta o WebKit en Playwright lo rechaza | Media | Medio | `ignoreHTTPSErrors`. Si fallara, se cambia a mkcert sin tocar el código de la app (solo `astro.config.mjs`) |
 | El proxy de Vite no reenvía bien `Set-Cookie` o la cabecera de origen | Baja | Alto | La primera tarea de integración front-back es un E2E mínimo (registro → `/me`), antes de pulir la UI |
-| *(detectado en T-009)* El Firefox 157 de Playwright 1.64.1 no arranca en el macOS 27.0.1 del equipo de desarrollo ("Could not find profile folder", también lanzando el binario a mano y tras reinstalarlo). Chromium y WebKit funcionan | Alta (ya ocurre) | Alto para RNF-004 | Sin arreglo dentro del proyecto. Antes de T-023/T-037: probar una versión nueva de Playwright si sale, u otro equipo/CI con macOS anterior o Linux. Si no, decidir con el usuario (`/sdd-cambiar-spec` sobre RNF-004 o aceptar el riesgo) |
+| *(detectado en T-009)* El Firefox 157 de Playwright 1.64.1 no arranca en el macOS 27.0.1 del equipo de desarrollo ("Could not find profile folder", también lanzando el binario a mano y tras reinstalarlo). Chromium y WebKit funcionan | Alta (ya ocurre) | Alto para RNF-004 | Sin arreglo dentro del proyecto. Antes de T-023/T-037: probar una versión nueva de Playwright si sale, u otro equipo/CI con macOS anterior o Linux. Si no, decidir con el usuario (`/sdd-cambiar-spec` sobre RNF-004 o aceptar el riesgo). **Decidido en T-023 (D-18):** comprobado de nuevo con Playwright 1.64.1, que sigue siendo la última versión, y falla igual. El proyecto `firefox` se sustituye por `chrome`. RNF-004 sigue nombrando Firefox, pero se queda sin E2E automático |
 | Incompatibilidades entre versiones recientes (Astro 7, Vitest 5, ESLint 10, Prisma 7) | Media | Medio | Versiones de R-3 ya cruzadas; el esqueleto se monta y se pone en verde (`test`/`lint`/`typecheck`) antes de cualquier funcionalidad |
 | Postgres no levantado al ejecutar `pnpm test` | Media | Bajo | El `globalSetup` falla con un mensaje claro ("ejecuta `pnpm db:up`") |
 | Sesiones caducadas acumuladas (D-3) | Baja | Bajo | Deuda aceptada; se revisa con el ADR de despliegue |

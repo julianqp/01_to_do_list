@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    // DOM: el código de page.evaluate() de los E2E se ejecuta en el navegador.
+    "lib": ["ES2024", "DOM"],
+    "types": ["node"]
+  },
+  "include": ["e2e", "*.config.ts", "test-database-url.ts"]
+}

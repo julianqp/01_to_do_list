@@ -1,7 +1,7 @@
 ---
 spec: 001
 plan_aprobado: 2026-10-28
-progreso: 22/41
+progreso: 23/41
 ---
 
 # Tareas · Spec 001 · Cuentas de usuario
@@ -165,7 +165,7 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
   - Casos: `me` 200 → muestra el email y el botón "Cerrar sesión"; `me` 401 `UNAUTHENTICATED` → `location.replace('/login')`; `me` 401 `SESSION_EXPIRED` → `location.replace('/login?expired=1')`; "Cerrar sesión" con 204 → `location.replace('/login')`; logout con red caída o 500 → mensaje de RF-010 y no redirige; evento `pageshow` con `persisted: true` → `location.reload()`; mientras `me` está pendiente solo hay "Cargando…" para lectores de pantalla
   - Hecho cuando: los tests existen y fallan porque el componente devuelve `null`
 
-- [ ] **T-023** [P] Escribir los tests E2E del flujo principal
+- [x] **T-023** [P] Escribir los tests E2E del flujo principal
   - Depende de: T-009
   - Ficheros: `e2e/auth.spec.ts`
   - Cubre: CA-1.1, CA-2.2, CA-3.1, CA-3.2, CA-4.1, CA-4.3, CA-5.1, RF-002, RF-012, RF-014, RF-016, E-6, RNF-001, RNF-004
@@ -256,11 +256,11 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 
 ## Fase 5 · Pulido y cierre
 
-- [ ] **T-037** Poner en verde el E2E completo en los tres motores
+- [ ] **T-037** Poner en verde el E2E completo en los tres proyectos
   - Depende de: T-035, T-036
   - Ficheros: `e2e/auth.spec.ts` (solo ajustes de selectores o esperas); cualquier corrección de comportamiento en `apps/web` se anota en el Registro
   - Cubre: CA-2.2, CA-3.2, CA-4.1, CA-4.3, CA-5.1, RF-016, E-6, RNF-001 (solo teclado), RNF-004
-  - Hecho cuando: `pnpm test:e2e` en verde en `chromium`, `firefox` y `webkit`
+  - Hecho cuando: `pnpm test:e2e` en verde en `chromium`, `chrome` y `webkit` (plan D-18: `chrome` sustituye a `firefox`)
 
 - [ ] **T-038** [P] Revisar la accesibilidad de formularios y zona privada
   - Depende de: T-036
@@ -366,4 +366,5 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 | T-019 | bc42372 | 9 tests, todos en rojo por `not implemented`. «500 = mismo trato que la red» se fija como: cualquier 5xx (500, 502, 504) lanza `NetworkError`, porque con la API caída el proxy de Vite responde 5xx en vez de rechazar (precisado en plan §4.3). Añadido «200 → devuelve el JSON», el contrato básico de `apiFetch` |
 | T-020 | 794f464 | 11 tests, todos en rojo porque el componente devuelve `null`. El componente se monta dentro de un `QueryClientProvider` del test (funciona tanto si T-033 lo deja sin envolver como si lo exporta ya envuelto). Campos buscados por `/email/i` y `/contraseña/i` (la spec no fija las etiquetas); botón "Crear cuenta" (E-8). `location` se sustituye con `vi.stubGlobal` porque `vi.spyOn(window.location, 'replace')` falla en jsdom. Sin `@testing-library/jest-dom` (no está en el plan): las comprobaciones se hacen sobre el DOM directamente. `fetch` simulado por rutas (`GET /api/auth/me` = 401 por defecto); los helpers son locales y se extraerán cuando T-021/T-022 los usen (C-22) |
 | T-021 | fb687bc | 10 tests, todos en rojo porque el componente devuelve `null`. Por decisión del usuario, los helpers de T-020 se extraen a `apps/web/src/components/test-utils.tsx` (`mockBrowser`, `renderWithClient`, `json`, `apiError`, `descriptionOf`, `expectFieldError`) y `SignupForm.test.tsx` pasa a importarlos, sin cambiar ningún caso (sus 11 tests fallan igual). El botón de inicio de sesión se busca como el único botón del formulario, porque la spec no fija su texto. Añadido «sin `?expired=1` no hay aviso» |
-| T-022 | (pendiente) | 9 tests, todos en rojo porque el componente devuelve `null`. `<PrivateArea />` se monta **sin** `QueryClientProvider` externo: la isla tiene que traer su `QueryClient` con la redirección de D-10 (precisado en plan D-10: un cliente por montaje y sin reintentos ante `ApiError`; afecta a T-032/T-034). `mockBrowser` añade `reload` en `test-utils.tsx`. Añadido «`pageshow` con `persisted: false` no recarga». «Solo para lectores de pantalla» se comprueba con la clase `sr-only` de Tailwind y con que el contenedor no tenga más texto que «Cargando…» |
+| T-022 | 2c85bac | 9 tests, todos en rojo porque el componente devuelve `null`. `<PrivateArea />` se monta **sin** `QueryClientProvider` externo: la isla tiene que traer su `QueryClient` con la redirección de D-10 (precisado en plan D-10: un cliente por montaje y sin reintentos ante `ApiError`; afecta a T-032/T-034). `mockBrowser` añade `reload` en `test-utils.tsx`. Añadido «`pageshow` con `persisted: false` no recarga». «Solo para lectores de pantalla» se comprueba con la clase `sr-only` de Tailwind y con que el contenedor no tenga más texto que «Cargando…» |
+| T-023 | (pendiente) | 5 tests × 3 proyectos = 15, todos en rojo en el primer paso: 4 no encuentran el campo email del registro y CA-4.1 se queda en `/`. **Firefox:** sigue sin arrancar; por decisión del usuario, el proyecto `firefox` pasa a ser `chrome` con el Google Chrome instalado (plan D-18). RNF-004 queda sin E2E en Firefox, pendiente de decidir antes de T-041. Ficheros fuera de la tarea, imprescindibles: `playwright.config.ts` (D-18), `tsconfig.json` raíz (`e2e/`, `*.config.ts`, `test-database-url.ts`) y el script `typecheck` de `package.json`, que ahora termina con `tsc -p tsconfig.json`: así se resuelve lo que T-009 dejó pendiente (sin cambios en dependencias ni lockfile; `pnpm test` da el mismo resultado). Con el teclado, el foco llega a cada campo pulsando Tab (`tabTo`), sin suponer nada del resto de la página. El flujo completo abre `/` otra vez antes de cerrar sesión para que "atrás" vuelva a la zona privada (registro y cierre usan `location.replace`; precisado en plan §7). Añadido: en CA-4.3 también `/signup` con sesión; en CA-3.2 también escribir la dirección después de "atrás"; en CA-5.1, la cookie `sid` del `storageState` tiene caducidad (si no, también la guardaría con una cookie de sesión). Se ha borrado `e2e/.gitkeep` |
