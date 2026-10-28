@@ -1,0 +1,20 @@
+# Dependencias
+node_modules/
+
+# Entorno (C-15: nunca secretos en el repo)
+.env
+.env.*
+!.env.example
+
+# Cliente generado de Prisma
+apps/api/src/generated/
+
+# Astro
+dist/
+.astro/
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

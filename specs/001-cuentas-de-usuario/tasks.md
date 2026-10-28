@@ -1,7 +1,7 @@
 ---
 spec: 001
 plan_aprobado: 2026-10-28
-progreso: 0/41
+progreso: 1/41
 ---
 
 # Tareas · Spec 001 · Cuentas de usuario
@@ -22,7 +22,7 @@ progreso: 0/41
 
 Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al final de la fase, el esqueleto está en verde antes de cualquier funcionalidad (riesgo de versiones, plan §8).
 
-- [ ] **T-001** Crear la raíz del monorepo con versiones fijadas
+- [x] **T-001** Crear la raíz del monorepo con versiones fijadas
   - Ficheros: `package.json` (`engines.node` `^24.19.0`, `packageManager` `pnpm@11.20.0`, script `typecheck` = `pnpm -r typecheck`, devDeps `typescript@6.0.3` y `@types/node`), `pnpm-workspace.yaml` (`apps/*`, `packages/*`), `.npmrc` (`engine-strict=true`), `.nvmrc` (`24`), `.gitignore` (`node_modules`, `.env`, `apps/api/src/generated/`, salidas de Astro y Playwright), `tsconfig.base.json` (`strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`)
   - Cubre: C-1, C-2, C-3, C-15 (`.env` ignorado)
   - Hecho cuando: `corepack enable && pnpm install` termina sin errores con Node 24.19; `pnpm typecheck` termina con 0; `git check-ignore .env` lo confirma como ignorado
@@ -345,4 +345,4 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 
 | Tarea | Commit | Notas |
 |-------|--------|-------|
-|       |        |       |
+| T-001 | (pendiente) | `engineStrict: true` añadido en `pnpm-workspace.yaml` porque pnpm 11 ignora `engine-strict` de `.npmrc` (plan D-14). Volta da pnpm 11.20.0 en local sin `corepack enable`; comprobado que `corepack pnpm --version` respeta `packageManager` (11.20.0) |

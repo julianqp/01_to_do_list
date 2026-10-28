@@ -263,6 +263,9 @@ Props: `FormField({ id, label, type, autoComplete, value, onChange, error })`. `
 - **D-13** Protección CSRF con dos barreras: (1) la cookie `SameSite=Lax`, que el navegador no envía en `POST` entre sitios; (2) el middleware `requireJson`, que rechaza con 415 `UNSUPPORTED_MEDIA_TYPE` cualquier `POST`/`PUT`/`PATCH`/`DELETE` a `/api/*` cuyo `Content-Type` no sea `application/json`. `express.json()` solo procesa JSON.
   - *Por qué:* C-12. Un formulario HTML de otro sitio solo puede enviar `application/x-www-form-urlencoded`, `multipart/form-data` o `text/plain`; enviar `application/json` desde otro origen obliga a una comprobación previa (preflight) que la API no autoriza, porque no hay CORS (C-7). Hace falta el middleware explícito porque `express.json()` por sí solo no basta: `POST /api/auth/logout` no lleva cuerpo, así que con `Content-Type` de formulario la ruta se ejecutaría igual y cerraría la sesión.
   - *Alternativas descartadas:* token CSRF (estado y código extra que no aportan nada si se cumplen las dos barreras); comprobar la cabecera `Origin` (redundante con lo anterior, y el proxy de desarrollo la complica).
+- **D-14** *(añadida en T-001)* Además de `engine-strict=true` en `.npmrc` (C-3), `pnpm-workspace.yaml` lleva `engineStrict: true`.
+  - *Por qué:* pnpm 11.20 ya no lee ese ajuste desde `.npmrc`. Con `engines.node` incompatible, `pnpm install` solo avisaba y terminaba con 0. Con la clave en `pnpm-workspace.yaml` falla con `ERR_PNPM_UNSUPPORTED_ENGINE` (código 1), que es lo que busca C-3. Se mantiene `.npmrc` porque C-3 lo pide de forma literal y npm sí lo respeta.
+  - *Alternativas descartadas:* dejar solo `.npmrc` (no bloquea nada con pnpm 11); quitar `.npmrc` (incumple la letra de C-3). Si se quiere evitar la duplicación, se propone enmendar C-3.
 
 ## 6. Trazabilidad
 
