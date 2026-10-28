@@ -2,7 +2,7 @@
 id: 001
 titulo: Cuentas de usuario
 estado: aprobada          # borrador | aprobada | en-implementacion | implementada | obsoleta
-version: 1.0
+version: 1.1
 autor: Julian Querol Polo
 creada: 2026-10-28
 aprobada: 2026-10-28, Julian Querol Polo
@@ -99,7 +99,7 @@ Como usuario, quiero seguir dentro de la app al volver a abrirla, para no tener 
 - **RF-007** SI falta algún campo obligatorio, ENTONCES el sistema DEBE rechazar el envío e indicar qué campo falta. *(HU-1, HU-2)*
 - **RF-008** CUANDO un visitante envía un email registrado y su contraseña correcta, el sistema DEBE iniciar sesión y mostrar la zona privada. *(HU-2)*
 - **RF-009** SI el email no está registrado o la contraseña no coincide, ENTONCES el sistema DEBE mostrar el mensaje único "Email o contraseña incorrectos", sin indicar cuál de los dos falla. *(HU-2)*
-- **RF-010** SI no se puede contactar con el servidor al enviar un formulario, ENTONCES el sistema DEBE mostrar "No se ha podido conectar. Inténtalo de nuevo", conservar el email escrito y vaciar la contraseña. *(HU-1, HU-2)*
+- **RF-010** SI al enviar un formulario no se puede contactar con el servidor o este responde con un error inesperado, ENTONCES el sistema DEBE mostrar "No se ha podido conectar. Inténtalo de nuevo", conservar el email escrito y vaciar la contraseña. *(HU-1, HU-2)*
 - **RF-011** CUANDO el usuario pulsa "Cerrar sesión", el sistema DEBE invalidar la sesión actual y mostrar la pantalla de inicio de sesión. *(HU-3)*
 - **RF-012** MIENTRAS no haya una sesión válida, el sistema DEBE mostrar la pantalla de inicio de sesión en lugar de la zona privada. *(HU-4)*
 - **RF-013** SI una acción en la zona privada se realiza con una sesión caducada, ENTONCES el sistema DEBE mostrar la pantalla de inicio de sesión con el mensaje "Tu sesión ha caducado. Vuelve a iniciar sesión". *(HU-4)*
@@ -126,9 +126,10 @@ Como usuario, quiero seguir dentro de la app al volver a abrirla, para no tener 
 | E-4 | Contraseña con espacios mezclados con otros caracteres, tildes o emoji | Se acepta tal cual, sin recortar espacios; cuenta en caracteres, no en bytes |
 | E-5 | Sesión caducada a mitad de uso | Pantalla de inicio de sesión con el aviso de RF-013 |
 | E-6 | Dos pestañas abiertas; se cierra sesión en una | En la otra, la siguiente acción lleva a la pantalla de inicio de sesión |
-| E-7 | Sin conexión con el servidor al enviar un formulario | Mensaje "No se ha podido conectar. Inténtalo de nuevo"; se conserva el email escrito y se vacía la contraseña (RF-010) |
+| E-7 | Sin conexión con el servidor, o error inesperado del servidor, al enviar un formulario | Mensaje "No se ha podido conectar. Inténtalo de nuevo"; se conserva el email escrito y se vacía la contraseña (RF-010) |
 | E-8 | Doble clic en "Crear cuenta" o dos registros simultáneos con el mismo email | Se crea como máximo una cuenta; el otro intento se trata como en RF-004 |
 | E-9 | Misma cuenta con sesión en dos navegadores | Ambas sesiones son válidas; cerrar sesión en uno no cierra la del otro |
+| E-10 | Email con caracteres fuera de ASCII (p. ej. `ñandú@correo.es`) | Se rechaza como formato no válido (RF-005) |
 
 ## 8. Entidades y glosario
 
@@ -173,6 +174,8 @@ Como usuario, quiero seguir dentro de la app al volver a abrirla, para no tener 
 | 2026-10-28 | ¿Qué reglas debe cumplir la contraseña? | Solo longitud de 8 a 128 caracteres, sin reglas de composición | RF-006 |
 | 2026-10-28 | ¿Se limitan los intentos fallidos de inicio de sesión? | No por ahora (uso solo local, C-6); se revisará con el ADR de despliegue | RF-010 (antiguo), §9 |
 | 2026-10-28 | ¿Cuánto dura una sesión? | Caduca tras 7 días seguidos sin uso; cada uso renueva el plazo | RF-017, RF-018, CA-5.2, CA-5.3 |
+| 2026-10-28 | ¿Qué ve el usuario si el servidor responde con un error inesperado? (surgió en `/sdd-planificar`) | El mismo mensaje y comportamiento que sin conexión | RF-010, E-7 |
+| 2026-10-28 | ¿Se aceptan emails con caracteres fuera de ASCII? (surgió en `/sdd-planificar`) | No; se rechazan como formato no válido | E-10 |
 
 ## 12. Registro de cambios
 
@@ -181,3 +184,4 @@ Como usuario, quiero seguir dentro de la app al volver a abrirla, para no tener 
 | 0.1     | 2026-10-28 | Borrador inicial | Primera spec del roadmap |
 | 0.2     | 2026-10-28 | Resueltas 4 aclaraciones; RF-010 pasa a ser el error de conexión (E-7); nuevos RF-018 y CA-5.3; E-1 y E-4 aclarados | `/sdd-clarificar` |
 | 1.0     | 2026-10-28 | Spec aprobada | Revisión con el checklist de spec superada |
+| 1.1     | 2026-10-28 | RF-010 y E-7 cubren también el error inesperado del servidor; nuevo E-10 (emails fuera de ASCII) | Huecos detectados en `/sdd-planificar`, aprobados por el usuario |
