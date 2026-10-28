@@ -1,17 +1,5 @@
-import { existsSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
-
-// La base de test es la misma de .env cambiando el nombre a todo_test (docker/init-test-db.sql).
-function testDatabaseUrl() {
-  const envFile = new URL('./.env', import.meta.url);
-  if (existsSync(envFile)) process.loadEnvFile(envFile);
-  if (!process.env.DATABASE_URL) {
-    throw new Error('Falta DATABASE_URL: copia .env.example a .env');
-  }
-  const url = new URL(process.env.DATABASE_URL);
-  url.pathname = '/todo_test';
-  return url.toString();
-}
+import { testDatabaseUrl } from './test-database-url';
 
 export default defineConfig({
   test: {

@@ -273,6 +273,9 @@ Props: `FormField({ id, label, type, autoComplete, value, onChange, error })`. `
   - *Por qué:* es una defensa frente a versiones comprometidas, que se suelen retirar en las primeras horas. `astro` 7.4.3 y `@astrojs/react` 7.1.2 se habían publicado ese mismo día. pnpm añadió excepciones por su cuenta al pedirlas por versión exacta.
   - *Alternativa descartada:* mantener las versiones de R-3 con 5 excepciones en `pnpm-workspace.yaml`, con versiones de solo unas horas.
   - *Consecuencia:* `astro` 7.4.2 y `@astrojs/react` 7.1.1 (R-3 actualizado). Si alguna vez pnpm añade `minimumReleaseAgeExclude` a `pnpm-workspace.yaml`, se revisa en vez de commitearlo.
+- **D-17** *(añadida en T-009)* El script `dev` de `apps/web` es `astro dev --ignore-lock`.
+  - *Por qué:* Astro 7 detecta si lo ejecuta un agente de IA y entonces arranca `astro dev` en segundo plano y su script termina. Si Playwright lanza `pnpm dev` desde un agente, el `astro dev` desligado queda vivo en el puerto 4321 al acabar (comprobado). `--ignore-lock` es la opción documentada para forzar el primer plano. Solo se pierden `astro dev stop/status/logs`, que solo sirven en segundo plano.
+  - *Alternativa descartada:* definir `ASTRO_DEV_BACKGROUND` en el entorno de Playwright, que es una variable interna de Astro para marcar el proceso hijo.
 
 ## 6. Trazabilidad
 
@@ -330,6 +333,7 @@ U = unitario (Vitest), I = integración de la API (Supertest + Postgres de test)
 | `crypto.argon2` cambia de API, porque no está claro si es estable en Node 24 | Baja | Medio | Aislado en `password.ts` con tests; plan B: `@node-rs/argon2` (R-2) |
 | El certificado autofirmado molesta o WebKit en Playwright lo rechaza | Media | Medio | `ignoreHTTPSErrors`. Si fallara, se cambia a mkcert sin tocar el código de la app (solo `astro.config.mjs`) |
 | El proxy de Vite no reenvía bien `Set-Cookie` o la cabecera de origen | Baja | Alto | La primera tarea de integración front-back es un E2E mínimo (registro → `/me`), antes de pulir la UI |
+| *(detectado en T-009)* El Firefox 157 de Playwright 1.64.1 no arranca en el macOS 27.0.1 del equipo de desarrollo ("Could not find profile folder", también lanzando el binario a mano y tras reinstalarlo). Chromium y WebKit funcionan | Alta (ya ocurre) | Alto para RNF-004 | Sin arreglo dentro del proyecto. Antes de T-023/T-037: probar una versión nueva de Playwright si sale, u otro equipo/CI con macOS anterior o Linux. Si no, decidir con el usuario (`/sdd-cambiar-spec` sobre RNF-004 o aceptar el riesgo) |
 | Incompatibilidades entre versiones recientes (Astro 7, Vitest 5, ESLint 10, Prisma 7) | Media | Medio | Versiones de R-3 ya cruzadas; el esqueleto se monta y se pone en verde (`test`/`lint`/`typecheck`) antes de cualquier funcionalidad |
 | Postgres no levantado al ejecutar `pnpm test` | Media | Bajo | El `globalSetup` falla con un mensaje claro ("ejecuta `pnpm db:up`") |
 | Sesiones caducadas acumuladas (D-3) | Baja | Bajo | Deuda aceptada; se revisa con el ADR de despliegue |

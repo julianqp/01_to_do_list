@@ -12,10 +12,12 @@
     "dev": "pnpm -r --parallel dev",
     "lint": "eslint . && prettier --check .",
     "test": "vitest run",
+    "test:e2e": "playwright test --pass-with-no-tests",
     "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.1",
     "@types/node": "24.19.2",
     "eslint": "10.13.0",
     "eslint-plugin-astro": "3.2.1",
