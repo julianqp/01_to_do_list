@@ -1,7 +1,7 @@
 ---
 spec: 001
 plan_aprobado: 2026-10-28
-progreso: 12/41
+progreso: 14/41
 ---
 
 # Tareas · Spec 001 · Cuentas de usuario
@@ -95,14 +95,14 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
   - Cubre: plan §4.3
   - Hecho cuando: `pnpm typecheck` y `pnpm lint` pasan
 
-- [ ] **T-013** [P] Escribir los tests unitarios de los esquemas de email y contraseña
+- [x] **T-013** [P] Escribir los tests unitarios de los esquemas de email y contraseña
   - Depende de: T-010
   - Ficheros: `packages/shared/src/auth.test.ts`
   - Cubre: RF-003, RF-005, RF-006, RF-007, CA-1.3, CA-1.4, CA-1.5, E-1, E-2, E-3, E-4, E-10
   - Casos: `"  ANA@Example.com "` → `ana@example.com`; `ana@` y `ñandú@correo.es` → "Introduce un email válido"; email de 254 válido y de 255 → "El email no puede tener más de 254 caracteres"; contraseña de 7 y 129 → "La contraseña debe tener entre 8 y 128 caracteres", 8 y 128 válidas; `"  a ñ 😀 b  "` de longitud válida se acepta sin cambios y el emoji cuenta 1; `""` y `"   "` → "Este campo es obligatorio" en los dos campos y en los dos esquemas (signup y login); `loginInputSchema` no aplica límites de longitud ni formato
   - Hecho cuando: los tests existen y fallan porque los esquemas aún no tienen reglas
 
-- [ ] **T-014** [P] Escribir los tests unitarios de contraseña, token y cookie
+- [x] **T-014** [P] Escribir los tests unitarios de contraseña, token y cookie
   - Depende de: T-011
   - Ficheros: `apps/api/src/services/password.test.ts`, `apps/api/src/services/session-token.test.ts`, `apps/api/src/routes/session-cookie.test.ts`
   - Cubre: RNF-002, C-12, D-2, D-4, D-5
@@ -356,4 +356,6 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 | T-009 | 255b08d | `test:e2e` = `playwright test --pass-with-no-tests`. `reuseExistingServer: false`: un `pnpm dev` ya abierto usa la base de desarrollo, así que Playwright falla en vez de reutilizarlo. La URL de `todo_test` sale a `test-database-url.ts` en la raíz (la usan `vitest.config.ts` y `playwright.config.ts`, C-22); `--env-file` de la API no la pisa (comprobado). `apps/web` `dev` = `astro dev --ignore-lock` (plan D-17): sin eso, desde un agente quedaba un `astro dev` huérfano en el 4321. Spec temporal en los tres motores, borrado al terminar: Chromium y WebKit OK; **Firefox no arranca en este macOS 27.0.1** (riesgo añadido en plan §8, a resolver antes de T-023/T-037). Pendiente para T-023: ni `e2e/` ni los `*.config.ts` de la raíz pasan por `typecheck` (no hay `tsconfig` raíz) |
 | T-010 | 51de726 | Esquemas con la forma final y sin reglas (`z.string()`); `requiredEmail`/`requiredPassword` del login, privados en `auth.ts`. Verificado con un test temporal de exportaciones y tipos (`expectTypeOf`, incluido `PublicUser` = solo `id` y `email`); comprobado que `typecheck` falla si cambia un tipo. Borrado al terminar |
 | T-011 | a03924a | El plan no nombraba las funciones de `session-token` ni las de escritura y borrado de la cookie: fijadas como `generateSessionToken`, `hashSessionToken`, `SESSION_COOKIE`, `setSessionCookie` y `clearSessionCookie`, y añadidas a las firmas de plan §4.3. Stubs como constantes tipadas sin parámetros, para no tocar la regla `no-unused-vars` de ESLint; las tareas de implementación los convierten en funciones. Verificado con un test temporal (las 16 firmas lanzan `not implemented`; `AppError` lleva `code`, `status` y `message`), borrado al terminar |
-| T-012 | (pendiente) | El plan no daba la firma de `messages.ts`: fijada como `messageFor(code: ErrorCode \| 'NETWORK_ERROR'): { text; field?: 'email' }`, y también los tipos de las props de `FormField`; los dos añadidos a plan §4.3. `ApiError` y `NetworkError` completos (son clases de datos que necesitan los tests de T-019); `apiFetch` y `messageFor` lanzan `not implemented`; los componentes devuelven `null`. Verificado con un test temporal, borrado al terminar |
+| T-012 | 7f4fcb9 | El plan no daba la firma de `messages.ts`: fijada como `messageFor(code: ErrorCode \| 'NETWORK_ERROR'): { text; field?: 'email' }`, y también los tipos de las props de `FormField`; los dos añadidos a plan §4.3. `ApiError` y `NetworkError` completos (son clases de datos que necesitan los tests de T-019); `apiFetch` y `messageFor` lanzan `not implemented`; los componentes devuelven `null`. Verificado con un test temporal, borrado al terminar |
+| T-013 | (pendiente) | 20 tests: 15 en rojo (los que exigen reglas) y 5 en verde (los de aceptación, que hoy pasan porque el esquema acepta cualquier texto). Excepción a C-19 (plan §3). Cada campo inválido debe dar **un solo** mensaje (vacío = solo "obligatorio"). "El emoji cuenta 1" se fija con `abcdef😀` (rechazado) y 127 letras + 😀 (aceptado). La normalización del email en el login (RF-003) no se prueba aquí porque el plan no dice si va en el esquema o en el service; la cubre T-016. Aviso pendiente de T-009: Vite pide extensión en `import './test-database-url'` de `vitest.config.ts` (solo es un aviso) |
+| T-014 | (pendiente) | 12 tests, todos en rojo por `not implemented`. PHC comprobado con una expresión regular: parámetros exactos y sal de 22 caracteres en base64 (16 bytes). El SHA-256 se compara con el vector conocido de `"abc"`, sin recalcularlo con `crypto`. El token se comprueba como 43 caracteres base64url que decodifican a 32 bytes. `readCookie` no debe confundir `sid` con `xsid` ni `sidx` |
