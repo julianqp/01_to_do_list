@@ -1,8 +1,8 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { SignupForm } from './SignupForm';
+import { apiError, expectFieldError, json, mockBrowser, renderWithClient } from './test-utils';
 
 const REQUIRED = 'Este campo es obligatorio';
 const INVALID_EMAIL = 'Introduce un email válido';
@@ -10,71 +10,17 @@ const PASSWORD_LENGTH = 'La contraseña debe tener entre 8 y 128 caracteres';
 const EMAIL_TAKEN = 'Ya existe una cuenta con ese email';
 const CONNECTION = 'No se ha podido conectar. Inténtalo de nuevo';
 
-type Handler = () => Promise<Response>;
-
-const json = (status: number, body: unknown) =>
-  Promise.resolve(
-    new Response(JSON.stringify(body), {
-      status,
-      headers: { 'Content-Type': 'application/json' },
-    }),
-  );
-const apiError = (status: number, code: string) => json(status, { error: { code, message: code } });
-
-let routes: Record<string, Handler>;
-const fetchMock = vi.fn<typeof fetch>((input, init) => {
-  const key = `${init?.method ?? 'GET'} ${String(input)}`;
-  const handler = routes[key];
-  if (!handler) throw new Error(`fetch inesperado en el test: ${key}`);
-  return handler();
-});
-const replace = vi.fn();
-
-const signupCalls = () =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) => init?.method === 'POST' && input === '/api/auth/signup',
-  );
-
-beforeEach(() => {
-  routes = { 'GET /api/auth/me': () => apiError(401, 'UNAUTHENTICATED') };
-  vi.stubGlobal('fetch', fetchMock);
-  vi.stubGlobal('location', { ...window.location, replace });
-});
-
-afterEach(() => {
-  fetchMock.mockClear();
-  replace.mockReset();
-  vi.unstubAllGlobals();
-});
+const browser = mockBrowser();
+const { replace } = browser;
+const signupCalls = () => browser.callsTo('POST', '/api/auth/signup');
 
 async function renderForm() {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-  render(
-    <QueryClientProvider client={client}>
-      <SignupForm />
-    </QueryClientProvider>,
-  );
+  renderWithClient(<SignupForm />);
   const user = userEvent.setup();
   const email = await screen.findByLabelText(/email/i);
   const password = screen.getByLabelText(/contraseña/i);
   const submit = screen.getByRole('button', { name: 'Crear cuenta' });
   return { user, email, password, submit };
-}
-
-// Texto de los elementos a los que apunta aria-describedby.
-function descriptionOf(element: HTMLElement) {
-  return (element.getAttribute('aria-describedby') ?? '')
-    .split(' ')
-    .filter(Boolean)
-    .map((id) => document.getElementById(id)?.textContent ?? '')
-    .join(' ');
-}
-
-function expectFieldError(element: HTMLElement, message: string) {
-  expect(element.getAttribute('aria-invalid')).toBe('true');
-  expect(descriptionOf(element)).toContain(message);
 }
 
 describe('SignupForm', () => {
@@ -87,7 +33,7 @@ describe('SignupForm', () => {
   });
 
   it('CA-1.1 RF-002 al crear la cuenta (201) lleva a la zona privada', async () => {
-    routes['POST /api/auth/signup'] = () =>
+    browser.routes['POST /api/auth/signup'] = () =>
       json(201, { user: { id: 'u1', email: 'ana@example.com' } });
     const { user, email, password, submit } = await renderForm();
 
@@ -103,7 +49,7 @@ describe('SignupForm', () => {
   });
 
   it('CA-1.2 RF-004 E-8 con un 409 muestra "Ya existe una cuenta con ese email" junto al email', async () => {
-    routes['POST /api/auth/signup'] = () => apiError(409, 'EMAIL_ALREADY_REGISTERED');
+    browser.routes['POST /api/auth/signup'] = () => apiError(409, 'EMAIL_ALREADY_REGISTERED');
     const { user, email, password, submit } = await renderForm();
 
     await user.type(email, 'ana@example.com');
@@ -164,7 +110,7 @@ describe('SignupForm', () => {
   ])(
     'RF-010 E-7 si %s muestra el error de conexión, conserva el email y vacía la contraseña',
     async (_name, handler) => {
-      routes['POST /api/auth/signup'] = handler;
+      browser.routes['POST /api/auth/signup'] = handler;
       const { user, email, password, submit } = await renderForm();
 
       await user.type(email, 'ana@example.com');
@@ -180,7 +126,7 @@ describe('SignupForm', () => {
 
   it('E-8 el botón "Crear cuenta" queda desactivado mientras se envía', async () => {
     let respond: (res: Response) => void = () => {};
-    routes['POST /api/auth/signup'] = () =>
+    browser.routes['POST /api/auth/signup'] = () =>
       new Promise<Response>((resolve) => {
         respond = resolve;
       });
@@ -196,14 +142,10 @@ describe('SignupForm', () => {
   });
 
   it('CA-4.3 RF-014 con sesión (me 200) lleva a la zona privada', async () => {
-    routes['GET /api/auth/me'] = () => json(200, { user: { id: 'u1', email: 'ana@example.com' } });
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    browser.routes['GET /api/auth/me'] = () =>
+      json(200, { user: { id: 'u1', email: 'ana@example.com' } });
 
-    render(
-      <QueryClientProvider client={client}>
-        <SignupForm />
-      </QueryClientProvider>,
-    );
+    renderWithClient(<SignupForm />);
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith('/'));
   });

@@ -1,7 +1,7 @@
 ---
 spec: 001
 plan_aprobado: 2026-10-28
-progreso: 20/41
+progreso: 21/41
 ---
 
 # Tareas · Spec 001 · Cuentas de usuario
@@ -151,7 +151,7 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
   - Casos (con `fetch` simulado y `location.replace` espiado): 201 → `location.replace('/')`; 409 → "Ya existe una cuenta con ese email" asociado al campo email (`aria-describedby`, `aria-invalid`); `ana@` → mensaje de formato junto al email y no se llama a `fetch`; contraseña de 7 → mensaje de longitud junto a la contraseña; los dos vacíos → "Este campo es obligatorio" en cada campo; tras un envío inválido el foco está en el primer campo con error; `fetch` que rechaza y respuesta 500 → "No se ha podido conectar. Inténtalo de nuevo", email conservado y contraseña vacía; el botón "Crear cuenta" queda `disabled` mientras se envía; `me` 200 → `location.replace('/')`; etiquetas visibles consultables por `getByLabelText`
   - Hecho cuando: los tests existen y fallan porque el componente devuelve `null`
 
-- [ ] **T-021** [P] Escribir los tests de componente del inicio de sesión
+- [x] **T-021** [P] Escribir los tests de componente del inicio de sesión
   - Depende de: T-012
   - Ficheros: `apps/web/src/components/LoginForm.test.tsx`
   - Cubre: CA-2.1, CA-2.3, CA-2.4, CA-2.5, CA-4.2, CA-4.3, RF-007, RF-008, RF-009, RF-010, RF-013, RF-014, E-7, RNF-001
@@ -364,4 +364,5 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 | T-017 | 5646d50 | 9 tests, todos en rojo por 404. La caducidad se prueba cambiando `expiresAt` en BD (plan §7): CA-5.2 = ahora − 1 día y CA-5.3 = ahora + 1 día. La renovación se acota entre «antes + 7 días» y «después + 7 días», sin margen arbitrario, y exige que se vuelva a emitir la **misma** cookie (D-3 renueva, no rota el token). El borrado de la cookie admite `Expires` de 1970 o `Max-Age=0`. Limpieza D-3: con 3 sesiones y la primera caducada, al iniciar sesión solo desaparece esa |
 | T-018 | 664857c | 10 tests en rojo: 404 y JSON mal formado reciben el HTML por defecto de Express (cuerpo `{}`); el resto, 404 de rutas inexistentes. El 415 se prueba en signup y login con formulario, `text/plain` y sin `Content-Type`. Error no controlado: `vi.spyOn(authService, 'login')` (comprobado que funciona sobre exportaciones ESM en Vitest 5). Se exige que `console.error` se llame (plan §9) y que ninguna llamada, formateada con `util.format`, contenga la contraseña ni el email |
 | T-019 | bc42372 | 9 tests, todos en rojo por `not implemented`. «500 = mismo trato que la red» se fija como: cualquier 5xx (500, 502, 504) lanza `NetworkError`, porque con la API caída el proxy de Vite responde 5xx en vez de rechazar (precisado en plan §4.3). Añadido «200 → devuelve el JSON», el contrato básico de `apiFetch` |
-| T-020 | (pendiente) | 11 tests, todos en rojo porque el componente devuelve `null`. El componente se monta dentro de un `QueryClientProvider` del test (funciona tanto si T-033 lo deja sin envolver como si lo exporta ya envuelto). Campos buscados por `/email/i` y `/contraseña/i` (la spec no fija las etiquetas); botón "Crear cuenta" (E-8). `location` se sustituye con `vi.stubGlobal` porque `vi.spyOn(window.location, 'replace')` falla en jsdom. Sin `@testing-library/jest-dom` (no está en el plan): las comprobaciones se hacen sobre el DOM directamente. `fetch` simulado por rutas (`GET /api/auth/me` = 401 por defecto); los helpers son locales y se extraerán cuando T-021/T-022 los usen (C-22) |
+| T-020 | 794f464 | 11 tests, todos en rojo porque el componente devuelve `null`. El componente se monta dentro de un `QueryClientProvider` del test (funciona tanto si T-033 lo deja sin envolver como si lo exporta ya envuelto). Campos buscados por `/email/i` y `/contraseña/i` (la spec no fija las etiquetas); botón "Crear cuenta" (E-8). `location` se sustituye con `vi.stubGlobal` porque `vi.spyOn(window.location, 'replace')` falla en jsdom. Sin `@testing-library/jest-dom` (no está en el plan): las comprobaciones se hacen sobre el DOM directamente. `fetch` simulado por rutas (`GET /api/auth/me` = 401 por defecto); los helpers son locales y se extraerán cuando T-021/T-022 los usen (C-22) |
+| T-021 | (pendiente) | 10 tests, todos en rojo porque el componente devuelve `null`. Por decisión del usuario, los helpers de T-020 se extraen a `apps/web/src/components/test-utils.tsx` (`mockBrowser`, `renderWithClient`, `json`, `apiError`, `descriptionOf`, `expectFieldError`) y `SignupForm.test.tsx` pasa a importarlos, sin cambiar ningún caso (sus 11 tests fallan igual). El botón de inicio de sesión se busca como el único botón del formulario, porque la spec no fija su texto. Añadido «sin `?expired=1` no hay aviso» |
