@@ -1,7 +1,7 @@
 ---
 spec: 001
 plan_aprobado: 2026-10-28
-progreso: 6/41
+progreso: 7/41
 ---
 
 # Tareas · Spec 001 · Cuentas de usuario
@@ -57,7 +57,7 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
   - Cubre: C-5, C-16, RNF-003
   - Hecho cuando: `pnpm db:migrate` crea las tablas `User` y `Session` en `todo`; la migración está commiteada; borrar `src/generated/` y ejecutar `pnpm install` lo regenera; `pnpm typecheck` pasa
 
-- [ ] **T-007** Montar la infraestructura de tests de integración de la API
+- [x] **T-007** Montar la infraestructura de tests de integración de la API
   - Depende de: T-006
   - Ficheros: `apps/api/test/global-setup.ts` (`prisma migrate deploy` sobre `todo_test`; si Postgres no responde, falla con "ejecuta `pnpm db:up`"), `apps/api/test/setup.ts` (`TRUNCATE "Session", "User"` antes de cada test), `apps/api/test/helpers.ts` (extraer `sid` de `Set-Cookie` y enviarla en `Cookie`), `vitest.config.ts` (proyecto `api` con `fileParallelism: false` y `DATABASE_URL` de test)
   - Cubre: C-18, plan §7
@@ -350,4 +350,5 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 | T-003 | bf0048b | `packages/shared/tsconfig.json` con `types: []`: el compilador rechaza `process` y cualquier API de Node en `shared` (C-10). `typescript` lo aporta la raíz; `shared` solo depende de `zod` |
 | T-004 | cba92f0 | `env.ts` exporta `parseEnv(source)` (función pura); `server.ts` la llama con `process.env`. `allowBuilds` con `esbuild: false` en `pnpm-workspace.yaml` (plan D-15). Con un entorno no válido, `tsx src/server.ts` sale con código 1; en `pnpm --filter api dev` (`tsx watch`) se muestra el error y el vigilante sigue esperando cambios en vez de salir. Versiones no listadas en R-3: `tsx` 4.23.15, `@types/express` 5.0.6, `supertest` 7.3.1, `@types/supertest` 7.2.1 |
 | T-005 | b962e04 | Imagen `postgres:18`, puerto publicado solo en `127.0.0.1`, volumen en `/var/lib/postgresql` (ruta que pide la imagen 18) y `healthcheck` con `pg_isready`. `db:up` = `docker compose up -d --wait`. Las credenciales usan `${VAR:?}`: sin `.env`, Compose falla diciendo qué variable falta. `init-test-db.sql` solo se ejecuta al crear el volumen |
-| T-006 | (pendiente) | Migración `20261028191330_auth_init`. `prisma.config.ts` carga el `.env` de la raíz con `process.loadEnvFile` si existe (Prisma 7 no lo hace solo) y no pisa una `DATABASE_URL` ya definida (comprobado con `todo_test`). Sin `DATABASE_URL`, `prisma generate` funciona igual, así que el `postinstall` de un clon limpio no necesita `.env`. `allowBuilds`: `@prisma/engines` en `true` y `prisma` en `false` (plan D-15). pnpm 11 no ejecuta `postinstall` si las dependencias no han cambiado («Already up to date»): borrar solo `src/generated/` y ejecutar `pnpm install` no regenera el cliente, pero en un clon limpio (sin `node_modules`) sí; para regenerarlo a mano, `pnpm --filter @todo/api exec prisma generate` |
+| T-006 | 086123f | Migración `20261028191330_auth_init`. `prisma.config.ts` carga el `.env` de la raíz con `process.loadEnvFile` si existe (Prisma 7 no lo hace solo) y no pisa una `DATABASE_URL` ya definida (comprobado con `todo_test`). Sin `DATABASE_URL`, `prisma generate` funciona igual, así que el `postinstall` de un clon limpio no necesita `.env`. `allowBuilds`: `@prisma/engines` en `true` y `prisma` en `false` (plan D-15). pnpm 11 no ejecuta `postinstall` si las dependencias no han cambiado («Already up to date»): borrar solo `src/generated/` y ejecutar `pnpm install` no regenera el cliente, pero en un clon limpio (sin `node_modules`) sí; para regenerarlo a mano, `pnpm --filter @todo/api exec prisma generate` |
+| T-007 | (pendiente) | La `DATABASE_URL` de test se saca de la del `.env` cambiando la base a `todo_test`, sin variable nueva; sin `.env`, `pnpm test` falla con "copia .env.example a .env". `global-setup.ts` comprueba por TCP que Postgres responde antes de `migrate deploy`. Vitest 5.0.5 pierde el mensaje de los errores de `globalSetup` (`code.charCodeAt is not a function` al formatear la traza), así que el mensaje de `pnpm db:up` se escribe también con `console.error`. Helper: `sidCookie(res)` devuelve `sid=<token>` o lanza si no hay cookie. `test/` añadido al `include` de `apps/api/tsconfig.json` para que pase por `typecheck`. Verificado con un test temporal (base `todo_test`, `TRUNCATE` entre tests, `sidCookie`), borrado al terminar |
