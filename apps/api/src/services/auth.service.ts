@@ -1,13 +1,15 @@
 import type { LoginInput, PublicUser, SignupInput } from '@todo/shared';
 import { AppError } from '../errors';
-import { createSession, deleteExpiredSessions } from '../repositories/session.repository';
+import {
+  createSession,
+  deleteExpiredSessions,
+  deleteSessionByTokenHash,
+  extendSession,
+  findSessionByTokenHash,
+} from '../repositories/session.repository';
 import { createUser, findUserByEmail } from '../repositories/user.repository';
 import { hashPassword, verifyPassword } from './password';
 import { generateSessionToken, hashSessionToken } from './session-token';
-
-const notImplemented = (): never => {
-  throw new Error('not implemented');
-};
 
 // D-3: la sesión caduca a los 7 días sin uso.
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -40,6 +42,24 @@ export async function login(input: LoginInput): Promise<{ user: PublicUser; toke
   return { user, token: await startSession(user.id) };
 }
 
-export const logout: (token: string | undefined) => Promise<void> = notImplemented;
+// Idempotente: sin cookie o con una sesión que ya no existe no hace nada (RF-011).
+export async function logout(token: string | undefined): Promise<void> {
+  if (token) await deleteSessionByTokenHash(hashSessionToken(token));
+}
+
 // Lanza AppError UNAUTHENTICATED | SESSION_EXPIRED; renueva la sesión (D-3).
-export const authenticate: (token: string | undefined) => Promise<PublicUser> = notImplemented;
+export async function authenticate(token: string | undefined): Promise<PublicUser> {
+  if (!token) throw new AppError('UNAUTHENTICATED', 401);
+  const tokenHash = hashSessionToken(token);
+  const session = await findSessionByTokenHash(tokenHash);
+  if (!session) throw new AppError('UNAUTHENTICATED', 401);
+  const now = new Date();
+  // RF-017: 7 días sin uso. Se borra al detectarla (D-3).
+  if (session.expiresAt <= now) {
+    await deleteSessionByTokenHash(tokenHash);
+    throw new AppError('SESSION_EXPIRED', 401);
+  }
+  // RF-018: cada uso reinicia el plazo.
+  await extendSession(session.id, new Date(now.getTime() + SESSION_TTL_MS));
+  return session.user;
+}

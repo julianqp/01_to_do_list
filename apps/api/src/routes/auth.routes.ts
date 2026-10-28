@@ -6,8 +6,9 @@ import {
 } from '@todo/shared';
 import { Router } from 'express';
 import * as authService from '../services/auth.service';
+import { requireAuth } from './middleware/require-auth';
 import { validateBody } from './middleware/validate-body';
-import { setSessionCookie } from './session-cookie';
+import { clearSessionCookie, readCookie, SESSION_COOKIE, setSessionCookie } from './session-cookie';
 
 export const authRouter = Router();
 
@@ -21,4 +22,15 @@ authRouter.post('/login', validateBody(loginInputSchema), async (req, res) => {
   const { user, token } = await authService.login(req.body as LoginInput);
   setSessionCookie(res, token);
   res.json({ user });
+});
+
+// D-13: el cuerpo es `{}`; requireJson ya exige application/json.
+authRouter.post('/logout', async (req, res) => {
+  await authService.logout(readCookie(req.headers.cookie, SESSION_COOKIE));
+  clearSessionCookie(res);
+  res.status(204).end();
+});
+
+authRouter.get('/me', requireAuth, (_req, res) => {
+  res.json({ user: res.locals.user });
 });
