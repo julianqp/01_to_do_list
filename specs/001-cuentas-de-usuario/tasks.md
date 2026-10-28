@@ -1,7 +1,7 @@
 ---
 spec: 001
 plan_aprobado: 2026-10-28
-progreso: 2/41
+progreso: 3/41
 ---
 
 # Tareas · Spec 001 · Cuentas de usuario
@@ -33,7 +33,7 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
   - Cubre: C-25, C-1
   - Hecho cuando: `pnpm lint` termina con 0; un fichero temporal con `const x: any = 1` hace fallar `pnpm lint` (se comprueba y se borra)
 
-- [ ] **T-003** Crear el paquete `shared` y la configuración raíz de Vitest
+- [x] **T-003** Crear el paquete `shared` y la configuración raíz de Vitest
   - Depende de: T-001
   - Ficheros: `packages/shared/package.json` (`@todo/shared`, `"exports": { ".": "./src/index.ts" }`, dependencia `zod@4.6.7`, script `typecheck`), `packages/shared/tsconfig.json`, `packages/shared/src/index.ts`, `vitest.config.ts` (proyecto `shared`), `package.json` (script `test`, devDep `vitest@5.0.5`)
   - Cubre: C-10, C-18, D-6 (ADR-0002)
@@ -346,4 +346,5 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 | Tarea | Commit | Notas |
 |-------|--------|-------|
 | T-001 | 3a67945 | `engineStrict: true` añadido en `pnpm-workspace.yaml` porque pnpm 11 ignora `engine-strict` de `.npmrc` (plan D-14). Volta da pnpm 11.20.0 en local sin `corepack enable`; comprobado que `corepack pnpm --version` respeta `packageManager` (11.20.0) |
-| T-002 | (pendiente) | `lint` = `eslint . && prettier --check .` (C-25 cubre los dos). `.prettierignore` excluye la documentación SDD (`specs/`, `docs/`, `.sdd/`, `.claude/`, `CLAUDE.md`). `@eslint/js` fijado en 10.0.1 (R-3 no lo listaba) |
+| T-002 | e090a1a | `lint` = `eslint . && prettier --check .` (C-25 cubre los dos). `.prettierignore` excluye la documentación SDD (`specs/`, `docs/`, `.sdd/`, `.claude/`, `CLAUDE.md`). `@eslint/js` fijado en 10.0.1 (R-3 no lo listaba) |
+| T-003 | (pendiente) | `packages/shared/tsconfig.json` con `types: []`: el compilador rechaza `process` y cualquier API de Node en `shared` (C-10). `typescript` lo aporta la raíz; `shared` solo depende de `zod` |

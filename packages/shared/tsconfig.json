@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // C-10: sin DOM ni I/O.
+    "types": []
+  },
+  "include": ["src"]
+}

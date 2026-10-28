@@ -8,6 +8,7 @@
   },
   "scripts": {
     "lint": "eslint . && prettier --check .",
+    "test": "vitest run",
     "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
@@ -19,6 +20,7 @@
     "prettier": "3.9.10",
     "prettier-plugin-astro": "1.1.2",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.72.1"
+    "typescript-eslint": "8.72.1",
+    "vitest": "5.0.5"
   }
 }
