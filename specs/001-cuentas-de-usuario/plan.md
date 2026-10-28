@@ -170,7 +170,7 @@ Todas las rutas aceptan y devuelven JSON (límite de cuerpo de 100 kB, el de Exp
 | `POST /api/auth/logout` | cookie (opcional), cuerpo `{}` | 204 + borrado de la cookie (idempotente) | 415 `UNSUPPORTED_MEDIA_TYPE` |
 | `GET /api/auth/me` | cookie | 200 `{ user: PublicUser }` + `Set-Cookie` renovada | 401 `UNAUTHENTICATED`, 401 `SESSION_EXPIRED` |
 | Cualquier otra `/api/*` | — | — | 404 `NOT_FOUND` |
-| JSON mal formado / error no controlado | — | — | 400 `VALIDATION_ERROR` / 500 `INTERNAL_ERROR` |
+| JSON mal formado / error no controlado | — | — | 400 `VALIDATION_ERROR` / 500 `INTERNAL_ERROR`. *Precisado en T-028:* cualquier error de `express.json()` con status 4xx (también un cuerpo de más de 100 kB) → 400 `VALIDATION_ERROR`; el catálogo de C-9 no tiene otro código para eso |
 | Método que modifica sin `application/json` | — | — | 415 `UNSUPPORTED_MEDIA_TYPE` (también en signup y login) |
 
 Firmas internas:
