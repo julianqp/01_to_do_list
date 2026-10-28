@@ -1,7 +1,7 @@
 ---
 spec: 001
 plan_aprobado: 2026-10-28
-progreso: 16/41
+progreso: 17/41
 ---
 
 # Tareas · Spec 001 · Cuentas de usuario
@@ -123,7 +123,7 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
   - Casos: login correcto → 200, `{ user }` con exactamente `id` y `email`, y cookie; `Ana@Example.com` → 200; contraseña incorrecta y email inexistente → mismo status 401 y mismo `code` `INVALID_CREDENTIALS`; cuenta registrada con `"  a ñ 😀 b  "` entra con esa misma contraseña; campos vacíos → 400
   - Hecho cuando: los tests existen y fallan porque la ruta no existe (404)
 
-- [ ] **T-017** [P] Escribir los tests de integración de sesión, renovación y cierre
+- [x] **T-017** [P] Escribir los tests de integración de sesión, renovación y cierre
   - Depende de: T-007, T-011
   - Ficheros: `apps/api/test/auth.session.test.ts`
   - Cubre: CA-3.1, CA-4.1, CA-4.2, CA-5.2, CA-5.3, RF-011, RF-012, RF-013, RF-017, RF-018, E-5, E-6, E-9, RNF-003, D-3
@@ -360,4 +360,5 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 | T-013 | 8df1fc7 | 20 tests: 15 en rojo (los que exigen reglas) y 5 en verde (los de aceptación, que hoy pasan porque el esquema acepta cualquier texto). Excepción a C-19 (plan §3). Cada campo inválido debe dar **un solo** mensaje (vacío = solo "obligatorio"). "El emoji cuenta 1" se fija con `abcdef😀` (rechazado) y 127 letras + 😀 (aceptado). La normalización del email en el login (RF-003) no se prueba aquí porque el plan no dice si va en el esquema o en el service; la cubre T-016. Aviso pendiente de T-009: Vite pide extensión en `import './test-database-url'` de `vitest.config.ts` (solo es un aviso) |
 | T-014 | 8df1fc7 | 12 tests, todos en rojo por `not implemented`. PHC comprobado con una expresión regular: parámetros exactos y sal de 22 caracteres en base64 (16 bytes). El SHA-256 se compara con el vector conocido de `"abc"`, sin recalcularlo con `crypto`. El token se comprueba como 43 caracteres base64url que decodifican a 32 bytes. `readCookie` no debe confundir `sid` con `xsid` ni `sidx` |
 | T-015 | 8272241 | 10 tests, todos en rojo por 404 (cada test comprueba primero el status, para que ese sea el motivo del fallo). Además de los casos de la tarea: el email se guarda normalizado (RF-003); en CA-1.2 la cuenta existente no cambia; RNF-002: el `passwordHash` guardado no contiene la contraseña, y ni la contraseña ni el token aparecen en el cuerpo. La cuenta previa se crea con el propio endpoint (caja negra) |
-| T-016 | (pendiente) | 6 tests, todos en rojo por 404 (la cuenta previa se crea con el registro). RF-009 se comprueba con cuerpos idénticos, no solo el mismo `code`, y sin `Set-Cookie`. E-4 incluye que la misma contraseña sin los espacios de los extremos falla (401), lo que demuestra que no se recorta. CA-2.1 confirma la sesión con `/me` |
+| T-016 | a87e210 | 6 tests, todos en rojo por 404 (la cuenta previa se crea con el registro). RF-009 se comprueba con cuerpos idénticos, no solo el mismo `code`, y sin `Set-Cookie`. E-4 incluye que la misma contraseña sin los espacios de los extremos falla (401), lo que demuestra que no se recorta. CA-2.1 confirma la sesión con `/me` |
+| T-017 | (pendiente) | 9 tests, todos en rojo por 404. La caducidad se prueba cambiando `expiresAt` en BD (plan §7): CA-5.2 = ahora − 1 día y CA-5.3 = ahora + 1 día. La renovación se acota entre «antes + 7 días» y «después + 7 días», sin margen arbitrario, y exige que se vuelva a emitir la **misma** cookie (D-3 renueva, no rota el token). El borrado de la cookie admite `Expires` de 1970 o `Max-Age=0`. Limpieza D-3: con 3 sesiones y la primera caducada, al iniciar sesión solo desaparece esa |
