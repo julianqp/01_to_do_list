@@ -268,7 +268,7 @@ Props: `FormField({ id, label, type, autoComplete, value, onChange, error })`. `
   - *Alternativas descartadas:* dejar solo `.npmrc` (no bloquea nada con pnpm 11); quitar `.npmrc` (incumple la letra de C-3). Si se quiere evitar la duplicación, se propone enmendar C-3.
 - **D-15** *(añadida en T-004)* Los scripts de instalación de dependencias se deciden uno a uno en `allowBuilds` de `pnpm-workspace.yaml`. `esbuild` (lo trae `tsx` y Vitest) queda en `false`.
   - *Por qué:* pnpm 11 bloquea esos scripts y `pnpm install` termina con error (`ERR_PNPM_IGNORED_BUILDS`) si alguno queda sin decidir. El `postinstall` de `esbuild` solo comprueba el binario, que ya llega por `@esbuild/<plataforma>`; con `false`, `tsx` y Vitest funcionan igual. Cada script que se permita tiene que justificarse aquí (C-2).
-  - *Consecuencia:* T-006 tendrá que decidir lo mismo para los paquetes de Prisma que lo pidan.
+  - *Prisma (T-006):* `@prisma/engines` en `true`, porque su `postinstall` descarga el binario del *schema engine* que usa `prisma migrate`. `prisma` en `false`, porque su `preinstall` solo comprueba la versión de Node, y eso ya lo hace `engineStrict` (D-14).
 
 ## 6. Trazabilidad
 

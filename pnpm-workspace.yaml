@@ -4,7 +4,11 @@ packages:
 
 engineStrict: true
 
-# Scripts de instalación de dependencias (pnpm 11 los bloquea y exige decidir cada uno).
-# esbuild: su postinstall solo comprueba el binario, que ya llega por @esbuild/<plataforma>.
+# Scripts de instalación de dependencias (pnpm 11 los bloquea y exige decidir cada uno). Plan D-15.
 allowBuilds:
+  # Descarga el binario del schema engine que usa `prisma migrate`.
+  '@prisma/engines': true
+  # Su postinstall solo comprueba el binario, que ya llega por @esbuild/<plataforma>.
   esbuild: false
+  # Su preinstall solo comprueba la versión de Node; ya lo hace engineStrict (D-14).
+  prisma: false

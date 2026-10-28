@@ -1,7 +1,7 @@
 ---
 spec: 001
 plan_aprobado: 2026-10-28
-progreso: 5/41
+progreso: 6/41
 ---
 
 # Tareas · Spec 001 · Cuentas de usuario
@@ -51,7 +51,7 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
   - Cubre: C-5, C-15
   - Hecho cuando: `pnpm db:up` deja el contenedor sano y `docker compose exec db psql -U <usuario> -l` muestra `todo` y `todo_test`
 
-- [ ] **T-006** Crear el esquema de Prisma y la migración inicial
+- [x] **T-006** Crear el esquema de Prisma y la migración inicial
   - Depende de: T-004, T-005
   - Ficheros: `apps/api/prisma/schema.prisma` (modelos `User` y `Session` de plan §4.2, generador `prisma-client` en `src/generated/prisma`), `apps/api/prisma.config.ts`, `apps/api/prisma/migrations/<timestamp>_auth_init/migration.sql`, `apps/api/src/repositories/prisma.ts` (cliente con `@prisma/adapter-pg`), `apps/api/package.json` (`prisma`, `@prisma/client`, `@prisma/adapter-pg` en 7.10.1; script `postinstall` = `prisma generate`), `package.json` (script `db:migrate`)
   - Cubre: C-5, C-16, RNF-003
@@ -349,4 +349,5 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 | T-002 | e090a1a | `lint` = `eslint . && prettier --check .` (C-25 cubre los dos). `.prettierignore` excluye la documentación SDD (`specs/`, `docs/`, `.sdd/`, `.claude/`, `CLAUDE.md`). `@eslint/js` fijado en 10.0.1 (R-3 no lo listaba) |
 | T-003 | bf0048b | `packages/shared/tsconfig.json` con `types: []`: el compilador rechaza `process` y cualquier API de Node en `shared` (C-10). `typescript` lo aporta la raíz; `shared` solo depende de `zod` |
 | T-004 | cba92f0 | `env.ts` exporta `parseEnv(source)` (función pura); `server.ts` la llama con `process.env`. `allowBuilds` con `esbuild: false` en `pnpm-workspace.yaml` (plan D-15). Con un entorno no válido, `tsx src/server.ts` sale con código 1; en `pnpm --filter api dev` (`tsx watch`) se muestra el error y el vigilante sigue esperando cambios en vez de salir. Versiones no listadas en R-3: `tsx` 4.23.15, `@types/express` 5.0.6, `supertest` 7.3.1, `@types/supertest` 7.2.1 |
-| T-005 | (pendiente) | Imagen `postgres:18`, puerto publicado solo en `127.0.0.1`, volumen en `/var/lib/postgresql` (ruta que pide la imagen 18) y `healthcheck` con `pg_isready`. `db:up` = `docker compose up -d --wait`. Las credenciales usan `${VAR:?}`: sin `.env`, Compose falla diciendo qué variable falta. `init-test-db.sql` solo se ejecuta al crear el volumen |
+| T-005 | b962e04 | Imagen `postgres:18`, puerto publicado solo en `127.0.0.1`, volumen en `/var/lib/postgresql` (ruta que pide la imagen 18) y `healthcheck` con `pg_isready`. `db:up` = `docker compose up -d --wait`. Las credenciales usan `${VAR:?}`: sin `.env`, Compose falla diciendo qué variable falta. `init-test-db.sql` solo se ejecuta al crear el volumen |
+| T-006 | (pendiente) | Migración `20261028191330_auth_init`. `prisma.config.ts` carga el `.env` de la raíz con `process.loadEnvFile` si existe (Prisma 7 no lo hace solo) y no pisa una `DATABASE_URL` ya definida (comprobado con `todo_test`). Sin `DATABASE_URL`, `prisma generate` funciona igual, así que el `postinstall` de un clon limpio no necesita `.env`. `allowBuilds`: `@prisma/engines` en `true` y `prisma` en `false` (plan D-15). pnpm 11 no ejecuta `postinstall` si las dependencias no han cambiado («Already up to date»): borrar solo `src/generated/` y ejecutar `pnpm install` no regenera el cliente, pero en un clon limpio (sin `node_modules`) sí; para regenerarlo a mano, `pnpm --filter @todo/api exec prisma generate` |
