@@ -1,7 +1,7 @@
 ---
 spec: 001
 plan_aprobado: 2026-10-28
-progreso: 1/41
+progreso: 2/41
 ---
 
 # Tareas · Spec 001 · Cuentas de usuario
@@ -27,7 +27,7 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
   - Cubre: C-1, C-2, C-3, C-15 (`.env` ignorado)
   - Hecho cuando: `corepack enable && pnpm install` termina sin errores con Node 24.19; `pnpm typecheck` termina con 0; `git check-ignore .env` lo confirma como ignorado
 
-- [ ] **T-002** Configurar ESLint y Prettier
+- [x] **T-002** Configurar ESLint y Prettier
   - Depende de: T-001
   - Ficheros: `eslint.config.js` (flat: `@eslint/js`, typescript-eslint con `no-explicit-any` en `error`, eslint-plugin-astro, eslint-plugin-react-hooks), `.prettierrc` (con prettier-plugin-astro), `.prettierignore`, `package.json` (script `lint`, devDeps)
   - Cubre: C-25, C-1
@@ -345,4 +345,5 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 
 | Tarea | Commit | Notas |
 |-------|--------|-------|
-| T-001 | (pendiente) | `engineStrict: true` añadido en `pnpm-workspace.yaml` porque pnpm 11 ignora `engine-strict` de `.npmrc` (plan D-14). Volta da pnpm 11.20.0 en local sin `corepack enable`; comprobado que `corepack pnpm --version` respeta `packageManager` (11.20.0) |
+| T-001 | 3a67945 | `engineStrict: true` añadido en `pnpm-workspace.yaml` porque pnpm 11 ignora `engine-strict` de `.npmrc` (plan D-14). Volta da pnpm 11.20.0 en local sin `corepack enable`; comprobado que `corepack pnpm --version` respeta `packageManager` (11.20.0) |
+| T-002 | (pendiente) | `lint` = `eslint . && prettier --check .` (C-25 cubre los dos). `.prettierignore` excluye la documentación SDD (`specs/`, `docs/`, `.sdd/`, `.claude/`, `CLAUDE.md`). `@eslint/js` fijado en 10.0.1 (R-3 no lo listaba) |

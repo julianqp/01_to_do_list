@@ -1,0 +1,14 @@
+# Documentación SDD: se escribe a mano
+.sdd/
+.claude/
+docs/
+specs/
+CLAUDE.md
+
+pnpm-lock.yaml
+apps/api/src/generated/
+**/dist/
+**/.astro/
+test-results/
+playwright-report/
+blob-report/
