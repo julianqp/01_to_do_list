@@ -1,7 +1,7 @@
 ---
 spec: 001
 plan_aprobado: 2026-10-28
-progreso: 18/41
+progreso: 19/41
 ---
 
 # Tareas · Spec 001 · Cuentas de usuario
@@ -137,7 +137,7 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
   - Casos: `GET /api/no-existe` → 404 `{ error: { code: 'NOT_FOUND', message } }`; JSON mal formado → 400 `VALIDATION_ERROR`; `POST /api/auth/logout` con cookie válida y `Content-Type: application/x-www-form-urlencoded` → 415 `UNSUPPORTED_MEDIA_TYPE` y después `/me` → 200; signup y login sin `application/json` → 415; error no controlado (`vi.spyOn` sobre un método del service) → 500 `INTERNAL_ERROR` y `console.error` no recibe el cuerpo de la petición
   - Hecho cuando: los tests existen y fallan por el formato de respuesta (Express por defecto)
 
-- [ ] **T-019** [P] Escribir los tests unitarios de `apiFetch`
+- [x] **T-019** [P] Escribir los tests unitarios de `apiFetch`
   - Depende de: T-012
   - Ficheros: `apps/web/src/lib/api.test.ts`
   - Cubre: RF-010, E-7, C-7, C-9, D-13
@@ -362,4 +362,5 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 | T-015 | 8272241 | 10 tests, todos en rojo por 404 (cada test comprueba primero el status, para que ese sea el motivo del fallo). Además de los casos de la tarea: el email se guarda normalizado (RF-003); en CA-1.2 la cuenta existente no cambia; RNF-002: el `passwordHash` guardado no contiene la contraseña, y ni la contraseña ni el token aparecen en el cuerpo. La cuenta previa se crea con el propio endpoint (caja negra) |
 | T-016 | a87e210 | 6 tests, todos en rojo por 404 (la cuenta previa se crea con el registro). RF-009 se comprueba con cuerpos idénticos, no solo el mismo `code`, y sin `Set-Cookie`. E-4 incluye que la misma contraseña sin los espacios de los extremos falla (401), lo que demuestra que no se recorta. CA-2.1 confirma la sesión con `/me` |
 | T-017 | 5646d50 | 9 tests, todos en rojo por 404. La caducidad se prueba cambiando `expiresAt` en BD (plan §7): CA-5.2 = ahora − 1 día y CA-5.3 = ahora + 1 día. La renovación se acota entre «antes + 7 días» y «después + 7 días», sin margen arbitrario, y exige que se vuelva a emitir la **misma** cookie (D-3 renueva, no rota el token). El borrado de la cookie admite `Expires` de 1970 o `Max-Age=0`. Limpieza D-3: con 3 sesiones y la primera caducada, al iniciar sesión solo desaparece esa |
-| T-018 | (pendiente) | 10 tests en rojo: 404 y JSON mal formado reciben el HTML por defecto de Express (cuerpo `{}`); el resto, 404 de rutas inexistentes. El 415 se prueba en signup y login con formulario, `text/plain` y sin `Content-Type`. Error no controlado: `vi.spyOn(authService, 'login')` (comprobado que funciona sobre exportaciones ESM en Vitest 5). Se exige que `console.error` se llame (plan §9) y que ninguna llamada, formateada con `util.format`, contenga la contraseña ni el email |
+| T-018 | 664857c | 10 tests en rojo: 404 y JSON mal formado reciben el HTML por defecto de Express (cuerpo `{}`); el resto, 404 de rutas inexistentes. El 415 se prueba en signup y login con formulario, `text/plain` y sin `Content-Type`. Error no controlado: `vi.spyOn(authService, 'login')` (comprobado que funciona sobre exportaciones ESM en Vitest 5). Se exige que `console.error` se llame (plan §9) y que ninguna llamada, formateada con `util.format`, contenga la contraseña ni el email |
+| T-019 | (pendiente) | 9 tests, todos en rojo por `not implemented`. «500 = mismo trato que la red» se fija como: cualquier 5xx (500, 502, 504) lanza `NetworkError`, porque con la API caída el proxy de Vite responde 5xx en vez de rechazar (precisado en plan §4.3). Añadido «200 → devuelve el JSON», el contrato básico de `apiFetch` |

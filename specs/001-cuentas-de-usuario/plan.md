@@ -214,6 +214,8 @@ deleteExpiredSessions(userId: string, now: Date): Promise<void>;
 class ApiError extends Error { code: ErrorCode; status: number }
 class NetworkError extends Error {}
 apiFetch<T>(path: `/api/${string}`, init?: { method?: 'GET' | 'POST'; body?: unknown }): Promise<T>;
+// Precisado en T-019: fetch rechazado o respuesta 5xx → NetworkError (RF-010: "mismo trato que la red";
+// con la API caída, el proxy de Vite responde 5xx en vez de rechazar). 4xx con { error } → ApiError. 204 → undefined.
 ```
 
 ```ts
