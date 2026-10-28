@@ -1,5 +1,8 @@
 ---
+import { LoginForm } from '../components/LoginForm';
 import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="Iniciar sesión" />
+<Layout title="Iniciar sesión">
+  <LoginForm client:only="react" />
+</Layout>

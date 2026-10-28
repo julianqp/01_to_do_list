@@ -59,7 +59,7 @@ No se añaden: `dotenv` (se usa `--env-file` / `process.loadEnvFile()` de Node),
 | C-19 | ⚠️ | Scripts `pnpm test`, `pnpm lint` y `pnpm typecheck` en la raíz. **Excepción temporal:** de T-013 a T-035 (`tasks.md`), `pnpm test` puede tener en rojo los tests de tareas aún no hechas, porque la fase de contratos y tests los escribe antes que el código (test primero). Límites: `pnpm lint` y `pnpm typecheck` siempre en verde, gracias a los stubs de T-011 y T-012; cada tarea del núcleo o de UI pone en verde sus tests; ningún test que ya estaba en verde puede pasar a rojo; desde T-036, `pnpm test` pasa entero y C-19 se cumple sin excepción. *Por qué:* escribir los tests primero obliga a que fallen antes de que exista el código, y la alternativa (escribir cada test justo antes de su tarea) rompe la fase de contratos y tests del flujo SDD |
 | C-20 | ✅ | Etiquetas visibles, `aria-invalid`, `aria-describedby`, `role="alert"`, foco en el primer campo con error y `focus-visible`. No hay arrastre en esta spec |
 | C-21 | ✅ | Ninguna funcionalidad fuera de la spec. "Recordarme", limitar intentos y similares siguen fuera |
-| C-22 | ✅ | Abstracciones con ≥ 2 usos: `validateBody` (signup, login), `FormField` (4 campos), `withQueryClient` (3 islas), `apiFetch` (4 llamadas) |
+| C-22 | ✅ | Abstracciones con ≥ 2 usos: `validateBody` (signup, login), `FormField` (4 campos), `withQueryClient` (3 islas), `apiFetch` (4 llamadas). *Añadidas en T-033/T-036:* `useCredentialsForm` (registro e inicio de sesión), `useRedirectIfSignedIn` (las mismas dos islas) y `messageForError` (3 islas) |
 | C-23 | ✅ | Código en inglés; textos de la interfaz en castellano |
 | C-24 | ✅ | Rama `feat/001-cuentas-de-usuario`; commits con el ID de la tarea |
 | C-25 | ✅ | `eslint.config.js` (flat) con typescript-eslint, plugin de Astro y reglas de hooks; Prettier con el plugin de Astro |
@@ -243,7 +243,7 @@ Props: `FormField({ id, label, type, autoComplete, value, onChange, error })`. `
 | Prisma | `apps/api/prisma/schema.prisma`, `prisma/migrations/`, `apps/api/prisma.config.ts` | Esquema y migración | Nuevo |
 | Páginas | `apps/web/src/pages/{index,login,signup}.astro`, `src/layouts/Layout.astro` (`lang="es"`), `src/styles/global.css` | Montan cada isla | Nuevo |
 | Islas | `apps/web/src/components/{PrivateArea,LoginForm,SignupForm,FormField,withQueryClient}.tsx` | UI y redirecciones | Nuevo |
-| Cliente | `apps/web/src/lib/{api,auth-queries,messages}.ts` | `apiFetch`, hooks `useMe`/`useLogin`/`useSignup`/`useLogout` y textos por `code` (C-9) | Nuevo |
+| Cliente | `apps/web/src/lib/{api,auth-queries,messages,credentials-form}.ts` | `apiFetch`, hooks `useMe`/`useLogin`/`useSignup`/`useLogout`/`useRedirectIfSignedIn`, textos por `code` (C-9) y `useCredentialsForm` (estado, validación y errores de los dos formularios) | Nuevo |
 | Config web | `apps/web/astro.config.mjs` | React, Tailwind, `basicSsl()` y proxy de `/api` | Nuevo |
 | Tests de la API | `apps/api/test/{global-setup,setup,helpers}.ts` | `migrate deploy` sobre `todo_test`, vaciado entre tests y extracción de la cookie | Nuevo |
 | E2E | `e2e/auth.spec.ts` | Flujo principal | Nuevo |
