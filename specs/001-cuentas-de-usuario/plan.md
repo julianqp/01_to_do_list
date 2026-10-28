@@ -186,6 +186,19 @@ authenticate(token: string | undefined): Promise<PublicUser>;               // l
 hashPassword(plain: string): Promise<string>;                 // PHC argon2id m=19456,t=2,p=1, sal de 16 bytes
 verifyPassword(plain: string, phc: string): Promise<boolean>; // timingSafeEqual
 
+// apps/api/src/services/session-token.ts (nombres fijados en T-011)
+generateSessionToken(): string;            // 32 bytes aleatorios en base64url (D-2)
+hashSessionToken(token: string): string;   // SHA-256 en hex (D-2)
+
+// apps/api/src/routes/session-cookie.ts (nombres fijados en T-011)
+SESSION_COOKIE = 'sid';
+readCookie(header: string | undefined, name: string): string | undefined;  // D-5
+setSessionCookie(res: Response, token: string): void;                      // atributos de la cookie arriba (D-3)
+clearSessionCookie(res: Response): void;
+
+// apps/api/src/errors.ts
+class AppError extends Error { code: ErrorCode; status: number }  // new AppError(code, status, message = code)
+
 // apps/api/src/repositories/user.repository.ts
 createUser(email: string, passwordHash: string): Promise<PublicUser | null>; // null si el email ya existe (P2002)
 findUserByEmail(email: string): Promise<{ id: string; email: string; passwordHash: string } | null>;

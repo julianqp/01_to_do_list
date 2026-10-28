@@ -1,7 +1,7 @@
 ---
 spec: 001
 plan_aprobado: 2026-10-28
-progreso: 10/41
+progreso: 11/41
 ---
 
 # Tareas · Spec 001 · Cuentas de usuario
@@ -83,7 +83,7 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
   - Cubre: C-9, C-10, RNF-002 (`PublicUser` = solo `id` y `email`)
   - Hecho cuando: `pnpm typecheck` y `pnpm lint` pasan; `index.ts` reexporta todo lo anterior
 
-- [ ] **T-011** [P] Definir las firmas de la API como stubs
+- [x] **T-011** [P] Definir las firmas de la API como stubs
   - Depende de: T-010
   - Ficheros: `apps/api/src/errors.ts` (`AppError` con `code` y `status`, completo), `apps/api/src/services/{auth.service,password,session-token}.ts`, `apps/api/src/repositories/{user.repository,session.repository}.ts`, `apps/api/src/routes/session-cookie.ts` (`readCookie` y escritura/borrado de `sid`) — firmas de plan §4.3 que lanzan `Error('not implemented')`
   - Cubre: C-8, plan §4.3
@@ -354,4 +354,5 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 | T-007 | 0d99289 | La `DATABASE_URL` de test se saca de la del `.env` cambiando la base a `todo_test`, sin variable nueva; sin `.env`, `pnpm test` falla con "copia .env.example a .env". `global-setup.ts` comprueba por TCP que Postgres responde antes de `migrate deploy`. Vitest 5.0.5 pierde el mensaje de los errores de `globalSetup` (`code.charCodeAt is not a function` al formatear la traza), así que el mensaje de `pnpm db:up` se escribe también con `console.error`. Helper: `sidCookie(res)` devuelve `sid=<token>` o lanza si no hay cookie. `test/` añadido al `include` de `apps/api/tsconfig.json` para que pase por `typecheck`. Verificado con un test temporal (base `todo_test`, `TRUNCATE` entre tests, `sidCookie`), borrado al terminar |
 | T-008 | d9c2cbc | `astro` 7.4.2 y `@astrojs/react` 7.1.1 en vez de 7.4.3 / 7.1.2 (plan D-16, R-3 actualizado). Añadido `@testing-library/dom` 10.4.2: es peer obligatorio de `@testing-library/react`. `dev` = `pnpm -r --parallel dev`. Títulos de página (la spec no los fija): "Mis tareas", "Iniciar sesión", "Crear cuenta". **Ojo T-009:** Astro 7 detecta si lo ejecuta un agente de IA (paquete `am-i-vibing`) y entonces arranca `astro dev` en segundo plano y su script termina; se desactiva definiendo `ASTRO_DEV_BACKGROUND`. En una terminal normal se queda en primer plano y `Ctrl+C` para web y api (comprobado). Verificado con ficheros temporales: `astro check` detecta errores en `.astro` y `.tsx`; el proyecto `web` de Vitest monta un componente con jsdom, Testing Library y `user-event` |
 | T-009 | 255b08d | `test:e2e` = `playwright test --pass-with-no-tests`. `reuseExistingServer: false`: un `pnpm dev` ya abierto usa la base de desarrollo, así que Playwright falla en vez de reutilizarlo. La URL de `todo_test` sale a `test-database-url.ts` en la raíz (la usan `vitest.config.ts` y `playwright.config.ts`, C-22); `--env-file` de la API no la pisa (comprobado). `apps/web` `dev` = `astro dev --ignore-lock` (plan D-17): sin eso, desde un agente quedaba un `astro dev` huérfano en el 4321. Spec temporal en los tres motores, borrado al terminar: Chromium y WebKit OK; **Firefox no arranca en este macOS 27.0.1** (riesgo añadido en plan §8, a resolver antes de T-023/T-037). Pendiente para T-023: ni `e2e/` ni los `*.config.ts` de la raíz pasan por `typecheck` (no hay `tsconfig` raíz) |
-| T-010 | (pendiente) | Esquemas con la forma final y sin reglas (`z.string()`); `requiredEmail`/`requiredPassword` del login, privados en `auth.ts`. Verificado con un test temporal de exportaciones y tipos (`expectTypeOf`, incluido `PublicUser` = solo `id` y `email`); comprobado que `typecheck` falla si cambia un tipo. Borrado al terminar |
+| T-010 | 51de726 | Esquemas con la forma final y sin reglas (`z.string()`); `requiredEmail`/`requiredPassword` del login, privados en `auth.ts`. Verificado con un test temporal de exportaciones y tipos (`expectTypeOf`, incluido `PublicUser` = solo `id` y `email`); comprobado que `typecheck` falla si cambia un tipo. Borrado al terminar |
+| T-011 | (pendiente) | El plan no nombraba las funciones de `session-token` ni las de escritura y borrado de la cookie: fijadas como `generateSessionToken`, `hashSessionToken`, `SESSION_COOKIE`, `setSessionCookie` y `clearSessionCookie`, y añadidas a las firmas de plan §4.3. Stubs como constantes tipadas sin parámetros, para no tocar la regla `no-unused-vars` de ESLint; las tareas de implementación los convierten en funciones. Verificado con un test temporal (las 16 firmas lanzan `not implemented`; `AppError` lleva `code`, `status` y `message`), borrado al terminar |
