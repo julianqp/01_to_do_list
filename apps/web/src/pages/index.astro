@@ -1,5 +1,8 @@
 ---
+import { PrivateArea } from '../components/PrivateArea';
 import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="Mis tareas" />
+<Layout title="Mis tareas">
+  <PrivateArea client:only="react" />
+</Layout>
