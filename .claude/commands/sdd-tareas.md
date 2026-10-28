@@ -1,5 +1,5 @@
 ---
-description: SDD fase 4 — trocear el plan aprobado en tareas pequeñas y verificables
+description: SDD fase 5 — trocear el plan aprobado en tareas pequeñas y verificables
 argument-hint: [NNN de la spec, opcional]
 ---
 

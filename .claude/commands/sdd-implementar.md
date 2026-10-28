@@ -1,5 +1,5 @@
 ---
-description: SDD fase 5 — implementar la siguiente tarea (o la indicada) con test primero
+description: SDD fase 6 — implementar la siguiente tarea (o la indicada) con test primero
 argument-hint: [T-00x | "fase N" | vacío = siguiente pendiente]
 ---
 

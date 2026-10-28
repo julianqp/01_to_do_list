@@ -1,5 +1,5 @@
 ---
-description: SDD fase 3 — diseñar el plan técnico (CÓMO) a partir de una spec aprobada
+description: SDD fase 4 — diseñar el plan técnico (CÓMO) a partir de una spec aprobada
 argument-hint: [restricciones o preferencias técnicas opcionales]
 ---
 

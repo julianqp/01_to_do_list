@@ -1,5 +1,5 @@
 ---
-description: SDD fase 7 — cambiar una spec aprobada y propagar el impacto a plan y tareas
+description: SDD fase 8 — cambiar una spec aprobada y propagar el impacto a plan y tareas
 argument-hint: <qué cambia y por qué>
 ---
 

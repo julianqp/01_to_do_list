@@ -1,5 +1,5 @@
 ---
-description: SDD fase 2 — detectar ambigüedades en la spec y resolverlas con preguntas
+description: SDD fase 3 — detectar ambigüedades en la spec y resolverlas con preguntas
 argument-hint: [NNN de la spec, opcional]
 ---
 

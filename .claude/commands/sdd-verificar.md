@@ -1,5 +1,5 @@
 ---
-description: SDD fase 6 — auditar que la implementación cumple la spec (trazabilidad + DoD)
+description: SDD fase 7 — auditar que la implementación cumple la spec (trazabilidad + DoD)
 argument-hint: [NNN de la spec, opcional]
 ---
 
@@ -48,4 +48,8 @@ Resultado: APTO | APTO CON OBSERVACIONES | NO APTO
 
 ## Al terminar
 
-Muestra el resultado y los problemas bloqueantes. Si es APTO y el usuario lo confirma, cambia el estado de la spec a `implementada` y propón la descripción de la PR.
+Muestra el resultado y los problemas bloqueantes. Si es APTO y el usuario lo confirma:
+1. Cambia el estado de la spec a `implementada`.
+2. En `specs/roadmap.md`, pon la spec como `hecha`, añade a "Ideas sin priorizar" lo que quedó en "Fuera de alcance" y no esté ya, y añade una fila al historial.
+3. Indica cuál es la siguiente spec del roadmap disponible.
+4. Propón la descripción de la PR.
