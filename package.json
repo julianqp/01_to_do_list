@@ -9,6 +9,7 @@
   "scripts": {
     "db:migrate": "pnpm --filter @todo/api exec prisma migrate dev",
     "db:up": "docker compose up -d --wait",
+    "dev": "pnpm -r --parallel dev",
     "lint": "eslint . && prettier --check .",
     "test": "vitest run",
     "typecheck": "pnpm -r typecheck"

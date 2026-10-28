@@ -36,6 +36,14 @@ export default defineConfig({
           fileParallelism: false,
         },
       },
+      {
+        test: {
+          name: 'web',
+          root: './apps/web',
+          include: ['src/**/*.test.{ts,tsx}'],
+          environment: 'jsdom',
+        },
+      },
     ],
   },
 });

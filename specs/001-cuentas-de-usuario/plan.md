@@ -269,6 +269,10 @@ Props: `FormField({ id, label, type, autoComplete, value, onChange, error })`. `
 - **D-15** *(añadida en T-004)* Los scripts de instalación de dependencias se deciden uno a uno en `allowBuilds` de `pnpm-workspace.yaml`. `esbuild` (lo trae `tsx` y Vitest) queda en `false`.
   - *Por qué:* pnpm 11 bloquea esos scripts y `pnpm install` termina con error (`ERR_PNPM_IGNORED_BUILDS`) si alguno queda sin decidir. El `postinstall` de `esbuild` solo comprueba el binario, que ya llega por `@esbuild/<plataforma>`; con `false`, `tsx` y Vitest funcionan igual. Cada script que se permita tiene que justificarse aquí (C-2).
   - *Prisma (T-006):* `@prisma/engines` en `true`, porque su `postinstall` descarga el binario del *schema engine* que usa `prisma migrate`. `prisma` en `false`, porque su `preinstall` solo comprueba la versión de Node, y eso ya lo hace `engineStrict` (D-14).
+- **D-16** *(añadida en T-008, la eligió el usuario)* Se respeta la antigüedad mínima de versiones de pnpm 11 (`minimumReleaseAge`, 1 día por defecto) y no se añaden excepciones en `minimumReleaseAgeExclude`. Si una versión de R-3 es demasiado reciente, se fija la anterior que cumpla la política.
+  - *Por qué:* es una defensa frente a versiones comprometidas, que se suelen retirar en las primeras horas. `astro` 7.4.3 y `@astrojs/react` 7.1.2 se habían publicado ese mismo día. pnpm añadió excepciones por su cuenta al pedirlas por versión exacta.
+  - *Alternativa descartada:* mantener las versiones de R-3 con 5 excepciones en `pnpm-workspace.yaml`, con versiones de solo unas horas.
+  - *Consecuencia:* `astro` 7.4.2 y `@astrojs/react` 7.1.1 (R-3 actualizado). Si alguna vez pnpm añade `minimumReleaseAgeExclude` a `pnpm-workspace.yaml`, se revisa en vez de commitearlo.
 
 ## 6. Trazabilidad
 

@@ -21,7 +21,7 @@ Incógnitas técnicas resueltas antes del plan (2026-10-28). Versiones consultad
 |---------|---------|------|
 | typescript | **6.0.3** | La última es 7.0.2, pero typescript-eslint 8.72 exige `typescript <6.1.0` y `@astrojs/check` acepta `^5 \|\| ^6`. Se fija la 6.0 |
 | prisma / @prisma/client / @prisma/adapter-pg | **7.10.1** | La etiqueta `latest` del CLI `prisma` apunta a `8.0.0-rc.28` (versión candidata). Se fija la 7.10.1 estable en los tres. `adapter-pg` ya trae `pg` |
-| astro / @astrojs/react | 7.4.3 / 7.1.2 | Astro necesita Node ≥ 22.23 |
+| astro / @astrojs/react | ~~7.4.3 / 7.1.2~~ **7.4.2 / 7.1.1** | Astro necesita Node ≥ 22.23. *Cambiado en T-008:* 7.4.3 y 7.1.2 se publicaron el 2026-10-28 y pnpm 11 rechaza versiones de menos de 1 día (`minimumReleaseAge`). El usuario eligió bajar a las anteriores, del 2026-10-21 (plan D-16) |
 | react / react-dom | 19.3.1 | |
 | @tanstack/react-query | 5.105.0 | Requiere React 18 o 19 |
 | tailwindcss / @tailwindcss/vite | 4.3.3 | |
