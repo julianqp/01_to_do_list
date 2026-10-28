@@ -1,7 +1,7 @@
 ---
 spec: 001
 plan_aprobado: 2026-10-28
-progreso: 15/41
+progreso: 16/41
 ---
 
 # Tareas · Spec 001 · Cuentas de usuario
@@ -116,7 +116,7 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
   - Casos: signup válido → 201, `{ user }` con exactamente `id` y `email`, usuario en BD y `/me` con la cookie → 200; `Set-Cookie` con `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/` y `Max-Age=2592000`; `ANA@Example.com ` con `ana@example.com` ya registrado → 409 `EMAIL_ALREADY_REGISTERED` y sigue habiendo 1 usuario; email o contraseña no válidos o vacíos → 400 `VALIDATION_ERROR`; dos signup en paralelo con el mismo email → uno 201 y otro 409, 1 usuario en BD
   - Hecho cuando: los tests existen y fallan porque la ruta no existe (404)
 
-- [ ] **T-016** [P] Escribir los tests de integración del inicio de sesión
+- [x] **T-016** [P] Escribir los tests de integración del inicio de sesión
   - Depende de: T-007, T-011
   - Ficheros: `apps/api/test/auth.login.test.ts`
   - Cubre: CA-2.1, CA-2.2, CA-2.3, CA-2.4, RF-003, RF-008, RF-009, E-4, RNF-002
@@ -359,4 +359,5 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 | T-012 | 7f4fcb9 | El plan no daba la firma de `messages.ts`: fijada como `messageFor(code: ErrorCode \| 'NETWORK_ERROR'): { text; field?: 'email' }`, y también los tipos de las props de `FormField`; los dos añadidos a plan §4.3. `ApiError` y `NetworkError` completos (son clases de datos que necesitan los tests de T-019); `apiFetch` y `messageFor` lanzan `not implemented`; los componentes devuelven `null`. Verificado con un test temporal, borrado al terminar |
 | T-013 | 8df1fc7 | 20 tests: 15 en rojo (los que exigen reglas) y 5 en verde (los de aceptación, que hoy pasan porque el esquema acepta cualquier texto). Excepción a C-19 (plan §3). Cada campo inválido debe dar **un solo** mensaje (vacío = solo "obligatorio"). "El emoji cuenta 1" se fija con `abcdef😀` (rechazado) y 127 letras + 😀 (aceptado). La normalización del email en el login (RF-003) no se prueba aquí porque el plan no dice si va en el esquema o en el service; la cubre T-016. Aviso pendiente de T-009: Vite pide extensión en `import './test-database-url'` de `vitest.config.ts` (solo es un aviso) |
 | T-014 | 8df1fc7 | 12 tests, todos en rojo por `not implemented`. PHC comprobado con una expresión regular: parámetros exactos y sal de 22 caracteres en base64 (16 bytes). El SHA-256 se compara con el vector conocido de `"abc"`, sin recalcularlo con `crypto`. El token se comprueba como 43 caracteres base64url que decodifican a 32 bytes. `readCookie` no debe confundir `sid` con `xsid` ni `sidx` |
-| T-015 | (pendiente) | 10 tests, todos en rojo por 404 (cada test comprueba primero el status, para que ese sea el motivo del fallo). Además de los casos de la tarea: el email se guarda normalizado (RF-003); en CA-1.2 la cuenta existente no cambia; RNF-002: el `passwordHash` guardado no contiene la contraseña, y ni la contraseña ni el token aparecen en el cuerpo. La cuenta previa se crea con el propio endpoint (caja negra) |
+| T-015 | 8272241 | 10 tests, todos en rojo por 404 (cada test comprueba primero el status, para que ese sea el motivo del fallo). Además de los casos de la tarea: el email se guarda normalizado (RF-003); en CA-1.2 la cuenta existente no cambia; RNF-002: el `passwordHash` guardado no contiene la contraseña, y ni la contraseña ni el token aparecen en el cuerpo. La cuenta previa se crea con el propio endpoint (caja negra) |
+| T-016 | (pendiente) | 6 tests, todos en rojo por 404 (la cuenta previa se crea con el registro). RF-009 se comprueba con cuerpos idénticos, no solo el mismo `code`, y sin `Set-Cookie`. E-4 incluye que la misma contraseña sin los espacios de los extremos falla (401), lo que demuestra que no se recorta. CA-2.1 confirma la sesión con `/me` |
