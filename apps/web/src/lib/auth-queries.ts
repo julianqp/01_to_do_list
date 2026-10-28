@@ -1,5 +1,6 @@
 import type { LoginInput, PublicUser, SignupInput } from '@todo/shared';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { apiFetch } from './api';
 
 type UserResponse = { user: PublicUser };
@@ -13,6 +14,17 @@ export function useMe() {
     queryKey: ['me'],
     queryFn: () => apiFetch<UserResponse>('/api/auth/me').then(({ user }) => user),
   });
+}
+
+// CA-4.3, RF-014: con sesión, el inicio de sesión y el registro llevan a la zona privada.
+// El efecto no pide datos: sincroniza con la navegación del navegador.
+export function useRedirectIfSignedIn() {
+  const me = useMe();
+  const signedIn = me.isSuccess;
+  useEffect(() => {
+    if (signedIn) goToPrivateArea();
+  }, [signedIn]);
+  return me;
 }
 
 // RF-002: al crear la cuenta ya hay sesión.

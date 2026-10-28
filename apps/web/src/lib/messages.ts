@@ -1,4 +1,5 @@
 import type { ErrorCode } from '@todo/shared';
+import { ApiError } from './api';
 
 // Texto que ve el usuario y, si aplica, el campo al que se asocia (RF-004).
 export type FormMessage = { text: string; field?: 'email' };
@@ -22,4 +23,9 @@ const MESSAGES: Record<ErrorCode | 'NETWORK_ERROR', FormMessage> = {
 // C-9: el front decide el texto a partir del `code`; 'NETWORK_ERROR' cubre RF-010.
 export function messageFor(code: ErrorCode | 'NETWORK_ERROR'): FormMessage {
   return MESSAGES[code];
+}
+
+// Texto para el error de una petición: el de su `code` o, si no es un ApiError, el de RF-010.
+export function messageForError(error: unknown): FormMessage {
+  return messageFor(error instanceof ApiError ? error.code : 'NETWORK_ERROR');
 }

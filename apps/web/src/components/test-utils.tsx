@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render } from '@testing-library/react';
+import { cleanup, render } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, expect, vi } from 'vitest';
 
@@ -45,6 +45,8 @@ export function mockBrowser() {
   });
 
   afterEach(() => {
+    // Sin `globals` en Vitest, Testing Library no desmonta solo entre tests.
+    cleanup();
     fetchMock.mockClear();
     replace.mockReset();
     reload.mockReset();

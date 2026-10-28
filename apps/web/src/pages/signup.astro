@@ -1,5 +1,8 @@
 ---
+import { SignupForm } from '../components/SignupForm';
 import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="Crear cuenta" />
+<Layout title="Crear cuenta">
+  <SignupForm client:only="react" />
+</Layout>
