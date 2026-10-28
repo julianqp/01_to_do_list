@@ -1,7 +1,7 @@
 ---
 spec: 001
 plan_aprobado: 2026-10-28
-progreso: 21/41
+progreso: 22/41
 ---
 
 # Tareas · Spec 001 · Cuentas de usuario
@@ -158,7 +158,7 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
   - Casos: 200 → `location.replace('/')`; 401 `INVALID_CREDENTIALS` → "Email o contraseña incorrectos" con `role="alert"`, email conservado y contraseña vacía; campos vacíos → obligatorio en cada uno; red y 500 → mensaje de RF-010 con email conservado y contraseña vacía; con `?expired=1` → "Tu sesión ha caducado. Vuelve a iniciar sesión"; `me` 200 → `location.replace('/')`; foco en el primer campo con error
   - Hecho cuando: los tests existen y fallan porque el componente devuelve `null`
 
-- [ ] **T-022** [P] Escribir los tests de componente de la zona privada
+- [x] **T-022** [P] Escribir los tests de componente de la zona privada
   - Depende de: T-012
   - Ficheros: `apps/web/src/components/PrivateArea.test.tsx`
   - Cubre: CA-3.1, CA-3.2, CA-4.1, CA-4.2, RF-011, RF-012, RF-013, RF-015, E-5, D-10, D-11
@@ -365,4 +365,5 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 | T-018 | 664857c | 10 tests en rojo: 404 y JSON mal formado reciben el HTML por defecto de Express (cuerpo `{}`); el resto, 404 de rutas inexistentes. El 415 se prueba en signup y login con formulario, `text/plain` y sin `Content-Type`. Error no controlado: `vi.spyOn(authService, 'login')` (comprobado que funciona sobre exportaciones ESM en Vitest 5). Se exige que `console.error` se llame (plan §9) y que ninguna llamada, formateada con `util.format`, contenga la contraseña ni el email |
 | T-019 | bc42372 | 9 tests, todos en rojo por `not implemented`. «500 = mismo trato que la red» se fija como: cualquier 5xx (500, 502, 504) lanza `NetworkError`, porque con la API caída el proxy de Vite responde 5xx en vez de rechazar (precisado en plan §4.3). Añadido «200 → devuelve el JSON», el contrato básico de `apiFetch` |
 | T-020 | 794f464 | 11 tests, todos en rojo porque el componente devuelve `null`. El componente se monta dentro de un `QueryClientProvider` del test (funciona tanto si T-033 lo deja sin envolver como si lo exporta ya envuelto). Campos buscados por `/email/i` y `/contraseña/i` (la spec no fija las etiquetas); botón "Crear cuenta" (E-8). `location` se sustituye con `vi.stubGlobal` porque `vi.spyOn(window.location, 'replace')` falla en jsdom. Sin `@testing-library/jest-dom` (no está en el plan): las comprobaciones se hacen sobre el DOM directamente. `fetch` simulado por rutas (`GET /api/auth/me` = 401 por defecto); los helpers son locales y se extraerán cuando T-021/T-022 los usen (C-22) |
-| T-021 | (pendiente) | 10 tests, todos en rojo porque el componente devuelve `null`. Por decisión del usuario, los helpers de T-020 se extraen a `apps/web/src/components/test-utils.tsx` (`mockBrowser`, `renderWithClient`, `json`, `apiError`, `descriptionOf`, `expectFieldError`) y `SignupForm.test.tsx` pasa a importarlos, sin cambiar ningún caso (sus 11 tests fallan igual). El botón de inicio de sesión se busca como el único botón del formulario, porque la spec no fija su texto. Añadido «sin `?expired=1` no hay aviso» |
+| T-021 | fb687bc | 10 tests, todos en rojo porque el componente devuelve `null`. Por decisión del usuario, los helpers de T-020 se extraen a `apps/web/src/components/test-utils.tsx` (`mockBrowser`, `renderWithClient`, `json`, `apiError`, `descriptionOf`, `expectFieldError`) y `SignupForm.test.tsx` pasa a importarlos, sin cambiar ningún caso (sus 11 tests fallan igual). El botón de inicio de sesión se busca como el único botón del formulario, porque la spec no fija su texto. Añadido «sin `?expired=1` no hay aviso» |
+| T-022 | (pendiente) | 9 tests, todos en rojo porque el componente devuelve `null`. `<PrivateArea />` se monta **sin** `QueryClientProvider` externo: la isla tiene que traer su `QueryClient` con la redirección de D-10 (precisado en plan D-10: un cliente por montaje y sin reintentos ante `ApiError`; afecta a T-032/T-034). `mockBrowser` añade `reload` en `test-utils.tsx`. Añadido «`pageshow` con `persisted: false` no recarga». «Solo para lectores de pantalla» se comprueba con la clase `sr-only` de Tailwind y con que el contenedor no tenga más texto que «Cargando…» |

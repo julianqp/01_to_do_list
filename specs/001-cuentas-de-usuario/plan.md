@@ -277,6 +277,7 @@ Props: `FormField({ id, label, type, autoComplete, value, onChange, error })`. `
   - *Por qué:* un solo punto de verdad que también cubre la carrera de E-8.
 - **D-10** En la zona privada, un `QueryCache`/`MutationCache` con `onError` redirige ante `UNAUTHENTICATED` o `SESSION_EXPIRED`. Un listener de `pageshow` con `persisted` recarga la página.
   - *Por qué:* RF-012, RF-013 y CA-3.2 (R-6). 002 reutilizará el mismo `QueryClient` para las tareas.
+  - *Precisado en T-022:* cada isla exportada (`PrivateArea`, `LoginForm`, `SignupForm`) ya va envuelta con `withQueryClient`, porque Astro monta la isla tal cual y no hay otro sitio donde poner el proveedor. El `QueryClient` se crea en cada montaje (no a nivel de módulo) y no reintenta ante `ApiError`: reintentar un 401 retrasaría la redirección varios segundos.
 - **D-11** Si cerrar sesión falla por red o por un error inesperado, se muestra el mensaje de RF-010 y el usuario sigue en la zona privada.
   - *Por qué:* redirigir sin haber cerrado la sesión haría creer al usuario que ha salido cuando no es así. Es la misma regla de RF-010 aplicada al botón.
 - **D-12** Los formularios usan `noValidate` y `<input type="email">` con `autocomplete` (`email`, `new-password`, `current-password`).

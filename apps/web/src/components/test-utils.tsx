@@ -28,8 +28,9 @@ export function mockBrowser() {
     return handler();
   });
   const replace = vi.fn();
+  const reload = vi.fn();
   const setSearch = (search: string) => {
-    vi.stubGlobal('location', { ...window.location, search, replace });
+    vi.stubGlobal('location', { ...window.location, search, replace, reload });
   };
   const callsTo = (method: string, path: string) =>
     fetchMock.mock.calls.filter(
@@ -46,10 +47,11 @@ export function mockBrowser() {
   afterEach(() => {
     fetchMock.mockClear();
     replace.mockReset();
+    reload.mockReset();
     vi.unstubAllGlobals();
   });
 
-  return { routes, fetch: fetchMock, replace, setSearch, callsTo };
+  return { routes, fetch: fetchMock, replace, reload, setSearch, callsTo };
 }
 
 export function renderWithClient(ui: ReactNode) {
