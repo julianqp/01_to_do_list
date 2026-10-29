@@ -161,3 +161,102 @@ describe('LoginForm', () => {
     await waitFor(() => expect(replace).toHaveBeenCalledWith('/'));
   });
 });
+
+// Spec 004: tarjeta, orden y avisos con tono (RF-001, RF-003, RF-004, RF-013).
+describe('LoginForm · sistema de diseño', () => {
+  const precedes = (a: Node, b: Node) =>
+    (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+  const alerts = () => [...document.querySelectorAll<HTMLElement>('[data-tone]')];
+  const loginPending = () => {
+    let respond: (response: Response) => void = () => {};
+    browser.routes['POST /api/auth/login'] = () =>
+      new Promise<Response>((resolve) => {
+        respond = resolve;
+      });
+    return (response: Response) => respond(response);
+  };
+
+  it('RF-003 CA-1.1 X-1 orden: título, sesión caducada, avisos, Email, Contraseña, botón y enlace, todo en la tarjeta', async () => {
+    browser.setSearch('?expired=1');
+    const { email, password, submit } = await renderForm();
+    const title = screen.getByRole('heading', { level: 1, name: 'Iniciar sesión' });
+    const card = title.parentElement!;
+    const order = [
+      title,
+      screen.getByRole('status'),
+      screen.getByRole('alert'),
+      email,
+      password,
+      submit,
+      screen.getByRole('link', { name: 'Crear cuenta' }),
+    ];
+
+    for (const element of order) expect(card.contains(element)).toBe(true);
+    for (let i = 1; i < order.length; i++) expect(precedes(order[i - 1]!, order[i]!)).toBe(true);
+  });
+
+  it('CA-1.3 RF-004 con un 401 la alerta es de error y va antes del campo Email', async () => {
+    browser.routes['POST /api/auth/login'] = () => apiError(401, 'INVALID_CREDENTIALS');
+
+    const { email } = await submitWith('ana@example.com', 'otra-contrasena');
+
+    await waitFor(() => expect(alerts()).toHaveLength(1));
+    const [alert] = alerts();
+    expect(alert!.dataset.tone).toBe('error');
+    expect(alert!.textContent).toBe(INVALID_CREDENTIALS);
+    expect(alert!.querySelector('svg')).not.toBeNull();
+    expect(precedes(alert!, email)).toBe(true);
+  });
+
+  it('CA-1.5 RF-004 con ?expired=1 la alerta es informativa', async () => {
+    browser.setSearch('?expired=1');
+
+    await renderForm();
+
+    const status = screen.getByRole('status');
+    expect(status.querySelector('[data-tone]')?.getAttribute('data-tone')).toBe('info');
+    expect(status.textContent).toBe(SESSION_EXPIRED);
+  });
+
+  it('E-5 con ?expired=1 y un 401 hay dos alertas, primero la informativa', async () => {
+    browser.setSearch('?expired=1');
+    browser.routes['POST /api/auth/login'] = () => apiError(401, 'INVALID_CREDENTIALS');
+
+    await submitWith('ana@example.com', 'otra-contrasena');
+
+    await waitFor(() => expect(alerts()).toHaveLength(2));
+    expect(alerts().map((alert) => alert.dataset.tone)).toEqual(['info', 'error']);
+  });
+
+  it('RF-004 sin conexión la alerta es de tipo offline', async () => {
+    browser.routes['POST /api/auth/login'] = () => Promise.reject(new TypeError('Failed to fetch'));
+
+    await submitWith('ana@example.com', 'correcta-horse-1');
+
+    await waitFor(() => expect(alerts().map((alert) => alert.dataset.tone)).toEqual(['offline']));
+  });
+
+  it('CA-4.1 RF-013 E-7 mientras espera: «Iniciando sesión…», aria-disabled y un segundo clic no repite la petición', async () => {
+    const respond = loginPending();
+    const { user, submit } = await submitWith('ana@example.com', 'correcta-horse-1');
+
+    await waitFor(() => expect(submit.getAttribute('aria-disabled')).toBe('true'));
+    expect(submit).toBe(screen.getByRole('button', { name: 'Iniciando sesión…' }));
+    expect(submit.querySelector('svg.lucide-loader-circle')).not.toBeNull();
+    await user.click(submit);
+    expect(loginCalls()).toHaveLength(1);
+
+    respond(await apiError(401, 'INVALID_CREDENTIALS'));
+  });
+
+  it('CA-4.4 tras el error vuelve «Iniciar sesión» y se puede pulsar', async () => {
+    const respond = loginPending();
+    const { submit } = await submitWith('ana@example.com', 'correcta-horse-1');
+    await waitFor(() => expect(submit.getAttribute('aria-disabled')).toBe('true'));
+
+    respond(await apiError(401, 'INVALID_CREDENTIALS'));
+
+    await waitFor(() => expect(submit.getAttribute('aria-disabled')).toBeNull());
+    expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBe(submit);
+  });
+});
