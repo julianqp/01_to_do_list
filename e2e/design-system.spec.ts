@@ -462,7 +462,7 @@ test.describe('zona privada y menú de cuenta', () => {
 
 test.describe('responsive, objetivos táctiles y foco', () => {
   for (const path of ['/login', '/signup'] as const) {
-    test(`RNF-002 E-2 ${path} sin scroll horizontal ni contenido cortado de 320 a 1600`, async ({
+    test(`RNF-002 RNF-004 E-2 ${path} sin scroll horizontal ni contenido cortado de 320 a 1600`, async ({
       page,
     }) => {
       for (const width of WIDTHS) {
@@ -474,7 +474,7 @@ test.describe('responsive, objetivos táctiles y foco', () => {
     });
   }
 
-  test('RNF-002 E-2 zona privada sin scroll horizontal ni contenido cortado de 320 a 1600', async ({
+  test('RNF-002 RNF-004 E-2 zona privada sin scroll horizontal ni contenido cortado de 320 a 1600', async ({
     page,
   }) => {
     await openPrivateArea(page, 1280);
