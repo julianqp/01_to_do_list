@@ -60,3 +60,4 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 | 2026-10-29 | 004 aprobada (spec v1.0) | Aprobación del usuario tras `/sdd-clarificar` |
 | 2026-10-29 | 004 vuelve a `borrador` (v0.4): HU-6 pasa a RNF-006 y referencias `NNN/ID`; la 001 anota en su registro lo que le cambia la 004 | Revisión del usuario antes de aprobar |
 | 2026-10-29 | 004 aprobada de nuevo (spec v1.0) | Aprobación del usuario tras la revisión de la v0.4 |
+| 2026-10-29 | 004: plan aprobado; spec v1.1 (E-12: el foco vuelve al botón de cuenta si falla el cierre de sesión); ADR-0003 (catálogo de tokens vigilado por tests) | `/sdd-planificar` de la spec 004 |

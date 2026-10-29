@@ -2,7 +2,7 @@
 id: 004
 titulo: Aplicar el sistema de diseño
 estado: aprobada          # borrador | aprobada | en-implementacion | implementada | obsoleta
-version: 1.0
+version: 1.1
 autor: Julian Querol Polo
 creada: 2026-10-29
 aprobada: 2026-10-29, Julian Querol Polo
@@ -153,7 +153,7 @@ Como visitante o usuario, quiero que la app respete las preferencias de visualiz
 | E-9 | Idioma | Solo español de España (§16), como en la spec 001 |
 | E-10 | Con el menú de cuenta abierto, la ventana pasa a medir 768 px o más | El menú se cierra y la cabecera muestra el email y «Cerrar sesión» (RF-006) |
 | E-11 | Email que empieza por un número o un símbolo (p. ej. `1ana@example.com`) | El botón de cuenta muestra ese carácter tal cual: «1» (RF-023) |
-| E-12 | «Cerrar sesión» desde el menú de cuenta con un servidor que tarda 2 s | El menú sigue abierto y la opción muestra «Cerrando sesión…» (RF-013); si falla, el menú se cierra y aparece la alerta de RF-008 |
+| E-12 | «Cerrar sesión» desde el menú de cuenta con un servidor que tarda 2 s | El menú sigue abierto y la opción muestra «Cerrando sesión…» (RF-013); si falla, el menú se cierra, el foco vuelve al botón de cuenta y aparece la alerta de RF-008 |
 | E-13 | Se abre cualquier pantalla con el tema oscuro activado en el sistema | Se pinta directamente en tema oscuro, sin que se vea antes el tema claro (RF-016) |
 | E-14 | Con el menú de cuenta abierto, el usuario pulsa Tab | El menú se cierra y el foco pasa al siguiente elemento de la página |
 
@@ -212,6 +212,7 @@ Historial de preguntas resueltas durante `/sdd-clarificar`.
 | 2026-10-29 | En las pantallas de acceso en móvil, ¿el botón principal va dentro de la tarjeta (§11.1) o fijo abajo (§13)? | Dentro de la tarjeta en todos los tamaños; el plan justifica la excepción a §13 | RF-003, Supuestos |
 | 2026-10-29 | Los valores pendientes de `DESIGN.md` hay que crearlos desde cero: ¿cómo se aprueban? | Se proponen en el plan con su contraste calculado y se aprueban con él | ~~RF-018~~ (hoy RNF-006), Supuestos |
 | 2026-10-29 | ¿Los valores visuales comunes son una historia de usuario o un requisito de calidad? (revisión del usuario antes de aprobar) | Requisito no funcional de consistencia (RNF-006). Se eliminan HU-6, CA-6.1, CA-6.2, RF-017, RF-018 y el actor «Persona que desarrolla la app» | RNF-006, §3, §4, §5 |
+| 2026-10-29 | Si falla «Cerrar sesión» desde el menú de cuenta y el menú se cierra, ¿dónde queda el foco? (surgió en `/sdd-planificar`) | Vuelve al botón de cuenta, para que no se pierda (WCAG 2.4.3) | E-12 |
 
 ## 12. Registro de cambios
 
@@ -223,3 +224,4 @@ Historial de preguntas resueltas durante `/sdd-clarificar`.
 | 1.0     | 2026-10-29 | Spec aprobada; aprobación retirada el mismo día para revisarla (ver 0.4) | Revisión con el checklist de spec superada |
 | 0.4     | 2026-10-29 | Vuelve a `borrador` para revisión. Referencias a otras specs con el formato `NNN/ID` (001/RF-011, 001/RF-015, 001/E-8). HU-6, CA-6.1, CA-6.2, RF-017 y RF-018 eliminados y sustituidos por RNF-006; fuera el actor «Persona que desarrolla la app» | Revisión del usuario antes de aprobar |
 | 1.0     | 2026-10-29 | Spec aprobada (versión 0.4 sin cambios) | Revisión con el checklist de spec superada |
+| 1.1     | 2026-10-29 | E-12: si falla el cierre de sesión desde el menú, el foco vuelve al botón de cuenta | Aclaración surgida en `/sdd-planificar`, aprobada por el usuario (`/sdd-cambiar-spec`) |
