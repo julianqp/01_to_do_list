@@ -1,7 +1,7 @@
 ---
 spec: 004
 plan_aprobado: 2026-10-29
-progreso: 2/26
+progreso: 3/26
 ---
 
 # Tareas · Spec 004 · Aplicar el sistema de diseño
@@ -43,7 +43,7 @@ Secuencial: las dos tareas tocan el lockfile o los E2E de la 001.
 
 T-003 y T-004 terminan en verde. T-005–T-008 escriben los E2E primero: deben fallar por la razón indicada (que se anota en el Registro), sin errores de sintaxis ni de tipos. Comparten fichero, así que van en orden.
 
-- [ ] **T-003** [P] Simular `matchMedia` en las utilidades de test
+- [x] **T-003** [P] Simular `matchMedia` en las utilidades de test
   - Depende de: T-001
   - Ficheros: `apps/web/src/components/test-utils.tsx`
   - Cubre: E-10 (infraestructura), plan §8 (jsdom no tiene `matchMedia`)
@@ -385,4 +385,5 @@ Cada tarea escribe primero sus tests unitarios (rojo), implementa y termina en v
 | Tarea | Commit | Notas |
 |-------|--------|-------|
 | T-001 | 8d42da5 | Versiones instaladas con `--save-exact`, iguales a R-7: `lucide-react` 1.62.0, `@fontsource-variable/geist` 5.3.0, `culori` 4.0.2, `@types/culori` 4.0.1 (web) y `@axe-core/playwright` 4.14.0 (raíz). La política de cadena de suministro de pnpm 11 pasa sin excepciones a `minimumReleaseAge`. `pnpm lint` ya fallaba en la rama antes de esta tarea: Prettier marcaba `DESIGN.md` (commit f5a3341, escrito a mano). Con el visto bueno del usuario, `DESIGN.md` se añade a `.prettierignore`, junto a `CLAUDE.md` |
-| T-002 | (pendiente) | `e2e/helpers.ts` exporta las doce utilidades de la tarea; `MAX_TABS` queda dentro del módulo, porque solo lo usa `tabTo`. `auth.spec.ts` importa solo las ocho que usa; el diff no toca ningún `test(...)` (Prettier solo reajusta las líneas en blanco). `pnpm test:e2e`: 21/21 en `chromium`, `chrome` y `webkit` |
+| T-002 | 08ab097 | `e2e/helpers.ts` exporta las doce utilidades de la tarea; `MAX_TABS` queda dentro del módulo, porque solo lo usa `tabTo`. `auth.spec.ts` importa solo las ocho que usa; el diff no toca ningún `test(...)` (Prettier solo reajusta las líneas en blanco). `pnpm test:e2e`: 21/21 en `chromium`, `chrome` y `webkit` |
+| T-003 | (pendiente) | El test temporal falló primero con `TypeError: window.matchMedia is not a function`. `FakeMediaQueryList` extiende `EventTarget` (sin `addListener`/`removeListener`, la API antigua) y hay una lista por consulta: todos los `matchMedia` con la misma consulta comparten oyentes. `setMediaMatches` lanza `change` siempre, aunque el valor no cambie. Por defecto ninguna consulta coincide. Las listas se vacían en `afterEach` y `vi.unstubAllGlobals` restaura el global. Test temporal (2 casos) en verde y borrado |
