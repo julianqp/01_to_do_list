@@ -34,7 +34,7 @@ function PrivateAreaContent() {
             type="button"
             onClick={() => logout.mutate()}
             disabled={logout.isPending}
-            className="rounded border border-gray-900 px-4 py-2 font-medium disabled:opacity-60"
+            className="rounded border border-gray-900 px-4 py-2 font-medium disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
           >
             Cerrar sesión
           </button>

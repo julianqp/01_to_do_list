@@ -35,7 +35,7 @@ export function FormField({
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
-        className="rounded border border-gray-500 px-3 py-2 aria-invalid:border-red-700"
+        className="rounded border border-gray-500 px-3 py-2 aria-invalid:border-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
       />
       {error && (
         <p id={errorId} className="text-sm text-red-700">
