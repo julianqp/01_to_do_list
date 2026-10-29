@@ -1,16 +1,17 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { flushSync } from 'react-dom';
 import type { LogoutHandler } from './AppHeader';
+import { Spinner } from './Icon';
 
-// RF-020–RF-023, E-11, E-14: botón de cuenta con el patrón Menu Button de APG (D-10). Un solo uso
-// (AppHeader, por debajo de 768 px).
+// RF-020–RF-023, E-10–E-12, E-14: botón de cuenta con el patrón Menu Button de APG (D-10). Un solo
+// uso (AppHeader, por debajo de 768 px).
 export type AccountMenuProps = { email: string; loggingOut: boolean; onLogout: LogoutHandler };
 
 const menuItems = (panel: HTMLElement | null) => [
   ...(panel?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []),
 ];
 
-export function AccountMenu({ email, onLogout }: AccountMenuProps) {
+export function AccountMenu({ email, loggingOut, onLogout }: AccountMenuProps) {
   const [open, setOpen] = useState(false);
   const id = useId();
   const panelId = `${id}-panel`;
@@ -31,6 +32,18 @@ export function AccountMenu({ email, onLogout }: AccountMenuProps) {
     return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [open]);
 
+  // E-10: al pasar a 768 px o más, la cabecera muestra el email y «Cerrar sesión» y el menú se
+  // cierra. 768px = --breakpoint-md (las media queries no aceptan var()).
+  useEffect(() => {
+    if (!open) return;
+    const desktop = matchMedia('(min-width: 768px)');
+    const onChange = () => {
+      if (desktop.matches) setOpen(false);
+    };
+    desktop.addEventListener('change', onChange);
+    return () => desktop.removeEventListener('change', onChange);
+  }, [open]);
+
   // CA-2.6: al abrir (clic, Enter o Espacio), el foco pasa a la primera opción. flushSync pinta el
   // panel antes de enfocarla.
   function toggle() {
@@ -45,6 +58,13 @@ export function AccountMenu({ email, onLogout }: AccountMenuProps) {
   function close() {
     flushSync(() => setOpen(false));
     buttonRef.current?.focus();
+  }
+
+  // RF-013, E-12: mientras se cierra la sesión el menú sigue abierto y no acepta otra pulsación; si
+  // falla, se cierra y el foco vuelve al botón (no se pierde en <body>, WCAG 2.4.3).
+  function chooseLogout() {
+    if (loggingOut) return;
+    onLogout({ onError: close });
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -102,10 +122,18 @@ export function AccountMenu({ email, onLogout }: AccountMenuProps) {
               type="button"
               role="menuitem"
               tabIndex={-1}
-              onClick={() => onLogout()}
-              className="flex h-11 w-full items-center rounded-pill px-4 text-body text-1 transition duration-(--dur-fast) ease-out hover:bg-raised-hover focus:bg-raised-hover"
+              aria-disabled={loggingOut || undefined}
+              onClick={chooseLogout}
+              className="flex h-11 w-full items-center gap-2 rounded-pill px-4 text-body text-1 transition duration-(--dur-fast) ease-out hover:bg-raised-hover focus:bg-raised-hover"
             >
-              Cerrar sesión
+              {loggingOut ? (
+                <>
+                  <Spinner />
+                  Cerrando sesión…
+                </>
+              ) : (
+                'Cerrar sesión'
+              )}
             </button>
           </li>
         </ul>

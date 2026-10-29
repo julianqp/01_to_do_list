@@ -1,10 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { AccountMenu } from './AccountMenu';
+import type { LogoutHandler } from './AppHeader';
 import { mockBrowser } from './test-utils';
 
-mockBrowser();
+const browser = mockBrowser();
 
 const EMAIL = 'ana@example.com';
 
@@ -129,5 +130,57 @@ describe('AccountMenu', () => {
 
     expect(button.classList).toContain('size-11');
     expect(option().classList).toContain('h-11');
+  });
+});
+
+describe('AccountMenu · espera, error y cambio de ancho', () => {
+  function renderControlled() {
+    const onLogout = vi.fn<LogoutHandler>();
+    const user = userEvent.setup();
+    const menuWith = (loggingOut: boolean) => (
+      <AccountMenu email={EMAIL} loggingOut={loggingOut} onLogout={onLogout} />
+    );
+    const { rerender } = render(menuWith(false));
+    const button = screen.getByRole('button', { name: `Cuenta de ${EMAIL}` });
+    return { user, onLogout, button, setLoggingOut: (value: boolean) => rerender(menuWith(value)) };
+  }
+
+  it('CA-4.3 RF-013 E-12 mientras se cierra la sesión el menú sigue abierto con «Cerrando sesión…»', async () => {
+    const { user, onLogout, button, setLoggingOut } = renderControlled();
+    await user.click(button);
+    await user.click(option());
+    setLoggingOut(true);
+
+    const pending = screen.getByRole('menuitem', { name: 'Cerrando sesión…' });
+    expect(menu()).not.toBeNull();
+    expect(pending.getAttribute('aria-disabled')).toBe('true');
+    expect(pending.querySelector('svg.lucide-loader-circle')).not.toBeNull();
+    await user.click(pending);
+    expect(onLogout).toHaveBeenCalledOnce();
+  });
+
+  it('E-12 si falla, el menú se cierra y el foco vuelve al botón de cuenta', async () => {
+    const { user, onLogout, button, setLoggingOut } = renderControlled();
+    await user.click(button);
+    await user.click(option());
+    setLoggingOut(true);
+
+    const [callbacks] = onLogout.mock.calls[0]!;
+    act(() => {
+      setLoggingOut(false);
+      callbacks?.onError?.();
+    });
+
+    expect(menu()).toBeNull();
+    expect(document.activeElement).toBe(button);
+  });
+
+  it('E-10 con el menú abierto, pasar a 768 px o más lo cierra', async () => {
+    const { user, button } = renderControlled();
+    await user.click(button);
+
+    act(() => browser.setMediaMatches('(min-width: 768px)', true));
+
+    expect(menu()).toBeNull();
   });
 });
