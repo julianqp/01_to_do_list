@@ -63,8 +63,8 @@ Columnas: **N** = normal · **SB** = sin blur (E-3, superficies al 92 % y midien
 | Tarjeta glass · etiquetas y «¿No tienes cuenta?» `--text-2` | 10.71 / 11.02 / 10.71 | 11.14 / 10.44 / 11.14 |
 | Campo (raised) · valor `--text-1` | 17.69 / 17.87 / 17.69 | 12.02 / 11.05 / 12.02 |
 | Campo con foco (raised‑hover) · valor `--text-1` | 18.53 / 18.66 / 18.69 | 8.81 / 8.53 / 7.90 |
-| Píldora glass de la cabecera · `--text-1` | 16.31 / 16.93 / 16.31 | 15.16 / 14.49 / 15.16 |
-| Menú de cuenta (raised) · email `--text-1` | 17.38 / 17.72 / 17.69 | 12.39 / 11.06 / 12.02 |
+| Píldora glass de la cabecera · `--text-1` | 16.31 / 17.05¹ / 16.31 | 15.16 / 14.51¹ / 15.16 |
+| Menú de cuenta (raised) · email `--text-1` | 17.38 / 17.72 / 17.69 | 12.39 / 11.18¹ / 12.02 |
 | Opción de menú con foco (raised‑hover) · `--text-1` | 18.69 / 18.69 / 18.69 | 8.01 / 7.65 / 7.90 |
 | Alerta de error en la tarjeta · `--text-1` | 15.21 / 15.38 / 15.21 | 8.76 / 8.21 / 8.76 |
 | Alerta sin conexión en la tarjeta · `--text-1` | 15.32 / 15.49 / 15.32 | 8.63 / 8.00 / 8.63 |
@@ -78,6 +78,8 @@ Columnas: **N** = normal · **SB** = sin blur (E-3, superficies al 92 % y midien
 | Tooltip · ink‑50 sobre ink‑950 | 16.34 | 16.34 |
 
 Peor caso de texto normal: **7.65:1** (opción de menú con foco, oscuro, sin blur). Peor caso no textual: **4.17:1**.
+
+¹ Corregido en T-010. El cálculo original dejaba la cabecera al 80 % en la columna SB, pero el respaldo sin blur la sube al 92 % (X-11). Antes ponía 16.93, 14.49 y 11.06. El test de D-12 reproduce el resto de la tabla con ±0.005 componiendo en sRGB con 8 bits por canal, como el navegador. El peor caso no cambia.
 
 ## R-3 · Fuentes servidas desde la app (RNF-003, E-4)
 

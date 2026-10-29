@@ -1,3 +1,4 @@
+import { converter, wcagContrast, type Rgb } from 'culori';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -9,7 +10,7 @@ type Block = { path: string[]; declarations: Map<string, string> };
 
 // Lector mínimo de CSS: cada bloque con la ruta de selectores y reglas que lo contienen
 // (p. ej. ['@media (width < 768px)', ':root']) y sus declaraciones, con los espacios normalizados.
-export function readBlocks(css: string): Block[] {
+function readBlocks(css: string): Block[] {
   const blocks: Block[] = [];
   const stack: Block[] = [];
   let buffer = '';
@@ -52,9 +53,15 @@ export function readBlocks(css: string): Block[] {
 // Con jsdom, import.meta.url no es una URL file: (no sirve para fileURLToPath).
 const css = readFileSync(resolve(import.meta.dirname, 'tokens.css'), 'utf8');
 const blocks = readBlocks(css);
-const topLevel = (selector: string) =>
-  blocks.find((block) => block.path.length === 1 && block.path[0] === selector)?.declarations ??
-  new Map<string, string>();
+// Prettier puede cambiar las comillas de los selectores.
+const sameSelector = (a: string, b: string) => a.replaceAll('"', "'") === b.replaceAll('"', "'");
+const declarationsAt = (...path: string[]) =>
+  blocks.find(
+    (block) =>
+      block.path.length === path.length &&
+      block.path.every((selector, i) => sameSelector(selector, path[i]!)),
+  )?.declarations ?? new Map<string, string>();
+const topLevel = (selector: string) => declarationsAt(selector);
 
 // Tema claro: lo que no cambia con el tema (`@theme static`) y las variables de `:root`.
 const light = new Map([...topLevel('@theme static'), ...topLevel(':root')]);
@@ -235,4 +242,353 @@ describe('tokens.css', () => {
     }
     expect(light.get('--animate-spin')).toContain('var(--dur-slow)');
   });
+});
+
+// --- Variantes del tema (T-010) ---
+
+const ROOT = ':root';
+const DARK = ":root[data-theme='dark']";
+const NO_BLUR = '@supports not (backdrop-filter: blur(1px))';
+const MORE_CONTRAST = '@media (prefers-contrast: more)';
+const MOBILE = '@media (width < 768px)';
+
+type Theme = 'light' | 'dark';
+// N = normal · SB = sin blur (E-3) · C+ = «aumentar contraste» (CA-5.2), como en R-2.
+type Variant = 'N' | 'SB' | 'C+';
+const THEMES: Theme[] = ['light', 'dark'];
+const VARIANTS: Variant[] = ['N', 'SB', 'C+'];
+
+// Los tokens que ve la página en cada caso: los bloques que aplican, en el orden de la cascada.
+function tokensFor(theme: Theme, variant: Variant) {
+  const paths = [['@theme static'], [ROOT]];
+  if (theme === 'dark') paths.push([DARK]);
+  const condition = { N: undefined, SB: NO_BLUR, 'C+': MORE_CONTRAST }[variant];
+  if (condition) {
+    paths.push([condition, ROOT]);
+    if (theme === 'dark') paths.push([condition, DARK]);
+  }
+  return new Map(paths.flatMap((path) => [...declarationsAt(...path)]));
+}
+
+function resolveVars(tokens: Map<string, string>, value: string, depth = 0): string {
+  if (depth > 10) throw new Error(`referencia circular en ${value}`);
+  return value.replace(/var\((--[\w-]+)\)/g, (_, name: string) => {
+    const referenced = tokens.get(name);
+    if (referenced === undefined) throw new Error(`${name} no está definido`);
+    return resolveVars(tokens, referenced, depth + 1);
+  });
+}
+
+// R-2: el navegador compone en sRGB y guarda cada color en 8 bits por canal.
+const toRgb = converter('rgb');
+const to8bit = (channel: number) => Math.round(Math.min(1, Math.max(0, channel)) * 255) / 255;
+function parseColor(value: string): Rgb {
+  const color = toRgb(value);
+  if (!color) throw new Error(`no es un color: ${value}`);
+  return {
+    mode: 'rgb',
+    r: to8bit(color.r),
+    g: to8bit(color.g),
+    b: to8bit(color.b),
+    alpha: color.alpha ?? 1,
+  };
+}
+function over(bottom: Rgb, top: Rgb): Rgb {
+  const alpha = top.alpha ?? 1;
+  const mix = (a: number, b: number) => to8bit(b * alpha + a * (1 - alpha));
+  return { mode: 'rgb', r: mix(bottom.r, top.r), g: mix(bottom.g, top.g), b: mix(bottom.b, top.b) };
+}
+
+function catalog(theme: Theme, variant: Variant) {
+  const tokens = tokensFor(theme, variant);
+  const value = (name: string) => resolveVars(tokens, `var(${name})`);
+  const color = (name: string) => parseColor(value(name));
+  const stack = (base: Rgb, ...layers: string[]) => layers.map(color).reduce(over, base);
+
+  const canvas = color('--bg-canvas');
+  const dot = over(canvas, color('--dot-color'));
+  // Con blur, la retícula se difumina bajo el vidrio y se mide sobre el lienzo liso; sin blur, sobre
+  // un punto, que es el peor caso (R-2). Lo que no lleva blur (el título, la alerta bajo la
+  // cabecera) siempre está sobre un punto.
+  const underGlass = variant === 'SB' ? dot : canvas;
+  const card = stack(underGlass, '--surface-glass');
+  const field = stack(underGlass, '--surface-glass', '--surface-raised');
+  const header = stack(underGlass, '--surface-header');
+  const surfaces = {
+    canvas: dot,
+    card,
+    field,
+    fieldFocus: stack(underGlass, '--surface-glass', '--surface-raised-hover'),
+    headerPill: over(header, color('--surface-glass')),
+    menu: over(header, color('--surface-raised')),
+    menuFocus: stack(header, '--surface-raised', '--surface-raised-hover'),
+    alertError: over(field, color('--rose-soft')),
+    alertOffline: over(field, color('--amber-soft')),
+    alertInfo: over(field, color('--lilac-soft')),
+    alertUnderHeader: stack(dot, '--surface-raised', '--amber-soft'),
+    // La parada más clara del degradado es el peor caso para el texto claro.
+    primary: parseColor(value('--grad-primary').match(/#[0-9a-f]{6}/i)![0]),
+    tooltip: color('--surface-tooltip'),
+  };
+  return { tokens, value, color, surfaces };
+}
+
+const ratio = (a: Rgb, b: Rgb) => Math.round(wcagContrast(a, b) * 100) / 100;
+
+type Surface = keyof ReturnType<typeof catalog>['surfaces'];
+type Pair = {
+  name: string;
+  surface: Surface;
+  ink: string;
+  min: number;
+  // R-2: [N, SB, C+] en claro y en oscuro.
+  r2: Record<Theme, [number, number, number]>;
+};
+
+// Tabla «Texto por superficie» de plan §4.2 con los números de research R-2.
+const TEXT_PAIRS: Pair[] = [
+  {
+    name: 'título «Mis tareas» sobre el lienzo (grande)',
+    surface: 'canvas',
+    ink: '--text-1',
+    min: 4.5,
+    r2: { light: [12.15, 12.15, 12.15], dark: [12.87, 12.87, 12.87] },
+  },
+  {
+    name: 'título y enlace en la tarjeta',
+    surface: 'card',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [16.31, 16.78, 16.31], dark: [15.16, 14.2, 15.16] },
+  },
+  {
+    name: 'etiquetas en la tarjeta',
+    surface: 'card',
+    ink: '--text-2',
+    min: 7,
+    r2: { light: [10.71, 11.02, 10.71], dark: [11.14, 10.44, 11.14] },
+  },
+  {
+    name: 'valor del campo',
+    surface: 'field',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [17.69, 17.87, 17.69], dark: [12.02, 11.05, 12.02] },
+  },
+  {
+    name: 'valor del campo con foco',
+    surface: 'fieldFocus',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [18.53, 18.66, 18.69], dark: [8.81, 8.53, 7.9] },
+  },
+  {
+    name: 'píldora glass de la cabecera',
+    surface: 'headerPill',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [16.31, 17.05, 16.31], dark: [15.16, 14.51, 15.16] },
+  },
+  {
+    name: 'email del menú de cuenta',
+    surface: 'menu',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [17.38, 17.72, 17.69], dark: [12.39, 11.18, 12.02] },
+  },
+  {
+    name: 'opción de menú con foco',
+    surface: 'menuFocus',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [18.69, 18.69, 18.69], dark: [8.01, 7.65, 7.9] },
+  },
+  {
+    name: 'alerta de error en la tarjeta',
+    surface: 'alertError',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [15.21, 15.38, 15.21], dark: [8.76, 8.21, 8.76] },
+  },
+  {
+    name: 'alerta sin conexión en la tarjeta',
+    surface: 'alertOffline',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [15.32, 15.49, 15.32], dark: [8.63, 8.0, 8.63] },
+  },
+  {
+    name: 'alerta informativa en la tarjeta',
+    surface: 'alertInfo',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [15.33, 15.47, 15.33], dark: [8.55, 8.02, 8.55] },
+  },
+  {
+    name: 'alerta sin conexión bajo la cabecera',
+    surface: 'alertUnderHeader',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [14.63, 15.18, 15.32], dark: [8.21, 8.0, 8.63] },
+  },
+  {
+    name: 'botón primario',
+    surface: 'primary',
+    ink: '--text-on-accent',
+    min: 7,
+    r2: { light: [8.86, 8.86, 8.86], dark: [8.86, 8.86, 8.86] },
+  },
+  {
+    name: 'tooltip',
+    surface: 'tooltip',
+    ink: '--text-on-tooltip',
+    min: 7,
+    r2: { light: [16.34, 16.34, 16.34], dark: [16.34, 16.34, 16.34] },
+  },
+];
+
+// Elementos no textuales (RF-010): ≥ 3:1. R-2 solo da N y SB del anillo de error.
+const RING_R2: Record<Theme, Record<'field' | 'card', [number, number]>> = {
+  light: { field: [4.86, 4.91], card: [4.48, 4.61] },
+  dark: { field: [4.54, 4.17], card: [5.72, 5.36] },
+};
+// Contorno de foco: peor superficie de las que lo llevan alrededor (R-2).
+const FOCUS_R2: Record<Theme, number> = { light: 7.98, dark: 5.62 };
+const FOCUS_SURFACES: Surface[] = ['canvas', 'card', 'field', 'headerPill', 'menu', 'menuFocus'];
+
+const SEMANTIC = [
+  // DESIGN.md §1.4
+  '--bg-canvas',
+  '--surface-glass',
+  '--surface-raised',
+  '--surface-raised-hover',
+  '--surface-sunken',
+  '--surface-folder',
+  '--surface-row',
+  '--text-1',
+  '--text-2',
+  '--text-3',
+  '--text-on-accent',
+  '--text-on-pill',
+  // Los que dependen del tema (plan §4.2)
+  '--sage-soft',
+  '--rose-soft',
+  '--lilac-soft',
+  '--amber-soft',
+  '--shadow-pill',
+  '--shadow-glass',
+  '--shadow-float',
+  '--shadow-accent',
+  '--border-glass',
+  '--dot-color',
+  '--surface-header',
+  '--focus-outline',
+  '--focus-halo',
+  '--ring-error',
+];
+
+describe('tokens.css · variantes y contraste', () => {
+  it('RF-016 RNF-006 el bloque oscuro redefine todos los tokens semánticos y los que dependen del tema', () => {
+    const dark = declarationsAt(DARK);
+    expect(SEMANTIC.filter((token) => !dark.has(token))).toEqual([]);
+    expect(dark.get('color-scheme')).toBe('dark');
+  });
+
+  it('RNF-006 la escala de móvil (< 768 px) sigue DESIGN.md §2.2', () => {
+    const mobile = declarationsAt(MOBILE, ROOT);
+    expect(Object.fromEntries(mobile)).toEqual({
+      '--text-display': '2.5rem',
+      '--text-h1': '2rem',
+      '--text-h2': '1.625rem',
+      '--text-h3': '1.125rem',
+      '--text-body': '1rem',
+      '--text-sm': '0.875rem',
+      '--text-xs': '0.75rem',
+    });
+  });
+
+  it.each(THEMES)(
+    'CA-5.2 RF-015 con «aumentar contraste» las superficies son opacas y el borde es ink‑600 (%s)',
+    (theme) => {
+      const { color, value } = catalog(theme, 'C+');
+      for (const surface of [
+        '--surface-glass',
+        '--surface-raised',
+        '--surface-raised-hover',
+        '--surface-sunken',
+        '--surface-header',
+      ]) {
+        expect(color(surface).alpha, surface).toBe(1);
+      }
+      expect(value('--border-contrast')).toBe(value('--ink-600'));
+      expect(catalog(theme, 'N').value('--border-contrast')).toBe('transparent');
+    },
+  );
+
+  it.each(THEMES)(
+    'E-3 X-11 sin blur, solo glass, raised y la cabecera suben al 92 % (%s)',
+    (theme) => {
+      const normal = catalog(theme, 'N');
+      const { color } = catalog(theme, 'SB');
+      for (const surface of ['--surface-glass', '--surface-raised', '--surface-header']) {
+        expect(color(surface).alpha, surface).toBe(0.92);
+      }
+      expect(color('--surface-raised-hover')).toEqual(normal.color('--surface-raised-hover'));
+    },
+  );
+
+  for (const theme of THEMES) {
+    for (const [index, variant] of VARIANTS.entries()) {
+      const { color, surfaces } = catalog(theme, variant);
+
+      it.each(TEXT_PAIRS)(
+        `CA-3.1 RF-009 ${theme} ${variant}: $name ≥ $min:1 y coincide con R-2`,
+        ({ surface, ink, min, r2 }) => {
+          const contrast = ratio(color(ink), surfaces[surface]);
+          expect(contrast).toBeGreaterThanOrEqual(min);
+          expect(contrast).toBeCloseTo(r2[theme][index]!, 2);
+        },
+      );
+
+      it(`RF-010 ${theme} ${variant}: anillo e icono de error y contorno de foco ≥ 3:1`, () => {
+        const ring = color('--ring-error');
+        for (const surface of ['field', 'card'] as const) {
+          const contrast = ratio(ring, surfaces[surface]);
+          expect(contrast, `anillo sobre ${surface}`).toBeGreaterThanOrEqual(3);
+          const expected = RING_R2[theme][surface][index];
+          if (expected !== undefined)
+            expect(contrast, `anillo sobre ${surface}`).toBeCloseTo(expected, 2);
+        }
+        const focus = color('--focus-outline');
+        for (const surface of FOCUS_SURFACES) {
+          const contrast = ratio(focus, surfaces[surface]);
+          expect(contrast, `foco sobre ${surface}`).toBeGreaterThanOrEqual(3);
+          expect(contrast, `foco sobre ${surface}`).toBeGreaterThanOrEqual(FOCUS_R2[theme]);
+        }
+      });
+    }
+
+    it(`RF-010 ${theme}: el peor contorno de foco coincide con R-2`, () => {
+      const worst = Math.min(
+        ...VARIANTS.flatMap((variant) => {
+          const { color, surfaces } = catalog(theme, variant);
+          return FOCUS_SURFACES.map((surface) =>
+            ratio(color('--focus-outline'), surfaces[surface]),
+          );
+        }),
+      );
+      expect(worst).toBeCloseTo(FOCUS_R2[theme], 2);
+    });
+
+    it(`X-6 ${theme}: --pill-* (parada más oscura) con --text-on-pill ≥ 7:1 y --pill-ink con ink‑0 = 8.86`, () => {
+      const { color, value } = catalog(theme, 'N');
+      const darkestStops = ['sage', 'rose', 'lilac', 'amber'].map((tone) => {
+        const stops = value(`--pill-${tone}`).match(/oklch\([^)]+\)/g)!;
+        return ratio(color('--text-on-pill'), parseColor(stops.at(-1)!));
+      });
+      expect(Math.min(...darkestStops)).toBeCloseTo(7.71, 2);
+      const inkStop = parseColor(value('--pill-ink').match(/#[0-9a-f]{6}/i)![0]);
+      expect(ratio(color('--ink-0'), inkStop)).toBeCloseTo(8.86, 2);
+    });
+  }
 });

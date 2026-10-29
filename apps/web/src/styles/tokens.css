@@ -211,3 +211,94 @@
   --dur: 220ms;
   --dur-slow: 420ms;
 }
+
+/* Tema oscuro (§1.4, §1.5). Lo activa el script de Layout.astro (D-4). */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --sage-soft: oklch(0.68 0.11 150 / 0.22);
+  --rose-soft: oklch(0.68 0.11 15 / 0.22);
+  --lilac-soft: oklch(0.68 0.11 300 / 0.22);
+  --amber-soft: oklch(0.68 0.11 75 / 0.22);
+
+  --bg-canvas: var(--ink-950);
+  --surface-glass: rgba(17, 33, 45, 0.62);
+  --surface-raised: rgba(37, 55, 69, 0.7);
+  --surface-raised-hover: rgba(74, 92, 106, 0.62);
+  --surface-sunken: rgba(6, 20, 27, 0.5);
+  --surface-folder: #11212d;
+  --surface-row: #1a2c39;
+  --surface-header: rgba(6, 20, 27, 0.8);
+  --text-1: var(--ink-50);
+  --text-2: var(--ink-200);
+  --text-3: #b0bbbe;
+  --text-on-accent: var(--ink-0);
+  --text-on-pill: var(--ink-950);
+  /* X-5: mismo tono que --rose; en oscuro ya llega a 3:1. */
+  --ring-error: var(--rose);
+
+  --dot-color: rgba(238, 240, 240, 0.1);
+
+  --shadow-pill:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 2px rgba(6, 20, 27, 0.3),
+    0 4px 12px -2px rgba(6, 20, 27, 0.3);
+  --shadow-glass:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(6, 20, 27, 0.3),
+    0 16px 40px -12px rgba(6, 20, 27, 0.45);
+  --shadow-float:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 0 1px var(--border-glass),
+    0 24px 56px -16px rgba(6, 20, 27, 0.6);
+  --shadow-accent: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 6px 18px -6px rgba(6, 20, 27, 0.55);
+  --border-glass: rgba(238, 240, 240, 0.1);
+
+  /* X-4: ink‑800 sobre el lienzo oscuro da 1.52:1. */
+  --focus-outline: var(--ink-200);
+  --focus-halo: 0 0 0 3px rgba(204, 208, 207, 0.18);
+}
+
+/* §2.2, móvil. Las media queries no aceptan var(): 768px = --breakpoint-md (§4). */
+@media (width < 768px) {
+  :root {
+    --text-display: 2.5rem;
+    --text-h1: 2rem;
+    --text-h2: 1.625rem;
+    --text-h3: 1.125rem;
+    --text-body: 1rem;
+    --text-sm: 0.875rem;
+    --text-xs: 0.75rem;
+  }
+}
+
+/* E-3, X-11: sin blur, glass, raised y la cabecera suben al 92 %. raised-hover no cambia. */
+@supports not (backdrop-filter: blur(1px)) {
+  :root {
+    --surface-glass: rgba(244, 246, 246, 0.92);
+    --surface-raised: rgba(250, 251, 251, 0.92);
+    --surface-header: rgba(227, 230, 230, 0.92);
+  }
+  :root[data-theme='dark'] {
+    --surface-glass: rgba(17, 33, 45, 0.92);
+    --surface-raised: rgba(37, 55, 69, 0.92);
+    --surface-header: rgba(6, 20, 27, 0.92);
+  }
+}
+
+/* §17, CA-5.2: superficies opacas (el color que se ve con la transparencia) y borde de 1 px.
+   Va después del bloque sin blur: si coinciden, ganan las superficies opacas (D-18). */
+@media (prefers-contrast: more) {
+  :root {
+    --surface-glass: #edf0f0;
+    --surface-raised: #f7f9f9;
+    --surface-raised-hover: #ffffff;
+    --surface-sunken: #d9dddc;
+    --surface-header: #e3e6e6;
+    --border-contrast: var(--ink-600);
+  }
+  :root[data-theme='dark'] {
+    --surface-glass: #0d1c26;
+    --surface-raised: #1e2f3c;
+    --surface-raised-hover: #394b59;
+    --surface-sunken: #06141b;
+    --surface-header: #06141b;
+  }
+}

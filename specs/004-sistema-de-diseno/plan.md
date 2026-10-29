@@ -386,6 +386,10 @@ En la misma rama, durante la implementación:
 - **D-17** Las utilidades E2E de `auth.spec.ts` (`tabTo`, `uniqueEmail`, `signup`, campos y botones) pasan a `e2e/helpers.ts`. `auth.spec.ts` solo cambia sus importaciones.
   - *Por qué:* `design-system.spec.ts` las necesita (2 usos, C-22).
 
+- **D-18 (añadida en T-010)** En `tokens.css`, el bloque `@media (prefers-contrast: more)` va después del de `@supports not (backdrop-filter: blur(1px))`. Si coinciden las dos condiciones, ganan las superficies opacas.
+  - *Por qué:* los dos bloques tienen la misma especificidad, así que manda el orden. Las superficies opacas dan más contraste que las del 92 % y cumplen CA-5.2.
+  - *Alternativas descartadas:* el orden del esbozo de §4.2 (contraste antes que sin blur): con las dos condiciones, CA-5.2 dejaría de cumplirse.
+
 > D-1, D-3 y D-12 son transversales: se recogen en [ADR-0003](../../docs/adr/0003-catalogo-de-tokens-vigilado-por-tests.md) (catálogo de tokens y su vigilancia automática), que aplica también a 002 y 003.
 
 ## 6. Trazabilidad
