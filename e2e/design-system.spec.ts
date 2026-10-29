@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   emailField,
@@ -578,4 +579,210 @@ test.describe('responsive, objetivos táctiles y foco', () => {
     await openPrivateArea(page, 1280);
     await expect(page.locator('html')).toHaveAttribute('lang', 'es');
   });
+});
+
+// Colores calculados de DESIGN.md §1: ink‑950 (lienzo oscuro), ink‑100 (lienzo claro) e ink‑600.
+const CANVAS = { dark: 'rgb(6, 20, 27)', light: 'rgb(227, 230, 230)' } as const;
+const INK_600 = 'rgb(74, 92, 106)';
+const ORIGIN = 'https://localhost:4321';
+
+const bodyBackground = (page: Page) =>
+  page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+
+// Alfa de un color calculado: `rgba(r, g, b, a)`, `oklch(l c h / a)`, `transparent` o, si no lleva
+// alfa, 1.
+function alphaOf(color: string) {
+  if (color === 'transparent') return 0;
+  const slash = color.match(/\/\s*([\d.]+)(%?)\s*\)$/);
+  if (slash) return Number(slash[1]) / (slash[2] ? 100 : 1);
+  const rgba = color.match(/^rgba\((?:[^,]+,){3}\s*([\d.]+)\)$/);
+  return rgba ? Number(rgba[1]) : 1;
+}
+
+async function expectOpaqueWithContrastBorder(locator: Locator, name: string) {
+  const style = await locator.evaluate((element) => {
+    const computed = getComputedStyle(element);
+    return {
+      background: computed.backgroundColor,
+      width: computed.borderTopWidth,
+      borderStyle: computed.borderTopStyle,
+      color: computed.borderTopColor,
+    };
+  });
+  expect(alphaOf(style.background), `fondo de ${name}: ${style.background}`).toBe(1);
+  expect(style, `borde de ${name}`).toMatchObject({
+    width: '1px',
+    borderStyle: 'solid',
+    color: INK_600,
+  });
+}
+
+// RNF-001: WCAG 2.2 AA más el contraste AAA del texto (C-26). `color-contrast-enhanced` no lleva
+// ninguna de esas etiquetas, así que va en una pasada aparte. La barra de Astro no es de la app.
+async function expectNoAxeViolations(page: Page) {
+  const run = (builder: AxeBuilder) => builder.exclude('astro-dev-toolbar').analyze();
+  // Una pasada detrás de otra: axe no admite dos a la vez en la misma página.
+  const aa = await run(
+    new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']),
+  );
+  const aaa = await run(new AxeBuilder({ page }).withRules(['color-contrast-enhanced']));
+  const violations = [...aa.violations, ...aaa.violations].map(
+    ({ id, nodes }) => `${id}: ${nodes.map((node) => node.target.join(' ')).join(', ')}`,
+  );
+  expect(violations).toEqual([]);
+}
+
+test.describe('preferencias del sistema, peticiones y accesibilidad', () => {
+  for (const colorScheme of ['dark', 'light'] as const) {
+    test(`${colorScheme === 'dark' ? 'CA-5.3' : 'CA-5.4'} RF-016 tema ${colorScheme === 'dark' ? 'oscuro' : 'claro'} del sistema → data-theme y lienzo`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme });
+      for (const path of ['/login', '/signup'] as const) {
+        await test.step(path, async () => {
+          await open(page, path, 1280);
+          await expect(page.locator('html')).toHaveAttribute('data-theme', colorScheme);
+          expect(await bodyBackground(page)).toBe(CANVAS[colorScheme]);
+        });
+      }
+      await openPrivateArea(page, 1280);
+      await expect(page.locator('html')).toHaveAttribute('data-theme', colorScheme);
+      expect(await bodyBackground(page)).toBe(CANVAS[colorScheme]);
+    });
+  }
+
+  test('E-13 RF-016 con el tema oscuro, data-theme="dark" se pone antes de que exista <body>', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.addInitScript(() => {
+      const record = window as unknown as { themeBeforeBody?: boolean };
+      new MutationObserver(() => {
+        if (record.themeBeforeBody === undefined && document.documentElement?.dataset.theme) {
+          record.themeBeforeBody =
+            document.documentElement.dataset.theme === 'dark' && document.body === null;
+        }
+      }).observe(document, { subtree: true, childList: true, attributes: true });
+    });
+
+    await open(page, '/login', 1280);
+
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { themeBeforeBody?: boolean }).themeBeforeBody,
+      ),
+    ).toBe(true);
+  });
+
+  test('E-8 RF-015 RF-016 cambiar tema y contraste con la pantalla abierta cambia los estilos sin navegar', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: 'light', contrast: 'no-preference' });
+    await open(page, '/login', 1280);
+    // Si la pantalla se recargara, la marca desaparecería.
+    await page.evaluate(() => {
+      (window as unknown as { stillHere?: boolean }).stillHere = true;
+    });
+    expect(await bodyBackground(page)).toBe(CANVAS.light);
+
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await expect.poll(() => bodyBackground(page)).toBe(CANVAS.dark);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+    await page.emulateMedia({ colorScheme: 'light', contrast: 'more' });
+    await expect
+      .poll(() => authCard(page).evaluate((card) => getComputedStyle(card).borderTopColor))
+      .toBe(INK_600);
+
+    expect(
+      await page.evaluate(() => (window as unknown as { stillHere?: boolean }).stillHere),
+    ).toBe(true);
+  });
+
+  test('CA-5.2 RF-015 con «aumentar contraste»: tarjeta, campos y alertas opacos con borde de 1 px ink‑600', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ contrast: 'more' });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/login?expired=1');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await fillCredentials(page, uniqueEmail());
+    await submitButton(page).click();
+    await expect(page.locator('[data-tone]')).toHaveCount(2);
+
+    await expectOpaqueWithContrastBorder(authCard(page), 'la tarjeta');
+    await expectOpaqueWithContrastBorder(emailField(page), 'el campo Email');
+    await expectOpaqueWithContrastBorder(passwordField(page), 'el campo Contraseña');
+    for (const alert of await page.locator('[data-tone]').all()) {
+      const tone = await alert.getAttribute('data-tone');
+      await expectOpaqueWithContrastBorder(alert, `la alerta ${tone}`);
+    }
+  });
+
+  test('CA-5.1 RF-014 con «reducir movimiento», pulsar un botón no lo escala', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await open(page, '/login', 1280);
+    const button = submitButton(page);
+    const { x, y, width, height } = await box(button);
+
+    await page.mouse.move(x + width / 2, y + height / 2);
+    await page.mouse.down();
+    const style = await button.evaluate((element) => {
+      const { scale, transform } = getComputedStyle(element);
+      return { scale, transform };
+    });
+    await page.mouse.up();
+
+    expect(style).toEqual({ scale: 'none', transform: 'none' });
+  });
+
+  test('RNF-003 C-16 abrir las tres pantallas no hace peticiones fuera de la app', async ({
+    page,
+  }) => {
+    const urls: string[] = [];
+    page.on('request', (request) => urls.push(request.url()));
+
+    for (const path of ['/login', '/signup'] as const) await open(page, path, 1280);
+    await openPrivateArea(page, 1280);
+    await page.waitForLoadState('networkidle');
+
+    // Las URL `data:` no salen de la página.
+    const external = urls.filter(
+      (url) => !url.startsWith('data:') && new URL(url).origin !== ORIGIN,
+    );
+    expect(external).toEqual([]);
+  });
+
+  test('E-4 si la fuente no llega, el título y los campos se ven con la de respaldo', async ({
+    page,
+  }) => {
+    await page.route('**/*.woff2', (route) => route.abort());
+    await open(page, '/login', 1280);
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Iniciar sesión' })).toBeVisible();
+    await expect(emailField(page)).toBeVisible();
+    await expect(passwordField(page)).toBeVisible();
+  });
+
+  for (const colorScheme of ['light', 'dark'] as const) {
+    test(`RNF-001 RF-009 axe sin infracciones en las tres pantallas y el menú de cuenta, tema ${colorScheme === 'dark' ? 'oscuro' : 'claro'}`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme });
+      for (const path of ['/login', '/signup'] as const) {
+        await test.step(path, async () => {
+          await open(page, path, 1280);
+          await expectNoAxeViolations(page);
+        });
+      }
+      await openPrivateArea(page, 1280);
+      await test.step('zona privada', () => expectNoAxeViolations(page));
+      await test.step('menú de cuenta abierto a 375', async () => {
+        await page.setViewportSize({ width: 375, height: 900 });
+        await accountButton(page).click();
+        await expect(logoutMenuItem(page)).toBeVisible();
+        await expectNoAxeViolations(page);
+      });
+    });
+  }
 });
