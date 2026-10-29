@@ -50,6 +50,16 @@ function SignupFormContent() {
           Crear cuenta
         </button>
       </form>
+      {/* RF-019, D-19: navegación que elige el usuario, con entrada en el historial. */}
+      <p>
+        ¿Ya tienes cuenta?{' '}
+        <a
+          href="/login"
+          className="font-medium underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
+        >
+          Iniciar sesión
+        </a>
+      </p>
     </main>
   );
 }

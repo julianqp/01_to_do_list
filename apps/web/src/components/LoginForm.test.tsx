@@ -135,6 +135,23 @@ describe('LoginForm', () => {
     expect(screen.queryByText(SESSION_EXPIRED)).toBeNull();
   });
 
+  it('CA-1.6 RF-019 ofrece ir al registro con "¿No tienes cuenta? Crear cuenta"', async () => {
+    await renderForm();
+
+    const link = screen.getByRole('link', { name: 'Crear cuenta' });
+    expect(link.getAttribute('href')).toBe('/signup');
+    expect(link.parentElement?.textContent).toBe('¿No tienes cuenta? Crear cuenta');
+  });
+
+  it('RF-019 D-19 mientras se comprueba la sesión no hay enlace al registro', async () => {
+    browser.routes['GET /api/auth/me'] = () => new Promise<Response>(() => {});
+
+    renderWithClient(<LoginForm />);
+
+    expect(await screen.findByText('Cargando…')).toBeDefined();
+    expect(screen.queryByRole('link')).toBeNull();
+  });
+
   it('CA-4.3 RF-014 con sesión (me 200) lleva a la zona privada', async () => {
     browser.routes['GET /api/auth/me'] = () =>
       json(200, { user: { id: 'u1', email: 'ana@example.com' } });

@@ -161,6 +161,23 @@ describe('SignupForm', () => {
     await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
   });
 
+  it('CA-2.6 RF-019 ofrece ir al inicio de sesión con "¿Ya tienes cuenta? Iniciar sesión"', async () => {
+    await renderForm();
+
+    const link = screen.getByRole('link', { name: 'Iniciar sesión' });
+    expect(link.getAttribute('href')).toBe('/login');
+    expect(link.parentElement?.textContent).toBe('¿Ya tienes cuenta? Iniciar sesión');
+  });
+
+  it('RF-019 D-19 mientras se comprueba la sesión no hay enlace al inicio de sesión', async () => {
+    browser.routes['GET /api/auth/me'] = () => new Promise<Response>(() => {});
+
+    renderWithClient(<SignupForm />);
+
+    expect(await screen.findByText('Cargando…')).toBeDefined();
+    expect(screen.queryByRole('link')).toBeNull();
+  });
+
   it('CA-4.3 RF-014 con sesión (me 200) lleva a la zona privada', async () => {
     browser.routes['GET /api/auth/me'] = () =>
       json(200, { user: { id: 'u1', email: 'ana@example.com' } });

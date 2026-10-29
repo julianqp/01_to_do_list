@@ -14,10 +14,12 @@ function uniqueEmail() {
 const emailField = (page: Page) => page.getByLabel(/email/i);
 const passwordField = (page: Page) => page.getByLabel(/contraseña/i);
 const logoutButton = (page: Page) => page.getByRole('button', { name: 'Cerrar sesión' });
+// Dentro de `main`: en desarrollo, la barra de herramientas de Astro también tiene enlaces.
+const appLink = (page: Page, name: string) => page.locator('main').getByRole('link', { name });
 
 // Lleva el foco al elemento solo con el tabulador, sin suponer nada del resto de la página.
-// WebKit en macOS, como Safari, solo recorre los campos de texto con Tab; los botones necesitan
-// Option+Tab.
+// WebKit en macOS, como Safari, solo recorre los campos de texto con Tab; los botones y los enlaces
+// necesitan Option+Tab.
 async function tabTo(page: Page, target: Locator) {
   await expect(target).toBeVisible();
   const key = page.context().browser()?.browserType().name() === 'webkit' ? 'Alt+Tab' : 'Tab';
@@ -142,4 +144,27 @@ test('E-6 cerrar sesión en una pestaña lleva al inicio de sesión en la otra a
 
   await otherTab.reload();
   await expectLoginScreen(otherTab);
+});
+
+test('CA-1.6 RF-019 RNF-001 sin cuenta, del inicio de sesión al registro y a la zona privada', async ({
+  page,
+}) => {
+  const email = uniqueEmail();
+  await page.goto('/');
+  await expectLoginScreen(page);
+
+  await tabTo(page, appLink(page, 'Crear cuenta'));
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL('/signup');
+
+  await submitCredentials(page, email);
+  await expectPrivateArea(page, email);
+});
+
+test('CA-2.6 RF-019 RNF-001 del registro al inicio de sesión', async ({ page }) => {
+  await page.goto('/signup');
+
+  await tabTo(page, appLink(page, 'Iniciar sesión'));
+  await page.keyboard.press('Enter');
+  await expectLoginScreen(page);
 });
