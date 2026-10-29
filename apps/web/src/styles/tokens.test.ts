@@ -186,6 +186,7 @@ const EXPECTED: Record<string, string> = {
   '--focus-outline': 'var(--ink-800)',
   '--focus-halo': '0 0 0 3px rgba(74,92,106,.18)',
   '--ring-error': 'oklch(0.55 0.11 15)',
+  '--ring-error-width': '1.5px',
   '--border-contrast': 'transparent',
   '--surface-tooltip': 'var(--ink-950)',
   '--text-on-tooltip': 'var(--ink-50)',

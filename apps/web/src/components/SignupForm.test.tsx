@@ -78,6 +78,35 @@ describe('SignupForm', () => {
     expect(signupCalls()).toHaveLength(0);
   });
 
+  it('CA-1.6 RF-005 RF-010 D-15 con «ana@» el campo Email lleva el anillo, un icono y el mensaje de la 001', async () => {
+    const { user, email, password, submit } = await renderForm();
+
+    await user.type(email, 'ana@');
+    await user.type(password, 'correcta-horse-1');
+    await user.click(submit);
+
+    expectFieldError(email, INVALID_EMAIL);
+    const icon = email.parentElement?.querySelector('svg');
+    expect(icon?.getAttribute('aria-hidden')).toBe('true');
+    expect(icon?.getAttribute('class')).toContain('text-ring-error');
+    for (const name of [
+      'h-13',
+      'rounded-pill',
+      'bg-raised',
+      'border-contrast',
+      'focus:bg-raised-hover',
+      'focus:shadow-(--focus-halo)',
+      'aria-invalid:inset-ring-ring-error',
+      'aria-invalid:pe-12',
+    ]) {
+      expect(email.classList).toContain(name);
+    }
+    const label = (email as HTMLInputElement).labels?.[0];
+    expect(label?.className).toContain('text-sm');
+    expect(label?.classList).toContain('text-2');
+    expect(label?.classList).toContain('ps-5');
+  });
+
   it('CA-1.4 RF-006 con una contraseña de 7 caracteres indica la longitud junto a la contraseña', async () => {
     const { user, email, password, submit } = await renderForm();
 

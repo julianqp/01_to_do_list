@@ -390,6 +390,10 @@ En la misma rama, durante la implementación:
   - *Por qué:* los dos bloques tienen la misma especificidad, así que manda el orden. Las superficies opacas dan más contraste que las del 92 % y cumplen CA-5.2.
   - *Alternativas descartadas:* el orden del esbozo de §4.2 (contraste antes que sin blur): con las dos condiciones, CA-5.2 dejaría de cumplirse.
 
+- **D-19 (añadida en T-015)** El grosor del anillo de error es un token, `--ring-error-width: 1.5px` (`:root` de `tokens.css`), y el campo lo usa con `aria-invalid:inset-ring-(length:--ring-error-width) aria-invalid:inset-ring-ring-error`.
+  - *Por qué:* Tailwind 4.3 no tiene `inset-ring-1.5`, y D-3 no admite `inset-ring-[1.5px]`. Además, `inset-ring-2` (o `ring-2`, `border-2`) se lee como el color `--color-2` (`--text-2`), no como un ancho: los nombres `1`/`2`/`3` de los colores de texto chocan con los anchos numéricos. Con `inset-ring-*`, Tailwind compone el anillo con la sombra del foco (`focus:shadow-(--focus-halo)`) en el mismo `box-shadow` (D-15).
+  - *Alternativas descartadas:* un anillo de 1 px (`inset-ring`) — no es el 1.5 px de §6.2 · una `@utility` en `global.css` con `1.5px` — un valor literal fuera de `tokens.css` (D-3).
+
 > D-1, D-3 y D-12 son transversales: se recogen en [ADR-0003](../../docs/adr/0003-catalogo-de-tokens-vigilado-por-tests.md) (catálogo de tokens y su vigilancia automática), que aplica también a 002 y 003.
 
 ## 6. Trazabilidad
