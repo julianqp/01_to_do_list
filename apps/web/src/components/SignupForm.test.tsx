@@ -78,6 +78,35 @@ describe('SignupForm', () => {
     expect(signupCalls()).toHaveLength(0);
   });
 
+  it('CA-1.6 RF-005 RF-010 D-15 con «ana@» el campo Email lleva el anillo, un icono y el mensaje de la 001', async () => {
+    const { user, email, password, submit } = await renderForm();
+
+    await user.type(email, 'ana@');
+    await user.type(password, 'correcta-horse-1');
+    await user.click(submit);
+
+    expectFieldError(email, INVALID_EMAIL);
+    const icon = email.parentElement?.querySelector('svg');
+    expect(icon?.getAttribute('aria-hidden')).toBe('true');
+    expect(icon?.getAttribute('class')).toContain('text-ring-error');
+    for (const name of [
+      'h-13',
+      'rounded-pill',
+      'bg-raised',
+      'border-contrast',
+      'focus:bg-raised-hover',
+      'focus:shadow-(--focus-halo)',
+      'aria-invalid:inset-ring-ring-error',
+      'aria-invalid:pe-12',
+    ]) {
+      expect(email.classList).toContain(name);
+    }
+    const label = (email as HTMLInputElement).labels?.[0];
+    expect(label?.className).toContain('text-sm');
+    expect(label?.classList).toContain('text-2');
+    expect(label?.classList).toContain('ps-5');
+  });
+
   it('CA-1.4 RF-006 con una contraseña de 7 caracteres indica la longitud junto a la contraseña', async () => {
     const { user, email, password, submit } = await renderForm();
 
@@ -144,6 +173,8 @@ describe('SignupForm', () => {
     expect(alert.isConnected).toBe(true);
   });
 
+  // Spec 004 D-9 (plan §7): el botón ya no lleva `disabled`, sino `aria-disabled` (no pierde el
+  // foco). Lo que se comprueba no cambia: un solo envío a la vez.
   it('E-8 el botón "Crear cuenta" queda desactivado mientras se envía', async () => {
     let respond: (res: Response) => void = () => {};
     browser.routes['POST /api/auth/signup'] = () =>
@@ -156,9 +187,11 @@ describe('SignupForm', () => {
     await user.type(password, 'correcta-horse-1');
     await user.click(submit);
 
-    await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(true));
+    await waitFor(() => expect(submit.getAttribute('aria-disabled')).toBe('true'));
+    await user.click(submit);
+    expect(signupCalls()).toHaveLength(1);
     respond(await apiError(409, 'EMAIL_ALREADY_REGISTERED'));
-    await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
+    await waitFor(() => expect(submit.getAttribute('aria-disabled')).toBeNull());
   });
 
   it('CA-2.6 RF-019 ofrece ir al inicio de sesión con "¿Ya tienes cuenta? Iniciar sesión"', async () => {
@@ -185,5 +218,62 @@ describe('SignupForm', () => {
     renderWithClient(<SignupForm />);
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith('/'));
+  });
+});
+
+// Spec 004: tarjeta, orden y avisos con tono (RF-002, RF-003, RF-004, RF-013).
+describe('SignupForm · sistema de diseño', () => {
+  const precedes = (a: Node, b: Node) =>
+    (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+
+  it('RF-003 CA-1.2 X-1 orden: título, avisos, Email, Contraseña, botón y enlace, todo en la tarjeta', async () => {
+    const { email, password, submit } = await renderForm();
+    const title = screen.getByRole('heading', { level: 1, name: 'Crear cuenta' });
+    const card = title.parentElement!;
+    const order = [
+      title,
+      screen.getByRole('alert'),
+      email,
+      password,
+      submit,
+      screen.getByRole('link', { name: 'Iniciar sesión' }),
+    ];
+
+    for (const element of order) expect(card.contains(element)).toBe(true);
+    for (let i = 1; i < order.length; i++) expect(precedes(order[i - 1]!, order[i]!)).toBe(true);
+  });
+
+  it('CA-1.4 RF-004 sin conexión la alerta es de tipo offline, con icono y encima del campo Email', async () => {
+    browser.routes['POST /api/auth/signup'] = () =>
+      Promise.reject(new TypeError('Failed to fetch'));
+    const { user, email, password, submit } = await renderForm();
+
+    await user.type(email, 'ana@example.com');
+    await user.type(password, 'correcta-horse-1');
+    await user.click(submit);
+
+    const alert = await waitFor(() => {
+      const found = screen.getByRole('alert').querySelector<HTMLElement>('[data-tone]');
+      expect(found).not.toBeNull();
+      return found!;
+    });
+    expect(alert.dataset.tone).toBe('offline');
+    expect(alert.textContent).toBe(CONNECTION);
+    expect(alert.querySelector('svg')).not.toBeNull();
+    expect(precedes(alert, email)).toBe(true);
+  });
+
+  it('CA-4.2 RF-013 mientras espera: «Creando cuenta…» con el anillo de carga', async () => {
+    browser.routes['POST /api/auth/signup'] = () => new Promise<Response>(() => {});
+    const { user, email, password, submit } = await renderForm();
+
+    await user.type(email, 'ana@example.com');
+    await user.type(password, 'correcta-horse-1');
+    await user.click(submit);
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Creando cuenta…' })).toBe(submit),
+    );
+    expect(submit.querySelector('svg.lucide-loader-circle')).not.toBeNull();
   });
 });

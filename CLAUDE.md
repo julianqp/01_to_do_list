@@ -11,6 +11,7 @@ Este proyecto sigue Spec-Driven Development. Estas reglas tienen prioridad sobre
 4. `specs/NNN-slug/plan.md` — CÓMO.
 5. `specs/NNN-slug/tasks.md` — PASOS y progreso.
 6. `docs/adr/` — decisiones de arquitectura transversales.
+7. `DESIGN.md` (si existe) — sistema de diseño: fuente de verdad de lo visual (colores, tipografía, espaciado, componentes, tono de los textos). Léelo antes de especificar, planificar o implementar cualquier interfaz.
 
 Plantillas en `.sdd/templates/`, checklists en `.sdd/checklists/`.
 

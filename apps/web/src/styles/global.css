@@ -1,1 +1,39 @@
 @import 'tailwindcss';
+@import './tokens.css';
+
+@layer base {
+  /* Lienzo con retícula de puntos (§3.3) y texto de cuerpo (§2.2). */
+  body {
+    background-color: var(--bg-canvas);
+    background-image: var(--dot-grid);
+    background-size: var(--dot-grid-size) var(--dot-grid-size);
+    color: var(--text-1);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    letter-spacing: var(--text-body--letter-spacing);
+    font-weight: var(--text-body--font-weight);
+  }
+
+  /* RF-011, D-5: un solo foco para todo; X-4 da su color por tema. */
+  :focus-visible {
+    outline: 2px solid var(--focus-outline);
+    outline-offset: 2px;
+  }
+
+  /* D-15: el autorrelleno de Chrome y Safari pinta su propio fondo claro (con !important) y rompe el
+     contraste en oscuro. Se mantiene el texto del token y se aplaza para siempre el cambio de fondo:
+     no es una animación, nunca llega a verse. */
+  input:-webkit-autofill,
+  input:autofill {
+    -webkit-text-fill-color: var(--text-1);
+    caret-color: var(--text-1);
+    transition: background-color 0s 86400s;
+  }
+}
+
+/* §6.3: vidrio. El color de la superficie lo pone cada componente. */
+@utility backdrop-glass {
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+}

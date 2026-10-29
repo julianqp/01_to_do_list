@@ -10,7 +10,7 @@ Indicaciones técnicas del usuario: $ARGUMENTS
 ## Pasos
 
 1. Localiza la spec activa (ver `CLAUDE.md`). **Si su estado no es `aprobada`, para** y recomienda `/sdd-clarificar`.
-2. Lee: la spec completa, `.sdd/constitution.md`, ADRs de `docs/adr/` y specs relacionadas.
+2. Lee: la spec completa, `.sdd/constitution.md`, ADRs de `docs/adr/`, specs relacionadas y, si la spec toca la interfaz, `DESIGN.md` (si existe). El plan debe usar sus tokens y componentes; cada desviación se justifica como cualquier otra decisión.
 3. **Explora el código** que vaya a verse afectado: estructura, módulos similares, utilidades reutilizables, tipos existentes, patrones de tests. Anota rutas concretas. No diseñes en abstracto.
 4. Si hay incógnitas técnicas (una API externa, una librería, rendimiento), investígalas y resume en `specs/NNN-slug/research.md`.
 5. Crea `specs/NNN-slug/plan.md` desde `.sdd/templates/plan.md` y rellénalo:

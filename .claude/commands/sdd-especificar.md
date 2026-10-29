@@ -11,7 +11,7 @@ $ARGUMENTS
 
 ## Pasos
 
-1. Lee `.sdd/constitution.md`, `specs/roadmap.md` y lista las specs existentes en `specs/` (títulos y estados) para detectar solapamientos o dependencias.
+1. Lee `.sdd/constitution.md`, `DESIGN.md` si existe (para el tono de los textos y lo que ya da por resuelto el sistema de diseño), `specs/roadmap.md` y lista las specs existentes en `specs/` (títulos y estados) para detectar solapamientos o dependencias.
 2. Decide qué spec es, usando el roadmap:
    - **Descripción vacía:** coge la primera spec `pendiente` del roadmap cuyas dependencias estén `hecha`. Si no hay roadmap o no hay ninguna disponible, pide al usuario que describa la feature y para.
    - **La descripción corresponde a una spec del roadmap:** usa su número y título.

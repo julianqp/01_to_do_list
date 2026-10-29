@@ -1,67 +1,17 @@
-import { randomUUID } from 'node:crypto';
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import {
+  appLink,
+  expectLoginScreen,
+  expectPrivateArea,
+  logout,
+  signup,
+  submitCredentials,
+  tabTo,
+  uniqueEmail,
+} from './helpers';
 
 // Flujo principal de la spec 001 (plan §7). Todo con teclado (RNF-001) y en cada proyecto de
 // playwright.config.ts (RNF-004). Cada test registra su propia cuenta con un email único.
-
-const PASSWORD = 'correcta-horse-1';
-const MAX_TABS = 20;
-
-function uniqueEmail() {
-  return `e2e-${randomUUID()}@example.com`;
-}
-
-const emailField = (page: Page) => page.getByLabel(/email/i);
-const passwordField = (page: Page) => page.getByLabel(/contraseña/i);
-const logoutButton = (page: Page) => page.getByRole('button', { name: 'Cerrar sesión' });
-// Dentro de `main`: en desarrollo, la barra de herramientas de Astro también tiene enlaces.
-const appLink = (page: Page, name: string) => page.locator('main').getByRole('link', { name });
-
-// Lleva el foco al elemento solo con el tabulador, sin suponer nada del resto de la página.
-// WebKit en macOS, como Safari, solo recorre los campos de texto con Tab; los botones y los enlaces
-// necesitan Option+Tab.
-async function tabTo(page: Page, target: Locator) {
-  await expect(target).toBeVisible();
-  const key = page.context().browser()?.browserType().name() === 'webkit' ? 'Alt+Tab' : 'Tab';
-  for (let i = 0; i < MAX_TABS; i++) {
-    if (await target.evaluate((element) => element === document.activeElement)) return;
-    await page.keyboard.press(key);
-  }
-  await expect(target).toBeFocused();
-}
-
-async function submitCredentials(page: Page, email: string) {
-  await tabTo(page, emailField(page));
-  await page.keyboard.type(email);
-  await page.keyboard.press('Tab');
-  await expect(passwordField(page)).toBeFocused();
-  await page.keyboard.type(PASSWORD);
-  await page.keyboard.press('Enter');
-}
-
-async function expectPrivateArea(page: Page, email: string) {
-  await expect(page).toHaveURL('/');
-  await expect(page.getByText(email)).toBeVisible();
-  await expect(logoutButton(page)).toBeVisible();
-}
-
-async function expectLoginScreen(page: Page) {
-  await expect(page).toHaveURL('/login');
-  await expect(emailField(page)).toBeVisible();
-  await expect(logoutButton(page)).toHaveCount(0);
-}
-
-async function signup(page: Page, email: string) {
-  await page.goto('/signup');
-  await submitCredentials(page, email);
-  await expectPrivateArea(page, email);
-}
-
-async function logout(page: Page) {
-  await tabTo(page, logoutButton(page));
-  await page.keyboard.press('Enter');
-  await expectLoginScreen(page);
-}
 
 test('CA-1.1 RF-002 RNF-001 registro → zona privada con el email visible', async ({ page }) => {
   await signup(page, uniqueEmail());

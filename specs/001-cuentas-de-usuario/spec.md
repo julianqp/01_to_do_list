@@ -194,3 +194,4 @@ Como usuario, quiero seguir dentro de la app al volver a abrirla, para no tener 
 | 1.1     | 2026-10-28 | RF-010 y E-7 cubren también el error inesperado del servidor; nuevo E-10 (emails fuera de ASCII) | Huecos detectados en `/sdd-planificar`, aprobados por el usuario |
 | 1.2     | 2026-10-29 | RNF-004 sin Firefox (pasa a "Fuera de alcance"); RNF-001 se comprueba solo con pruebas automáticas, sin cambiar el requisito | Decisión del usuario tras `/sdd-verificar` (`/sdd-cambiar-spec`) |
 | 2.0     | 2026-10-29 | Nuevos RF-019, CA-1.6 y CA-2.6: enlaces entre las pantallas de inicio de sesión y registro | Hueco de HU-1 detectado en T-036 y en `/sdd-verificar` (I-1); lo decide el usuario antes de cerrar 001 (`/sdd-cambiar-spec`) |
+| —       | 2026-10-29 | Modificada por la spec 004 (004/RF-004, RF-007, RF-013, RF-020): en móvil el email y Cerrar sesión pasan a un menú de cuenta; botones con texto de espera; avisos como alertas | Spec 004 (004/RF-019) |

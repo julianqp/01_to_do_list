@@ -11,6 +11,8 @@ progreso: 0/N
 > - Orden de ejecución de arriba abajo, respetando "Depende de".
 > - `[P]` = se puede hacer en paralelo con otras `[P]` de la misma fase (no tocan los mismos ficheros).
 > - Al terminar: marcar `[x]`, actualizar `progreso` y anotar el commit.
+> - Cada test empieza por el ID que verifica (`it('CA-1.2 …')`, `it('E-8 …')`), para comprobar la trazabilidad con `grep`.
+> - Lo que se descubra o se decida al implementar (versiones, nombres, desviaciones) va en el Registro; si cambia una decisión, también al plan como `D-x (añadida en T-00x)`.
 
 ## Fase 1 · Preparación
 

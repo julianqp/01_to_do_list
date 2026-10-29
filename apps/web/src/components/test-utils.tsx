@@ -18,9 +18,34 @@ export const json = (status: number, body: unknown) =>
 export const apiError = (status: number, code: string) =>
   json(status, { error: { code, message: code } });
 
-// Sustituye fetch (respuestas por "MÉTODO /ruta"; sin sesión por defecto) y location en cada test.
+// jsdom no tiene matchMedia (plan 004 §8). Una lista por consulta, así que todos los que llaman a
+// matchMedia con la misma consulta comparten oyentes.
+class FakeMediaQueryList extends EventTarget {
+  matches = false;
+  onchange = null;
+  constructor(readonly media: string) {
+    super();
+  }
+}
+
+// Sustituye fetch (respuestas por "MÉTODO /ruta"; sin sesión por defecto), location y matchMedia
+// (ninguna consulta coincide por defecto) en cada test.
 export function mockBrowser() {
   const routes: Record<string, Handler> = {};
+  const mediaLists = new Map<string, FakeMediaQueryList>();
+  const mediaList = (query: string) => {
+    let list = mediaLists.get(query);
+    if (!list) {
+      list = new FakeMediaQueryList(query);
+      mediaLists.set(query, list);
+    }
+    return list;
+  };
+  const setMediaMatches = (query: string, matches: boolean) => {
+    const list = mediaList(query);
+    list.matches = matches;
+    list.dispatchEvent(Object.assign(new Event('change'), { matches, media: query }));
+  };
   const fetchMock = vi.fn<typeof fetch>((input, init) => {
     const key = `${init?.method ?? 'GET'} ${String(input)}`;
     const handler = routes[key];
@@ -41,6 +66,7 @@ export function mockBrowser() {
     for (const key of Object.keys(routes)) delete routes[key];
     routes['GET /api/auth/me'] = () => apiError(401, 'UNAUTHENTICATED');
     vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('matchMedia', mediaList);
     setSearch('');
   });
 
@@ -50,10 +76,11 @@ export function mockBrowser() {
     fetchMock.mockClear();
     replace.mockReset();
     reload.mockReset();
+    mediaLists.clear();
     vi.unstubAllGlobals();
   });
 
-  return { routes, fetch: fetchMock, replace, reload, setSearch, callsTo };
+  return { routes, fetch: fetchMock, replace, reload, setSearch, setMediaMatches, callsTo };
 }
 
 export function renderWithClient(ui: ReactNode) {

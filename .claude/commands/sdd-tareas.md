@@ -26,6 +26,7 @@ Spec indicada: $ARGUMENTS (si está vacío, la spec activa).
    - `Hecho cuando:` comprobación objetiva (comando, test, comportamiento observable).
    - `[P]` si se puede hacer en paralelo con otras de su fase (no comparten ficheros).
 6. Tamaño: entre 15 min y 2 h. Si una tarea es mayor, divídela.
+   Convención de tests: cada test empieza por el ID que verifica (`it('CA-1.2 …')`). Inclúyela en las reglas de `tasks.md` y añade al final una tarea que compruebe con `grep` que todo RF, CA y E tiene al menos un test.
 7. Al final, **comprueba cobertura**: todo RF, CA y E de la spec aparece en al menos una tarea. Lista los que falten y añade tareas.
 
 ## Reglas

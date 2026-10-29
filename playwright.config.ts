@@ -14,7 +14,9 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     // D-18: el Firefox de Playwright no arranca en macOS 27; se prueba con el Google Chrome instalado.
     { name: 'chrome', use: { ...devices['Desktop Chrome'], channel: 'chrome' } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    // Plan 004 D-20: WebKit a veces pierde una conexión keep-alive con el servidor de desarrollo al
+    // pedir un módulo y la isla no se hidrata. Un reintento; el informe lo marca como «flaky».
+    { name: 'webkit', retries: 1, use: { ...devices['Desktop Safari'] } },
   ],
   webServer: {
     command: 'pnpm dev',

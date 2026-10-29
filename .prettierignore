@@ -4,6 +4,7 @@
 docs/
 specs/
 CLAUDE.md
+DESIGN.md
 
 pnpm-lock.yaml
 apps/api/src/generated/

@@ -1,6 +1,9 @@
 import { signupInputSchema } from '@todo/shared';
 import { useRedirectIfSignedIn, useSignup } from '../lib/auth-queries';
 import { useCredentialsForm } from '../lib/credentials-form';
+import { Alert } from './Alert';
+import { AuthCard } from './AuthCard';
+import { Button } from './Button';
 import { FormField } from './FormField';
 import { withQueryClient } from './withQueryClient';
 
@@ -15,10 +18,26 @@ function SignupFormContent() {
   if (me.isPending || me.isSuccess) return <p className="sr-only">Cargando…</p>;
 
   return (
-    <main className="mx-auto flex max-w-sm flex-col gap-6 p-6">
-      <h1 className="text-2xl font-semibold">Crear cuenta</h1>
+    <AuthCard
+      title="Crear cuenta"
+      footer={
+        // RF-019, D-19: navegación que elige el usuario, con entrada en el historial.
+        // Spec 004 RF-012: zona de pulsación de 44 px de alto.
+        <>
+          ¿Ya tienes cuenta?{' '}
+          <a href="/login" className="inline-flex min-h-11 items-center text-1 underline">
+            Iniciar sesión
+          </a>
+        </>
+      }
+    >
+      {/* RF-010. RNF-001: la zona de alerta está siempre y solo cambia su contenido (ver LoginForm).
+          Spec 004 RF-003, RF-004: encima de los campos. */}
+      <div role="alert" className="empty:sr-only">
+        {form.formError && <Alert tone={form.formError.tone}>{form.formError.text}</Alert>}
+      </div>
       {/* D-12: sin los globos de validación del navegador. */}
-      <form noValidate onSubmit={form.handleSubmit} className="flex flex-col gap-4">
+      <form noValidate onSubmit={form.handleSubmit} className="flex flex-col gap-5">
         <FormField
           id={IDS.email}
           label="Email"
@@ -37,30 +56,19 @@ function SignupFormContent() {
           onChange={form.setPassword}
           error={form.fieldErrors.password}
         />
-        {/* RF-010. RNF-001: la zona de alerta está siempre y solo cambia el texto (ver LoginForm). */}
-        <p role="alert" className="text-red-700 empty:sr-only">
-          {form.formError}
-        </p>
-        {/* E-8: un solo envío a la vez. */}
-        <button
+        {/* E-8, spec 004 RF-013 y D-9: un solo envío a la vez, sin perder el foco. */}
+        <Button
+          variant="primary"
+          size="lg"
+          fullWidth
           type="submit"
-          disabled={signup.isPending}
-          className="rounded bg-gray-900 px-4 py-2 font-medium text-white disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
+          loading={signup.isPending}
+          loadingLabel="Creando cuenta…"
         >
           Crear cuenta
-        </button>
+        </Button>
       </form>
-      {/* RF-019, D-19: navegación que elige el usuario, con entrada en el historial. */}
-      <p>
-        ¿Ya tienes cuenta?{' '}
-        <a
-          href="/login"
-          className="font-medium underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
-        >
-          Iniciar sesión
-        </a>
-      </p>
-    </main>
+    </AuthCard>
   );
 }
 

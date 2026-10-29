@@ -111,3 +111,61 @@ describe('PrivateArea', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 });
+
+// Spec 004: cabecera, título de vista y avisos con tono (RF-006, RF-008, RF-013, RF-024).
+describe('PrivateArea · sistema de diseño', () => {
+  const precedes = (a: Node, b: Node) =>
+    (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+  const offlineAlert = () => screen.getByRole('alert').querySelector<HTMLElement>('[data-tone]');
+
+  it('CA-2.1 RF-006 RF-024 la cabecera va fuera de <main> y el único h1 es «Mis tareas», en display', async () => {
+    await renderLoggedIn();
+    const main = screen.getByRole('main');
+    const banner = screen.getByRole('banner');
+    const headings = screen.getAllByRole('heading', { level: 1 });
+
+    expect(main.contains(banner)).toBe(false);
+    expect(headings).toHaveLength(1);
+    expect(headings[0]!.textContent).toBe('Mis tareas');
+    expect(main.contains(headings[0]!)).toBe(true);
+    expect(headings[0]!.classList).toContain('text-display');
+  });
+
+  it('CA-2.3 RF-008 si falla el cierre de sesión, la alerta offline va entre la cabecera y el título', async () => {
+    browser.routes['POST /api/auth/logout'] = () => apiError(500, 'INTERNAL_ERROR');
+    const { user, logout } = await renderLoggedIn();
+
+    await user.click(logout);
+
+    await waitFor(() => expect(offlineAlert()?.dataset.tone).toBe('offline'));
+    const alert = screen.getByRole('alert');
+    expect(precedes(screen.getByRole('banner'), alert)).toBe(true);
+    expect(precedes(alert, screen.getByRole('heading', { level: 1 }))).toBe(true);
+  });
+
+  it('CA-4.3 RF-013 E-7 mientras se cierra la sesión: «Cerrando sesión…» y un doble clic hace una sola petición', async () => {
+    browser.routes['POST /api/auth/logout'] = () => new Promise<Response>(() => {});
+    const { user, logout } = await renderLoggedIn();
+
+    await user.dblClick(logout);
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Cerrando sesión…' })).toBe(logout),
+    );
+    await user.click(logout);
+    expect(browser.callsTo('POST', '/api/auth/logout')).toHaveLength(1);
+  });
+
+  it('E-12 si falla el cierre de sesión desde el menú de cuenta, el menú se cierra y aparece la alerta', async () => {
+    browser.routes['POST /api/auth/logout'] = () => apiError(500, 'INTERNAL_ERROR');
+    const { user } = await renderLoggedIn();
+    const account = screen.getByRole('button', { name: `Cuenta de ${USER.email}` });
+
+    await user.click(account);
+    await user.click(screen.getByRole('menuitem', { name: 'Cerrar sesión' }));
+
+    await waitFor(() => expect(offlineAlert()?.dataset.tone).toBe('offline'));
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(document.activeElement).toBe(account);
+  });
+});
