@@ -35,6 +35,7 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 - Roles o cuentas de administrador — *origen: spec 001, fuera de alcance*
 - Interfaz en otros idiomas — *origen: spec 001, fuera de alcance*
 - Limitar los intentos fallidos de inicio de sesión (revisar con el ADR de despliegue) — *origen: spec 001, aclaración*
+- Compatibilidad con Firefox (la app no se va a usar con Firefox; el Firefox de Playwright no arrancaba en macOS 27) — *origen: spec 001 v1.2, fuera de alcance*
 
 ## Historial
 
@@ -43,3 +44,4 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 | 2026-10-28 | Roadmap inicial con 001–003 | Troceo acordado al arrancar el proyecto |
 | 2026-10-28 | 001 pasa a `en curso`; ideas nuevas desde su "Fuera de alcance" | `/sdd-especificar` de la spec 001 |
 | 2026-10-28 | 001 aclarada (v0.2) | `/sdd-clarificar` de la spec 001 |
+| 2026-10-29 | 001 pasa a v1.2: Firefox sale de RNF-004 y va a "Ideas sin priorizar"; RNF-001 se comprueba solo con tests automáticos | `/sdd-cambiar-spec` de la spec 001, tras `/sdd-verificar` |

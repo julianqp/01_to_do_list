@@ -35,7 +35,6 @@ Abre **https://localhost:4321**. Sin sesión, la app te lleva al formulario de i
 En desarrollo, el front se sirve por HTTPS con un certificado autofirmado. Sin HTTPS, Safari no guarda la cookie de sesión `Secure` ([ADR-0001](docs/adr/0001-https-en-desarrollo-local.md)). La primera vez, cada navegador avisa de que la conexión no es privada:
 
 - **Chrome / Edge:** «Configuración avanzada» → «Acceder a localhost (sitio no seguro)».
-- **Firefox:** «Avanzado…» → «Aceptar el riesgo y continuar».
 - **Safari:** «Mostrar detalles» → «visitar este sitio web».
 
 La API (`http://localhost:3000`) no se abre directamente: el front la llama por `/api` a través del proxy del servidor de desarrollo.

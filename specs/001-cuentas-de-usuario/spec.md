@@ -2,7 +2,7 @@
 id: 001
 titulo: Cuentas de usuario
 estado: en-implementacion # borrador | aprobada | en-implementacion | implementada | obsoleta
-version: 1.1
+version: 1.2
 autor: Julian Querol Polo
 creada: 2026-10-28
 aprobada: 2026-10-28, Julian Querol Polo
@@ -114,7 +114,7 @@ Como usuario, quiero seguir dentro de la app al volver a abrirla, para no tener 
 - **RNF-001** Accesibilidad: los formularios de registro e inicio de sesión cumplen WCAG 2.1 AA; se completan solo con teclado, cada campo tiene etiqueta visible y los mensajes de error se asocian a su campo y se anuncian a lectores de pantalla (C-20).
 - **RNF-002** Seguridad: la contraseña nunca se muestra, se guarda ni se devuelve en claro; solo se conserva de forma no reversible (C-12).
 - **RNF-003** Privacidad: de cada cuenta solo se guardan email, contraseña protegida y sesiones (C-16).
-- **RNF-004** Compatibilidad: las dos últimas versiones estables de Chrome, Firefox, Safari y Edge en escritorio.
+- **RNF-004** Compatibilidad: las dos últimas versiones estables de Chrome, Safari y Edge en escritorio. *(v1.2: sin Firefox; ver Aclaraciones)*
 
 ## 7. Casos límite y errores
 
@@ -152,6 +152,7 @@ Como usuario, quiero seguir dentro de la app al volver a abrirla, para no tener 
 - Roles o cuentas de administrador.
 - Idiomas distintos del castellano.
 - Las tareas y el tablero (spec 002).
+- Compatibilidad con Firefox (retirada de RNF-004 en la v1.2).
 
 ## 10. Dependencias y supuestos
 
@@ -176,6 +177,8 @@ Como usuario, quiero seguir dentro de la app al volver a abrirla, para no tener 
 | 2026-10-28 | ¿Cuánto dura una sesión? | Caduca tras 7 días seguidos sin uso; cada uso renueva el plazo | RF-017, RF-018, CA-5.2, CA-5.3 |
 | 2026-10-28 | ¿Qué ve el usuario si el servidor responde con un error inesperado? (surgió en `/sdd-planificar`) | El mismo mensaje y comportamiento que sin conexión | RF-010, E-7 |
 | 2026-10-28 | ¿Se aceptan emails con caracteres fuera de ASCII? (surgió en `/sdd-planificar`) | No; se rechazan como formato no válido | E-10 |
+| 2026-10-29 | ¿Tiene que funcionar en Firefox? (surgió en `/sdd-verificar`: no había forma de probarlo en el equipo de desarrollo) | No; la app no se va a usar con Firefox. Navegadores soportados: Chrome, Safari y Edge | RNF-004, §9 |
+| 2026-10-29 | ¿Cómo se comprueba que los errores se anuncian a lectores de pantalla? (surgió en `/sdd-verificar`) | Solo con las pruebas automáticas; no se hace prueba manual con un lector de pantalla. El requisito no cambia | RNF-001 |
 
 ## 12. Registro de cambios
 
@@ -185,3 +188,4 @@ Como usuario, quiero seguir dentro de la app al volver a abrirla, para no tener 
 | 0.2     | 2026-10-28 | Resueltas 4 aclaraciones; RF-010 pasa a ser el error de conexión (E-7); nuevos RF-018 y CA-5.3; E-1 y E-4 aclarados | `/sdd-clarificar` |
 | 1.0     | 2026-10-28 | Spec aprobada | Revisión con el checklist de spec superada |
 | 1.1     | 2026-10-28 | RF-010 y E-7 cubren también el error inesperado del servidor; nuevo E-10 (emails fuera de ASCII) | Huecos detectados en `/sdd-planificar`, aprobados por el usuario |
+| 1.2     | 2026-10-29 | RNF-004 sin Firefox (pasa a "Fuera de alcance"); RNF-001 se comprueba solo con pruebas automáticas, sin cambiar el requisito | Decisión del usuario tras `/sdd-verificar` (`/sdd-cambiar-spec`) |
