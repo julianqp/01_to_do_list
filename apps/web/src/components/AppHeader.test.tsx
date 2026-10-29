@@ -79,6 +79,19 @@ describe('AppHeader', () => {
     expect(button.getAttribute('aria-disabled')).toBe('true');
   });
 
+  it('RF-009 CA-3.1 D-21 el panel abierto del menú no está dentro de un elemento con desenfoque', async () => {
+    const { banner } = renderHeader();
+    const account = within(banner).getByRole('button', { name: `Cuenta de ${EMAIL}` });
+
+    await userEvent.setup().click(account);
+
+    // Un backdrop-filter dentro de otro solo desenfoca lo que hay en su padre (B-1).
+    const panel = document.getElementById(account.getAttribute('aria-controls')!)!;
+    expect(screen.getByRole('menu', { name: EMAIL })).toBeDefined();
+    expect(panel.parentElement?.closest('.backdrop-glass')).toBeNull();
+    expect(banner.contains(panel)).toBe(false);
+  });
+
   it('E-1 D-13 con el email recortado, el foco muestra a los 400 ms un tooltip aria-hidden con el email completo; Esc lo oculta', () => {
     vi.useFakeTimers();
     const { banner, pill } = renderHeader();

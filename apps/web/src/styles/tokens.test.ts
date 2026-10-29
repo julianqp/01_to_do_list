@@ -321,8 +321,9 @@ function catalog(theme: Theme, variant: Variant) {
     field,
     fieldFocus: stack(underGlass, '--surface-glass', '--surface-raised-hover'),
     headerPill: over(header, color('--surface-glass')),
-    menu: over(header, color('--surface-raised')),
-    menuFocus: stack(header, '--surface-raised', '--surface-raised-hover'),
+    // D-21: el panel del menú está fuera de la cabecera y se desenfoca contra la página.
+    menu: over(underGlass, color('--surface-raised')),
+    menuFocus: stack(underGlass, '--surface-raised', '--surface-raised-hover'),
     alertError: over(field, color('--rose-soft')),
     alertOffline: over(field, color('--amber-soft')),
     alertInfo: over(field, color('--lilac-soft')),
@@ -395,14 +396,14 @@ const TEXT_PAIRS: Pair[] = [
     surface: 'menu',
     ink: '--text-1',
     min: 7,
-    r2: { light: [17.38, 17.72, 17.69], dark: [12.39, 11.18, 12.02] },
+    r2: { light: [17.38, 17.53, 17.69], dark: [12.39, 10.9, 12.02] },
   },
   {
     name: 'opción de menú con foco',
     surface: 'menuFocus',
     ink: '--text-1',
     min: 7,
-    r2: { light: [18.69, 18.69, 18.69], dark: [8.01, 7.65, 7.9] },
+    r2: { light: [18.69, 18.69, 18.69], dark: [8.01, 7.55, 7.9] },
   },
   {
     name: 'alerta de error en la tarjeta',
@@ -454,7 +455,7 @@ const RING_R2: Record<Theme, Record<'field' | 'card', [number, number]>> = {
   dark: { field: [4.54, 4.17], card: [5.72, 5.36] },
 };
 // Contorno de foco: peor superficie de las que lo llevan alrededor (R-2).
-const FOCUS_R2: Record<Theme, number> = { light: 7.98, dark: 5.62 };
+const FOCUS_R2: Record<Theme, number> = { light: 7.98, dark: 5.55 };
 const FOCUS_SURFACES: Surface[] = ['canvas', 'card', 'field', 'headerPill', 'menu', 'menuFocus'];
 
 const SEMANTIC = [

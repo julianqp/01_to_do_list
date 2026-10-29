@@ -64,22 +64,24 @@ Columnas: **N** = normal · **SB** = sin blur (E-3, superficies al 92 % y midien
 | Campo (raised) · valor `--text-1` | 17.69 / 17.87 / 17.69 | 12.02 / 11.05 / 12.02 |
 | Campo con foco (raised‑hover) · valor `--text-1` | 18.53 / 18.66 / 18.69 | 8.81 / 8.53 / 7.90 |
 | Píldora glass de la cabecera · `--text-1` | 16.31 / 17.05¹ / 16.31 | 15.16 / 14.51¹ / 15.16 |
-| Menú de cuenta (raised) · email `--text-1` | 17.38 / 17.72 / 17.69 | 12.39 / 11.18¹ / 12.02 |
-| Opción de menú con foco (raised‑hover) · `--text-1` | 18.69 / 18.69 / 18.69 | 8.01 / 7.65 / 7.90 |
+| Menú de cuenta (raised) · email `--text-1` | 17.38 / 17.53² / 17.69 | 12.39 / 10.90² / 12.02 |
+| Opción de menú con foco (raised‑hover) · `--text-1` | 18.69 / 18.69 / 18.69 | 8.01 / 7.55² / 7.90 |
 | Alerta de error en la tarjeta · `--text-1` | 15.21 / 15.38 / 15.21 | 8.76 / 8.21 / 8.76 |
 | Alerta sin conexión en la tarjeta · `--text-1` | 15.32 / 15.49 / 15.32 | 8.63 / 8.00 / 8.63 |
 | Alerta informativa en la tarjeta · `--text-1` | 15.33 / 15.47 / 15.33 | 8.55 / 8.02 / 8.55 |
 | Alerta sin conexión bajo la cabecera · `--text-1` | 14.63 / 15.18 / 15.32 | 8.21 / 8.00 / 8.63 |
 | Botón primario · `--text-on-accent` sobre la parada más clara de `--grad-primary` (`#34495A`) | 8.86 | 8.86 |
 | **No texto (≥ 3:1)** · anillo e icono de error contra el campo / la tarjeta | 4.86 / 4.48 (SB 4.91 / 4.61) | 4.54 / 5.72 (SB 4.17 / 5.36) |
-| **No texto (≥ 3:1)** · contorno de foco, peor superficie | 7.98 | 5.62 |
+| **No texto (≥ 3:1)** · contorno de foco, peor superficie | 7.98 | 5.55² |
 | `--pill-*` (parada más oscura, L 0.74) · `--text-on-pill` | ≥ 7.71 (rose) | igual (texto fijo, §1.5) |
 | `--pill-ink` · ink‑0 | 8.86 | 8.86 |
 | Tooltip · ink‑50 sobre ink‑950 | 16.34 | 16.34 |
 
-Peor caso de texto normal: **7.65:1** (opción de menú con foco, oscuro, sin blur). Peor caso no textual: **4.17:1**.
+Peor caso de texto normal: **7.55:1²** (opción de menú con foco, oscuro, sin blur). Peor caso no textual: **4.17:1**.
 
 ¹ Corregido en T-010. El cálculo original dejaba la cabecera al 80 % en la columna SB, pero el respaldo sin blur la sube al 92 % (X-11). Antes ponía 16.93, 14.49 y 11.06. El test de D-12 reproduce el resto de la tabla con ±0.005 componiendo en sRGB con 8 bits por canal, como el navegador. El peor caso no cambia.
+
+² Corregido en T-027 (D-21). El panel del menú sale de la cabecera y se mide sobre la página, no sobre la cabecera. Antes ponía 17.72, 11.18, 7.65 y 5.62, y el peor caso de texto era 7.65:1. Todo sigue ≥ 7:1 en el texto y ≥ 3:1 en el foco.
 
 ## R-3 · Fuentes servidas desde la app (RNF-003, E-4)
 

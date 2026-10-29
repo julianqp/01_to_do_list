@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
-import { flushSync } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import type { LogoutHandler } from './AppHeader';
 import { Spinner } from './Icon';
 
@@ -22,11 +22,13 @@ export function AccountMenu({ email, loggingOut, onLogout }: AccountMenuProps) {
   // RF-023, E-11: el primer carácter (no la primera unidad UTF-16), en mayúscula si es una letra.
   const initial = ([...email][0] ?? '').toLocaleUpperCase('es-ES');
 
-  // RF-021: un pointerdown fuera del botón y del panel cierra el menú.
+  // RF-021: un pointerdown fuera del botón y del panel cierra el menú. El panel no está dentro de
+  // rootRef (D-21), así que se comprueban los dos.
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (!rootRef.current?.contains(target) && !panelRef.current?.contains(target)) setOpen(false);
     };
     document.addEventListener('pointerdown', onPointerDown);
     return () => document.removeEventListener('pointerdown', onPointerDown);
@@ -92,7 +94,7 @@ export function AccountMenu({ email, loggingOut, onLogout }: AccountMenuProps) {
   }
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef}>
       <button
         ref={buttonRef}
         type="button"
@@ -105,44 +107,51 @@ export function AccountMenu({ email, loggingOut, onLogout }: AccountMenuProps) {
       >
         <span aria-hidden="true">{initial}</span>
       </button>
-      <div
-        ref={panelRef}
-        id={panelId}
-        hidden={!open}
-        onKeyDown={handleKeyDown}
-        className="absolute end-0 top-full z-(--z-popover) mt-2 w-72 rounded-md border border-contrast bg-raised p-1.5 shadow-(--shadow-float) backdrop-glass"
-      >
-        {/* El contenido solo existe abierto: el email no se repite en la página (spec 001 RF-015). */}
-        {open && (
-          <>
-            {/* R-6: el email va fuera del role="menu" (solo admite opciones) y le da nombre. */}
-            <p id={emailId} className="px-4 py-2.5 text-sm text-1 wrap-anywhere">
-              {email}
-            </p>
-            <ul role="menu" aria-labelledby={emailId}>
-              <li role="none">
-                <button
-                  type="button"
-                  role="menuitem"
-                  tabIndex={-1}
-                  aria-disabled={loggingOut || undefined}
-                  onClick={chooseLogout}
-                  className="flex h-11 w-full items-center gap-2 rounded-pill px-4 text-body text-1 transition duration-(--dur-fast) ease-out hover:bg-raised-hover focus:bg-raised-hover"
-                >
-                  {loggingOut ? (
-                    <>
-                      <Spinner />
-                      Cerrando sesión…
-                    </>
-                  ) : (
-                    'Cerrar sesión'
-                  )}
-                </button>
-              </li>
-            </ul>
-          </>
-        )}
-      </div>
+      {/* D-21: el panel va en <body>, fuera de la cabecera. Un backdrop-filter dentro de otro solo
+          desenfoca lo que hay en su padre, y el título de la página se vería nítido detrás (B-1).
+          Posición fija bajo el botón: la cabecera mide 68 px (py-3 + h-11), más 8 de separación, y
+          por debajo de 768 px el botón está a 16 px del borde (px-4). */}
+      {createPortal(
+        <div
+          ref={panelRef}
+          id={panelId}
+          hidden={!open}
+          onKeyDown={handleKeyDown}
+          className="fixed end-4 top-19 z-(--z-popover) w-72 rounded-md border border-contrast bg-raised p-1.5 shadow-(--shadow-float) backdrop-glass"
+        >
+          {/* El contenido solo existe abierto: el email no se repite en la página (spec 001 RF-015). */}
+          {open && (
+            <>
+              {/* R-6: el email va fuera del role="menu" (solo admite opciones) y le da nombre. */}
+              <p id={emailId} className="px-4 py-2.5 text-sm text-1 wrap-anywhere">
+                {email}
+              </p>
+              <ul role="menu" aria-labelledby={emailId}>
+                <li role="none">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    tabIndex={-1}
+                    aria-disabled={loggingOut || undefined}
+                    onClick={chooseLogout}
+                    className="flex h-11 w-full items-center gap-2 rounded-pill px-4 text-body text-1 transition duration-(--dur-fast) ease-out hover:bg-raised-hover focus:bg-raised-hover"
+                  >
+                    {loggingOut ? (
+                      <>
+                        <Spinner />
+                        Cerrando sesión…
+                      </>
+                    ) : (
+                      'Cerrar sesión'
+                    )}
+                  </button>
+                </li>
+              </ul>
+            </>
+          )}
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }
