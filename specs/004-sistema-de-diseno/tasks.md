@@ -1,7 +1,7 @@
 ---
 spec: 004
 plan_aprobado: 2026-10-29
-progreso: 3/26
+progreso: 4/26
 ---
 
 # Tareas · Spec 004 · Aplicar el sistema de diseño
@@ -50,7 +50,7 @@ T-003 y T-004 terminan en verde. T-005–T-008 escriben los E2E primero: deben f
   - Casos: `mockBrowser()` instala un `matchMedia` simulado por consulta (`matches` configurable) y devuelve un `setMediaMatches(query, matches)` que lanza `change` a los oyentes registrados; se restaura en `afterEach`
   - Hecho cuando: los tests actuales de `apps/web` siguen en verde; un test temporal comprueba que `setMediaMatches` dispara el oyente (se borra al terminar); `pnpm typecheck` en verde
 
-- [ ] **T-004** [P] Definir los contratos de los componentes y el tono de los mensajes
+- [x] **T-004** [P] Definir los contratos de los componentes y el tono de los mensajes
   - Depende de: T-001
   - Ficheros:
     - nuevos: `apps/web/src/components/{Icon,Button,Alert,AuthCard,AppHeader,AccountMenu}.tsx` (props y firmas de plan §4.3; de momento devuelven `null`)
@@ -386,4 +386,5 @@ Cada tarea escribe primero sus tests unitarios (rojo), implementa y termina en v
 |-------|--------|-------|
 | T-001 | 8d42da5 | Versiones instaladas con `--save-exact`, iguales a R-7: `lucide-react` 1.62.0, `@fontsource-variable/geist` 5.3.0, `culori` 4.0.2, `@types/culori` 4.0.1 (web) y `@axe-core/playwright` 4.14.0 (raíz). La política de cadena de suministro de pnpm 11 pasa sin excepciones a `minimumReleaseAge`. `pnpm lint` ya fallaba en la rama antes de esta tarea: Prettier marcaba `DESIGN.md` (commit f5a3341, escrito a mano). Con el visto bueno del usuario, `DESIGN.md` se añade a `.prettierignore`, junto a `CLAUDE.md` |
 | T-002 | 08ab097 | `e2e/helpers.ts` exporta las doce utilidades de la tarea; `MAX_TABS` queda dentro del módulo, porque solo lo usa `tabTo`. `auth.spec.ts` importa solo las ocho que usa; el diff no toca ningún `test(...)` (Prettier solo reajusta las líneas en blanco). `pnpm test:e2e`: 21/21 en `chromium`, `chrome` y `webkit` |
-| T-003 | (pendiente) | El test temporal falló primero con `TypeError: window.matchMedia is not a function`. `FakeMediaQueryList` extiende `EventTarget` (sin `addListener`/`removeListener`, la API antigua) y hay una lista por consulta: todos los `matchMedia` con la misma consulta comparten oyentes. `setMediaMatches` lanza `change` siempre, aunque el valor no cambie. Por defecto ninguna consulta coincide. Las listas se vacían en `afterEach` y `vi.unstubAllGlobals` restaura el global. Test temporal (2 casos) en verde y borrado |
+| T-003 | e3af216 | El test temporal falló primero con `TypeError: window.matchMedia is not a function`. `FakeMediaQueryList` extiende `EventTarget` (sin `addListener`/`removeListener`, la API antigua) y hay una lista por consulta: todos los `matchMedia` con la misma consulta comparten oyentes. `setMediaMatches` lanza `change` siempre, aunque el valor no cambie. Por defecto ninguna consulta coincide. Las listas se vacían en `afterEach` y `vi.unstubAllGlobals` restaura el global. Test temporal (2 casos) en verde y borrado |
+| T-004 | (pendiente) | `messages.test.ts` falló primero con `expected undefined to be 'error'`. `AlertTone` vive en `Alert.tsx` (plan §4.3) y `messages.ts` lo importa solo como tipo. Nombres que el plan no fijaba: `IconProps`, `AlertProps`, `AuthCardProps`, `AppHeaderProps` y `AccountMenuProps`. Los contratos devuelven `null` (`void props` para que ESLint no marque la prop sin usar) hasta su tarea. `EMAIL_ALREADY_REGISTERED` → `'error'` y `UNEXPECTED` → `'offline'`. Los tests de la 001, sin tocar: 119/119; `auth.spec.ts` 21/21 |

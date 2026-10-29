@@ -39,7 +39,7 @@ function SignupFormContent() {
         />
         {/* RF-010. RNF-001: la zona de alerta está siempre y solo cambia el texto (ver LoginForm). */}
         <p role="alert" className="text-red-700 empty:sr-only">
-          {form.formError}
+          {form.formError?.text}
         </p>
         {/* E-8: un solo envío a la vez. */}
         <button

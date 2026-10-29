@@ -45,7 +45,7 @@ function LoginFormContent() {
         {/* RF-009, RF-010. RNF-001: la zona de alerta está siempre y solo cambia el texto; VoiceOver no
             anuncia una que se inserta ya con él. Vacía, `sr-only` evita el hueco del `gap`. */}
         <p role="alert" className="text-red-700 empty:sr-only">
-          {form.formError}
+          {form.formError?.text}
         </p>
         <button
           type="submit"

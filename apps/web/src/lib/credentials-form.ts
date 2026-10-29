@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { messageForError } from './messages';
+import { messageForError, type FormMessage } from './messages';
 
 type Field = 'email' | 'password';
 export type FieldErrors = Partial<Record<Field, string>>;
@@ -46,7 +46,7 @@ export function useCredentialsForm<T>({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [formError, setFormError] = useState<string>();
+  const [formError, setFormError] = useState<FormMessage>();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -69,7 +69,7 @@ export function useCredentialsForm<T>({
           focusFirstError(form, ids, errors);
           return;
         }
-        setFormError(message.text);
+        setFormError(message);
         setPassword('');
       },
     });
