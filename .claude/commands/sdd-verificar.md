@@ -12,19 +12,20 @@ Spec indicada: $ARGUMENTS (vacío = la spec activa).
 1. Lee `spec.md`, `plan.md`, `tasks.md` y `.sdd/constitution.md`.
 2. Revisa el diff de la rama respecto a la principal (`git diff main...HEAD` o equivalente) y los ficheros implicados.
 3. Ejecuta tests, linter y tipos. Anota resultados.
-4. Construye la **matriz de verificación**: para cada RF, CA, RNF y E:
+4. Localiza los tests de cada requisito buscando su ID en los nombres de los tests (`grep -rn "RF-001\|CA-1.1"` en los ficheros de test).
+5. Construye la **matriz de verificación**: para cada RF, CA, RNF y E:
    - ¿Hay código que lo implementa? (ruta)
    - ¿Hay test que lo verifica? (ruta y nombre del test)
    - ¿Pasa?
    - Veredicto: ✅ cumple · ⚠️ parcial · ❌ no cumple · ❓ no verificable
-5. Comprueba además:
+6. Comprueba además:
    - **Tareas**: todas `[x]`; ninguna marcada sin hacer realmente.
    - **Alcance**: código o comportamiento que no se traza a ningún requisito (sobra) o que entra en "Fuera de alcance".
    - **Deriva**: diferencias entre lo que dice la spec y lo que hace el código.
    - **Constitución**: violaciones, artículo por artículo relevante.
    - **Plan**: desviaciones no documentadas.
    - **Definition of Done**: `.sdd/checklists/definition-of-done.md`.
-6. Escribe el informe en `specs/NNN-slug/verificacion.md`.
+7. Escribe el informe en `specs/NNN-slug/verificacion.md`.
 
 ## Formato del informe
 
