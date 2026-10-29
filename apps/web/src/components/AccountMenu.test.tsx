@@ -36,6 +36,12 @@ describe('AccountMenu', () => {
     expect(menu()).toBeNull();
   });
 
+  it('RF-023 C-26 la inicial va en Light (DESIGN.md §14 Avatar)', () => {
+    const { button } = renderMenu();
+
+    expect(button.querySelector('[aria-hidden="true"]')?.classList).toContain('font-light');
+  });
+
   it('E-11 RF-023 si el email no empieza por una letra, la inicial es ese carácter', () => {
     const { button } = renderMenu('1ana@example.com');
 

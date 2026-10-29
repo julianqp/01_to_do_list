@@ -127,6 +127,17 @@ describe('AppHeader', () => {
     expect(tooltip(banner)).toBeUndefined();
   });
 
+  it('E-1 X-13 el tooltip mide al menos 34 px de alto (DESIGN.md §14 Tooltip)', () => {
+    vi.useFakeTimers();
+    const { banner, pill } = renderHeader();
+    setOverflow(pill, true);
+
+    fireEvent.focus(pill);
+    act(() => vi.advanceTimersByTime(400));
+
+    expect(tooltip(banner)?.classList).toContain('min-h-8.5');
+  });
+
   it('E-1 sin recorte no hay tooltip', () => {
     vi.useFakeTimers();
     const { banner, pill } = renderHeader();

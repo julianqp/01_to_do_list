@@ -105,7 +105,9 @@ export function AccountMenu({ email, loggingOut, onLogout }: AccountMenuProps) {
         onClick={toggle}
         className="grid size-11 place-items-center rounded-pill border border-contrast bg-glass text-body text-1 shadow-(--shadow-pill) backdrop-glass transition duration-(--dur-fast) ease-out hover:bg-raised"
       >
-        <span aria-hidden="true">{initial}</span>
+        <span aria-hidden="true" className="font-light">
+          {initial}
+        </span>
       </button>
       {/* D-21: el panel va en <body>, fuera de la cabecera. Un backdrop-filter dentro de otro solo
           desenfoca lo que hay en su padre, y el título de la página se vería nítido detrás (B-1).

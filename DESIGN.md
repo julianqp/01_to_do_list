@@ -1,4 +1,4 @@
-# DESIGN.md — Tinta & Niebla · adaptación To do list · v1.2.0-todo.1
+# DESIGN.md — Tinta & Niebla · adaptación To do list · v1.2.1-todo.1
 
 Reglas de diseño de la **app de tareas con tablero kanban** (`01_to_do_list`). Es la fuente de verdad de **lo visual**: color, tipografía, espaciado, forma, superficies, movimiento, iconos, componentes y tono de los textos.
 
@@ -400,7 +400,7 @@ Usa siempre el token. Si algo no encaja, el problema es de estructura, no de nú
 Alturas de control: **32 (sm, solo escritorio) · 44 (md) · 52–56 (inputs, lg)**.
 
 ### Acciones
-- **Button:** píldora con padding horizontal 14 / 20 / 26 y texto 13 / 15 / 16. Variantes: `primary` (`--grad-primary`, uno por vista), `glass`, `ghost`, `tint` (sobre acento) y `destructive` (`--pill-rose` + `--text-on-pill`, siempre confirmado). Deshabilitado a opacidad .45. Cargando: anillo + gerundio.
+- **Button:** píldora con padding horizontal 14 / 20 / 26 y texto 13 (sm) y `--text-body` en md y lg (15 en escritorio, 16 en móvil; §2.2 no tiene 16 en escritorio). Variantes: `primary` (`--grad-primary`, uno por vista), `glass`, `ghost`, `tint` (sobre acento) y `destructive` (`--pill-rose` + `--text-on-pill`, siempre confirmado). Deshabilitado a opacidad .45. Cargando: anillo + gerundio.
 - **IconButton:** círculo de 32 / 44 / 52, en `glass`, `solid` (seleccionado), `ghost` o `tint`. Siempre con `aria-label`.
 
 ### Formularios
@@ -555,5 +555,6 @@ Alturas de control: **32 (sm, solo escritorio) · 44 (md) · 52–56 (inputs, lg
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| 1.2.1-todo.1 | 2026-10-29 | Spec 004 (T-029, X-12): el texto de los botones md y lg es `--text-body`, porque la escala de §2.2 no tiene 16 px en escritorio |
 | 1.2.0-todo.1 | 2026-10-29 | Spec 004: valores de los acentos, `*-soft`, `--pill-*`, sombras, `--border-glass` y retícula; tokens nuevos (`--surface-header`, `--surface-tooltip`, `--text-on-tooltip`, `--ring-error`, `--ring-error-width`, `--border-contrast`, `--focus-outline`, `--focus-halo`, `--glass-filter`); radios md 26 y lg 30; `--bp-*` ↔ `--breakpoint-*`; valores opacos de «aumentar contraste». Nuevas reglas: foco por tema, anillo de error, píldoras de acento más claras, texto de las alertas en `--text-1` y respaldo sin blur solo en glass, raised y cabecera. Tema oscuro aplicado. Salen de «Pendiente de decidir» los valores y el tema oscuro |
 | 1.1.0-todo.1 | 2026-10-29 | Adaptación de Tinta & Niebla v1.1.0 (CRM VTC) a la app de tareas: fuera pantallas del CRM, mapas, fotografía, datos, email y marketing; acentos, iconos, patrones y voz adaptados al tablero kanban; tokens en `apps/web` y fuentes servidas desde el proyecto |

@@ -18,6 +18,7 @@ const TOOLTIP_DELAY_MS = 400;
 // E-1, D-13: el email se recorta con «…» y, si está recortado, se ve completo en un tooltip al pasar
 // el ratón o al llevar el foco. El tooltip es aria-hidden: el lector ya lee el email entero del DOM.
 // Va dentro del mismo contenedor que la píldora para poder pasar el ratón por encima (WCAG 1.4.13).
+// X-13: al menos 34 px de alto como la píldora de §14, pero con varias líneas si el email no cabe.
 function EmailPill({ email }: { email: string }) {
   const [tooltip, setTooltip] = useState(false);
   const pillRef = useRef<HTMLSpanElement>(null);
@@ -61,7 +62,7 @@ function EmailPill({ email }: { email: string }) {
       {tooltip && (
         <span
           aria-hidden="true"
-          className="absolute end-0 top-full z-(--z-tooltip) mt-2 w-max max-w-96 rounded-md bg-tooltip px-3.5 py-2 text-sm text-on-tooltip wrap-anywhere"
+          className="absolute end-0 top-full z-(--z-tooltip) mt-2 min-h-8.5 w-max max-w-96 rounded-md bg-tooltip px-3.5 py-2 text-sm text-on-tooltip wrap-anywhere"
         >
           {email}
         </span>
