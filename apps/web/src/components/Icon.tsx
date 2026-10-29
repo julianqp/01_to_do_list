@@ -1,14 +1,13 @@
-import type { LucideIcon } from 'lucide-react';
+import { LoaderCircle, type LucideIcon } from 'lucide-react';
 
-// Contrato de plan 004 §4.3 (D-8): Lucide con el trazo de DESIGN.md §9; siempre decorativo.
+// D-8: Lucide con el trazo de DESIGN.md §9; siempre decorativo (el texto de al lado dice lo mismo).
 export type IconProps = { icon: LucideIcon; size?: 16 | 18 | 20 | 22; className?: string };
 
-export function Icon(props: IconProps) {
-  void props;
-  return null;
+export function Icon({ icon: LucideIcon, size = 18, className }: IconProps) {
+  return <LucideIcon size={size} strokeWidth={1.4} aria-hidden="true" className={className} />;
 }
 
-// Anillo de carga: LoaderCircle de 16 px que gira (DESIGN.md §12 «Carga de acción»).
+// Anillo de carga: LoaderCircle de 16 px que da una vuelta cada --dur-slow (§12, X-9).
 export function Spinner() {
-  return null;
+  return <Icon icon={LoaderCircle} size={16} className="animate-spin" />;
 }
