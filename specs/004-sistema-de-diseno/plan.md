@@ -394,6 +394,10 @@ En la misma rama, durante la implementación:
   - *Por qué:* Tailwind 4.3 no tiene `inset-ring-1.5`, y D-3 no admite `inset-ring-[1.5px]`. Además, `inset-ring-2` (o `ring-2`, `border-2`) se lee como el color `--color-2` (`--text-2`), no como un ancho: los nombres `1`/`2`/`3` de los colores de texto chocan con los anchos numéricos. Con `inset-ring-*`, Tailwind compone el anillo con la sombra del foco (`focus:shadow-(--focus-halo)`) en el mismo `box-shadow` (D-15).
   - *Alternativas descartadas:* un anillo de 1 px (`inset-ring`) — no es el 1.5 px de §6.2 · una `@utility` en `global.css` con `1.5px` — un valor literal fuera de `tokens.css` (D-3).
 
+- **D-20 (añadida en T-023)** El proyecto `webkit` de `playwright.config.ts` lleva `retries: 1`.
+  - *Por qué:* con los tres proyectos en paralelo, WebKit a veces pierde una conexión keep-alive con el servidor de desarrollo de Astro/Vite al pedir un módulo (`… /node_modules/.vite/deps/jsx-runtime-….js The network connection was lost`). La isla no se hidrata y el test falla sin que la app tenga la culpa. Pasaba en unas 4 de cada 10 ejecuciones; Chromium reintenta solo esas peticiones y WebKit no. Un reintento lo absorbe, y el informe lo marca como «flaky», así que sigue a la vista. Decidido por el usuario el 2026-10-29.
+  - *Alternativas descartadas:* subir `keepAliveTimeout` con un plugin de Vite — se probó, siguió fallando 2 de 6 veces y no se pudo confirmar que Astro exponga el servidor HTTP · E2E contra `astro build` + preview — cambio grande en la infraestructura de la 001 (proxy de `/api`, HTTPS) · reintentos en los tres proyectos — ocultaría fallos intermitentes de Chromium.
+
 > D-1, D-3 y D-12 son transversales: se recogen en [ADR-0003](../../docs/adr/0003-catalogo-de-tokens-vigilado-por-tests.md) (catálogo de tokens y su vigilancia automática), que aplica también a 002 y 003.
 
 ## 6. Trazabilidad

@@ -123,6 +123,8 @@ async function fillCredentials(page: Page, email: string) {
 // responder.
 // Registra una cuenta nueva (la 001 lo hace a 1280) y deja la zona privada al ancho pedido.
 async function openPrivateArea(page: Page, width: number, email = anaEmail()) {
+  // `signup` comprueba que se ve el email, que por debajo de 768 px va en el menú de cuenta.
+  await page.setViewportSize({ width: 1280, height: 900 });
   await signup(page, email);
   await page.setViewportSize({ width, height: 900 });
   await expect(viewTitle(page)).toBeVisible();
