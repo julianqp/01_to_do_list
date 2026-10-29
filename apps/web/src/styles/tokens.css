@@ -1,0 +1,213 @@
+/* Catálogo de tokens: fuente de verdad de DESIGN.md §18 (plan 004 D-1, ADR-0003).
+   Solo este fichero puede tener valores literales; los componentes usan los tokens (D-3). */
+
+/* Lo que no cambia con el tema. Sin la paleta ni las escalas por defecto de Tailwind (R-1). */
+@theme static {
+  --color-*: initial;
+  --text-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --ease-*: initial;
+  --breakpoint-*: initial;
+
+  /* §2.1 */
+  --font-sans: 'Geist Variable', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+
+  /* §2.2, escritorio. La escala de móvil sobrescribe los tamaños en :root (R-1, hallazgo 2). */
+  --text-display: 3.5rem;
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.035em;
+  --text-display--font-weight: 300;
+  --text-h1: 2.5rem;
+  --text-h1--line-height: 1.05;
+  --text-h1--letter-spacing: -0.03em;
+  --text-h1--font-weight: 300;
+  --text-h2: 1.875rem;
+  --text-h2--line-height: 1.1;
+  --text-h2--letter-spacing: -0.025em;
+  --text-h2--font-weight: 300;
+  --text-h3: 1.25rem;
+  --text-h3--line-height: 1.15;
+  --text-h3--letter-spacing: -0.02em;
+  --text-h3--font-weight: 300;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.5;
+  --text-body--letter-spacing: -0.01em;
+  --text-body--font-weight: 400;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.4;
+  --text-sm--letter-spacing: 0;
+  --text-sm--font-weight: 400;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.3;
+  --text-xs--letter-spacing: 0;
+  --text-xs--font-weight: 400;
+
+  /* §3.1: base 4 = el --spacing de Tailwind, así que p-4 y --space-4 son el mismo valor. */
+  --space-1: calc(var(--spacing) * 1);
+  --space-2: calc(var(--spacing) * 2);
+  --space-3: calc(var(--spacing) * 3);
+  --space-4: calc(var(--spacing) * 4);
+  --space-5: calc(var(--spacing) * 5);
+  --space-6: calc(var(--spacing) * 6);
+  --space-7: calc(var(--spacing) * 7);
+  --space-8: calc(var(--spacing) * 8);
+  --space-10: calc(var(--spacing) * 10);
+  --space-12: calc(var(--spacing) * 12);
+  --space-16: calc(var(--spacing) * 16);
+
+  /* §4: los --bp-* de DESIGN.md (plan §4.6). */
+  --breakpoint-sm: 480px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1600px;
+
+  /* §5 */
+  --radius-xs: 8px;
+  --radius-sm: 14px;
+  --radius-md: 26px;
+  --radius-lg: 30px;
+  --radius-xl: 34px;
+  --radius-pill: 999px;
+
+  /* §8 */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  /* §12 «Carga de acción»: una vuelta cada --dur-slow (X-9). */
+  --animate-spin: spin var(--dur-slow) linear infinite;
+}
+
+/* Nombres de clase de los colores semánticos: bg-canvas, text-1, ring-error… (R-1, hallazgo 5). */
+@theme inline {
+  --color-canvas: var(--bg-canvas);
+  --color-glass: var(--surface-glass);
+  --color-raised: var(--surface-raised);
+  --color-raised-hover: var(--surface-raised-hover);
+  --color-sunken: var(--surface-sunken);
+  --color-folder: var(--surface-folder);
+  --color-row: var(--surface-row);
+  --color-header: var(--surface-header);
+  --color-tooltip: var(--surface-tooltip);
+  --color-1: var(--text-1);
+  --color-2: var(--text-2);
+  --color-3: var(--text-3);
+  --color-on-accent: var(--text-on-accent);
+  --color-on-pill: var(--text-on-pill);
+  --color-on-tooltip: var(--text-on-tooltip);
+  --color-ring-error: var(--ring-error);
+  --color-contrast: var(--border-contrast);
+  --color-sage-soft: var(--sage-soft);
+  --color-rose-soft: var(--rose-soft);
+  --color-lilac-soft: var(--lilac-soft);
+  --color-amber-soft: var(--amber-soft);
+}
+
+/* Tema claro. Los primitivos (--ink-*, acentos) no tienen clase: solo los usan los semánticos. */
+:root {
+  color-scheme: light;
+
+  /* §1.1 y §1.2 */
+  --ink-950: #06141b;
+  --ink-900: #11212d;
+  --ink-800: #253745;
+  --ink-700: #3a4c59;
+  --ink-600: #4a5c6a;
+  --ink-500: #627480;
+  --ink-400: #74858b;
+  --ink-300: #9ba8ab;
+  --ink-200: #ccd0cf;
+  --ink-100: #e3e6e6;
+  --ink-50: #eef0f0;
+  --ink-0: #f8f9f9;
+
+  /* §1.3: misma luminosidad y croma, cambia el tono (R-2). */
+  --sage: oklch(0.68 0.11 150);
+  --rose: oklch(0.68 0.11 15);
+  --lilac: oklch(0.68 0.11 300);
+  --amber: oklch(0.68 0.11 75);
+  --signal: oklch(0.68 0.11 40);
+  --sage-soft: oklch(0.68 0.11 150 / 0.16);
+  --rose-soft: oklch(0.68 0.11 15 / 0.16);
+  --lilac-soft: oklch(0.68 0.11 300 / 0.16);
+  --amber-soft: oklch(0.68 0.11 75 / 0.16);
+  /* X-6: L 0.74–0.80 para que --text-on-pill llegue a 7:1; --pill-ink sin brillo. */
+  --pill-sage:
+    radial-gradient(120% 140% at 0 0, rgba(255, 255, 255, 0.45), transparent 55%),
+    linear-gradient(100deg, oklch(0.8 0.1 150), oklch(0.74 0.11 150));
+  --pill-rose:
+    radial-gradient(120% 140% at 0 0, rgba(255, 255, 255, 0.45), transparent 55%),
+    linear-gradient(100deg, oklch(0.8 0.1 15), oklch(0.74 0.11 15));
+  --pill-lilac:
+    radial-gradient(120% 140% at 0 0, rgba(255, 255, 255, 0.45), transparent 55%),
+    linear-gradient(100deg, oklch(0.8 0.1 300), oklch(0.74 0.11 300));
+  --pill-amber:
+    radial-gradient(120% 140% at 0 0, rgba(255, 255, 255, 0.45), transparent 55%),
+    linear-gradient(100deg, oklch(0.8 0.1 75), oklch(0.74 0.11 75));
+  --pill-ink: linear-gradient(100deg, #34495a, var(--ink-800));
+  --grad-primary: linear-gradient(135deg, #34495a, var(--ink-800), var(--ink-900));
+
+  /* §1.4 */
+  --bg-canvas: var(--ink-100);
+  --surface-glass: rgba(244, 246, 246, 0.6);
+  --surface-raised: rgba(250, 251, 251, 0.8);
+  --surface-raised-hover: rgba(255, 255, 255, 0.96);
+  --surface-sunken: rgba(204, 208, 207, 0.42);
+  --surface-folder: #f1f3f3;
+  --surface-row: #e8ebeb;
+  /* §3.2: lienzo al 80 %. */
+  --surface-header: rgba(227, 230, 230, 0.8);
+  --surface-tooltip: var(--ink-950);
+  --text-1: var(--ink-950);
+  --text-2: var(--ink-800);
+  --text-3: var(--ink-700);
+  --text-on-accent: var(--ink-0);
+  --text-on-pill: var(--ink-950);
+  --text-on-tooltip: var(--ink-50);
+  /* X-5: --rose no llega a 3:1 sobre el campo en claro. */
+  --ring-error: oklch(0.55 0.11 15);
+  /* §17: transparente salvo con «aumentar contraste». */
+  --border-contrast: transparent;
+
+  /* §3.3: se resuelve en <html> (§1.5). */
+  --dot-color: rgba(6, 20, 27, 0.1);
+  --dot-grid: radial-gradient(circle at 1px 1px, var(--dot-color) 1px, transparent 0);
+  --dot-grid-size: 22px;
+
+  /* §6.2 y §6.3 */
+  --shadow-pill:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(6, 20, 27, 0.06),
+    0 4px 12px -2px rgba(6, 20, 27, 0.08);
+  --shadow-glass:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 2px 6px rgba(6, 20, 27, 0.05),
+    0 16px 40px -12px rgba(6, 20, 27, 0.18);
+  --shadow-float:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 0 0 1px var(--border-glass),
+    0 24px 56px -16px rgba(6, 20, 27, 0.28);
+  --shadow-accent: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 6px 18px -6px rgba(6, 20, 27, 0.3);
+  --border-glass: rgba(6, 20, 27, 0.08);
+  --glass-filter: blur(24px) saturate(140%);
+
+  /* §8. X-4: el contorno de foco tiene valor propio por tema. */
+  --focus-outline: var(--ink-800);
+  --focus-halo: 0 0 0 3px rgba(74, 92, 106, 0.18);
+
+  /* §7 */
+  --z-base: 0;
+  --z-raised: 1;
+  --z-sticky: 100;
+  --z-drawer: 900;
+  --z-dropdown: 1000;
+  --z-popover: 1100;
+  --z-overlay: 1200;
+  --z-modal: 1300;
+  --z-toast: 1400;
+  --z-tooltip: 1500;
+
+  /* §8. RNF-005: nada pasa de 420 ms. */
+  --dur-fast: 140ms;
+  --dur: 220ms;
+  --dur-slow: 420ms;
+}
