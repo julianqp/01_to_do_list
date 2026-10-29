@@ -31,7 +31,7 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 - Casilla "Recordarme" / duración de sesión elegida por el usuario — *origen: spec 001, fuera de alcance*
 - Ver y cerrar las sesiones abiertas en otros navegadores — *origen: spec 001, fuera de alcance*
 - Perfil de usuario (nombre, foto, preferencias) — *origen: spec 001, fuera de alcance*
-- Enlaces entre las pantallas de inicio de sesión y registro: hoy un visitante sin cuenta al que se lleva a `/login` solo llega a `/signup` escribiendo la dirección. Posible hueco de HU-1; valorar `/sdd-cambiar-spec` antes de cerrar 001 — *origen: spec 001, T-036*
+- ~~Enlaces entre las pantallas de inicio de sesión y registro~~ → entra en la spec 001 v2.0 (RF-019) — *origen: spec 001, T-036*
 - Roles o cuentas de administrador — *origen: spec 001, fuera de alcance*
 - Interfaz en otros idiomas — *origen: spec 001, fuera de alcance*
 - Limitar los intentos fallidos de inicio de sesión (revisar con el ADR de despliegue) — *origen: spec 001, aclaración*
@@ -45,3 +45,4 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 | 2026-10-28 | 001 pasa a `en curso`; ideas nuevas desde su "Fuera de alcance" | `/sdd-especificar` de la spec 001 |
 | 2026-10-28 | 001 aclarada (v0.2) | `/sdd-clarificar` de la spec 001 |
 | 2026-10-29 | 001 pasa a v1.2: Firefox sale de RNF-004 y va a "Ideas sin priorizar"; RNF-001 se comprueba solo con tests automáticos | `/sdd-cambiar-spec` de la spec 001, tras `/sdd-verificar` |
+| 2026-10-29 | 001 pasa a v2.0: RF-019 (enlaces entre inicio de sesión y registro), que sale de "Ideas sin priorizar" | `/sdd-cambiar-spec` de la spec 001, observación I-1 de `/sdd-verificar` |

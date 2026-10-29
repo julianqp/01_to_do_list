@@ -1,6 +1,6 @@
 ---
 spec: 001
-spec_version: 1.2        # versión de la spec sobre la que se planifica
+spec_version: 2.0        # versión de la spec sobre la que se planifica
 estado: aprobado         # borrador | aprobado
 creado: 2026-10-28
 aprobado: 2026-10-28, Julian Querol Polo
@@ -306,6 +306,9 @@ Props: `FormField({ id, label, type, autoComplete, value, onChange, error })`. `
   - *Alternativas descartadas:* ejecutar Firefox en un contenedor Linux de Playwright (infraestructura nueva); cambiar RNF-004 con `/sdd-cambiar-spec` en este momento.
   - *Consecuencia:* la compatibilidad con Firefox que pide RNF-004 no tiene E2E automático. Hay que decidirlo antes de `/sdd-verificar` (T-041): comprobarlo a mano, recuperar el proyecto `firefox` si una versión de Playwright lo arregla, o cambiar la spec. `channel: 'chrome'` necesita Google Chrome instalado; en otro equipo o en CI se instala con `pnpm exec playwright install chrome`.
   - *Actualizada con la spec v1.2:* Firefox sale de RNF-004 (decisión del usuario: no se va a usar) y pasa a "Fuera de alcance", así que deja de haber decisión pendiente. Los tres proyectos cubren los navegadores soportados: `chrome` (Chrome), `chromium` (el motor de Edge) y `webkit` (el motor de Safari).
+- **D-19** *(añadida con la spec v2.0)* Los enlaces de RF-019 van dentro de cada isla, debajo del formulario, como `<a href="/signup">` y `<a href="/login">` normales.
+  - *Por qué:* dentro de la isla se respeta plan §4.1 (mientras se comprueba la sesión, o con sesión iniciada por CA-4.3, no se ve nada); en la página `.astro` se verían un instante antes de la redirección. Es una navegación que elige el usuario, no una redirección, así que crea una entrada en el historial y "atrás" vuelve a la pantalla anterior; las redirecciones de §4.1 siguen con `location.replace`.
+  - *Alternativas descartadas:* ponerlos en `login.astro` y `signup.astro` (se verían durante la comprobación de la sesión); navegar con `location.replace` (el usuario no podría volver con "atrás").
 
 ## 6. Trazabilidad
 
@@ -332,6 +335,7 @@ U = unitario (Vitest), I = integración de la API (Supertest + Postgres de test)
 | RF-017 | `authenticate` compara `expiresAt` | I: `expiresAt` = ahora − 1 día (último uso hace 8 días) → 401 `SESSION_EXPIRED` (CA-5.2) |
 | RF-018 | `authenticate` → `extendSession` | I: `expiresAt` = ahora + 1 día (último uso hace 6 días) → 200 y `expiresAt` ≈ ahora + 7 días (CA-5.3) |
 | C-12 · CSRF | D-13: `SameSite=Lax` + `requireJson` | I: `POST /api/auth/logout` con la cookie válida y `Content-Type: application/x-www-form-urlencoded` → 415 `UNSUPPORTED_MEDIA_TYPE`, y después `/me` con la misma cookie → 200 (la sesión no se ha cerrado). I: el `Set-Cookie` lleva `SameSite=Lax`, `HttpOnly` y `Secure` |
+| RF-019 | D-19: enlace al final de `LoginForm` y de `SignupForm` | C: cada formulario tiene el texto de la spec y el enlace a la otra pantalla. E: sin sesión, `/` → inicio de sesión → con el teclado hasta "Crear cuenta" → registro → crear la cuenta; y desde el registro, "Iniciar sesión" → `/login` (CA-1.6, CA-2.6) |
 | RNF-001 | `FormField` (etiqueta, `aria-invalid`, `aria-describedby`), mensaje del formulario con `role="alert"`, foco en el primer campo con error, `focus-visible` de Tailwind. *Precisado en T-038:* la zona `role="alert"` se pinta siempre (vacía y con `empty:sr-only`) y solo cambia su texto, porque VoiceOver no anunciaba la que se insertaba ya con el mensaje. El contorno de foco es explícito (`outline-gray-900`), porque el de WebKit por defecto daba 2.16:1 | C: consultas por rol y etiqueta; tras un envío inválido el foco está en el primer campo con error. E: registro e inicio de sesión solo con teclado (Tab/Enter). Medido una vez en T-038: contraste ≥ 4.5:1 y foco visible. *Spec v1.2:* sin prueba manual con lector de pantalla; el anuncio de los errores lo cubren los tests de componente (zona `role="alert"` presente antes del error, campos con `aria-describedby`) |
 | RNF-002 | D-4; `PublicUser` como única forma de salida | U: `hashPassword` no contiene la contraseña y `verifyPassword` acierta y falla. I: los cuerpos de signup, login y me tienen exactamente las claves `id` y `email` |
 | RNF-003 | Modelo de §4.2 | Revisión del esquema en `/sdd-verificar` (manual). I: borrar un `User` borra sus `Session` (cascada, C-16) |

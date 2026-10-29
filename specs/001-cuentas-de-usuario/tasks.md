@@ -1,7 +1,7 @@
 ---
 spec: 001
 plan_aprobado: 2026-10-28
-progreso: 40/41
+progreso: 40/42
 ---
 
 # Tareas · Spec 001 · Cuentas de usuario
@@ -280,8 +280,15 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
   - Cubre: C-3, D-1 (aviso del certificado autofirmado), plan §4.4
   - Hecho cuando: siguiendo el README en un clon limpio (`corepack enable`, `pnpm i`, `cp .env.example .env`, `pnpm db:up`, `pnpm db:migrate`, `pnpm dev`) se abre `https://localhost:4321` y se llega al formulario de inicio de sesión; explica `pnpm test` y `pnpm test:e2e`
 
+- [ ] **T-042** Enlaces entre el inicio de sesión y el registro *(añadida con la spec v2.0)*
+  - Depende de: T-036
+  - Ficheros: `apps/web/src/components/LoginForm.tsx`, `apps/web/src/components/SignupForm.tsx`, `apps/web/src/components/LoginForm.test.tsx`, `apps/web/src/components/SignupForm.test.tsx`, `e2e/auth.spec.ts`
+  - Cubre: RF-019, CA-1.6, CA-2.6, RNF-001 (solo teclado), D-19
+  - Casos: C: el inicio de sesión muestra "¿No tienes cuenta? Crear cuenta" con un enlace "Crear cuenta" a `/signup`, y el registro, "¿Ya tienes cuenta? Iniciar sesión" con un enlace "Iniciar sesión" a `/login`; mientras `me` está pendiente no hay enlaces (D-19). E (todo con teclado): sin sesión, abrir `/` → inicio de sesión → llegar a "Crear cuenta" con el tabulador y pulsar Enter → registro → crear la cuenta → zona privada con el email; desde `/signup`, "Iniciar sesión" con el teclado → `/login` con el formulario
+  - Hecho cuando: los tests nuevos fallan primero porque no hay enlaces; después, `pnpm test`, `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` en verde
+
 - [ ] **T-041** Ejecutar `/sdd-verificar`
-  - Depende de: T-037, T-038, T-039, T-040
+  - Depende de: T-037, T-038, T-039, T-040, T-042 *(T-042 añadida con la spec v2.0: hay que volver a verificar)*
   - Ficheros: `specs/001-cuentas-de-usuario/verificacion.md`
   - Cubre: todos (incluida la revisión manual del esquema de RNF-003)
   - Hecho cuando: el informe da APTO o APTO CON OBSERVACIONES y el Definition of Done está completo
@@ -308,16 +315,19 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 | RF-016 | T-015, T-023, T-026, T-037 |
 | RF-017 | T-017, T-030 |
 | RF-018 | T-017, T-030 |
+| RF-019 | T-042 |
 | CA-1.1 | T-015, T-020, T-023, T-033, T-035 |
 | CA-1.2 | T-015, T-020, T-033 |
 | CA-1.3 | T-013, T-020, T-033 |
 | CA-1.4 | T-013, T-020, T-033 |
 | CA-1.5 | T-013, T-020, T-033 |
+| CA-1.6 | T-042 |
 | CA-2.1 | T-016, T-021, T-036 |
 | CA-2.2 | T-016, T-023, T-037 |
 | CA-2.3 | T-016, T-021, T-036 |
 | CA-2.4 | T-016, T-021, T-036 |
 | CA-2.5 | T-021, T-036 |
+| CA-2.6 | T-042 |
 | CA-3.1 | T-017, T-022, T-023, T-034 |
 | CA-3.2 | T-022, T-023, T-034, T-037 |
 | CA-4.1 | T-017, T-022, T-023, T-034, T-037 |
@@ -336,7 +346,7 @@ Secuencial: todas las tareas tocan el `package.json` raíz o el lockfile. Al fin
 | E-8 | T-015, T-020, T-027, T-029, T-033 |
 | E-9 | T-017, T-030 |
 | E-10 | T-013, T-024 |
-| RNF-001 | T-020, T-021, T-023, T-033, T-036, T-037, T-038 |
+| RNF-001 | T-020, T-021, T-023, T-033, T-036, T-037, T-038, T-042 |
 | RNF-002 | T-010, T-014, T-015, T-016, T-025 |
 | RNF-003 | T-006, T-017, T-027, T-041 |
 | RNF-004 | T-009, T-023, T-037 |

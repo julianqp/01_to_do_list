@@ -2,7 +2,7 @@
 id: 001
 titulo: Cuentas de usuario
 estado: en-implementacion # borrador | aprobada | en-implementacion | implementada | obsoleta
-version: 1.2
+version: 2.0
 autor: Julian Querol Polo
 creada: 2026-10-28
 aprobada: 2026-10-28, Julian Querol Polo
@@ -44,6 +44,7 @@ Como visitante, quiero crear una cuenta con mi email y una contraseña, para ten
 - **CA-1.3** Dado el formulario de registro, cuando el visitante envía `ana@` como email, entonces no se crea la cuenta y se indica junto al campo email que el formato no es válido.
 - **CA-1.4** Dado el formulario de registro, cuando el visitante envía una contraseña de 7 caracteres, entonces no se crea la cuenta y se indica junto al campo contraseña la longitud mínima exigida.
 - **CA-1.5** Dado el formulario de registro, cuando el visitante lo envía con los dos campos vacíos, entonces no se crea la cuenta y se indica en cada campo que es obligatorio.
+- **CA-1.6** *(v2.0)* Dado un visitante en la pantalla de inicio de sesión, cuando elige "Crear cuenta" en "¿No tienes cuenta? Crear cuenta", entonces ve la pantalla de registro.
 
 ### HU-2 · Iniciar sesión (P1)
 
@@ -56,6 +57,7 @@ Como visitante con cuenta, quiero iniciar sesión con mi email y contraseña, pa
 - **CA-2.3** Dada esa misma cuenta, cuando el visitante introduce una contraseña incorrecta, entonces no entra y ve el mensaje "Email o contraseña incorrectos".
 - **CA-2.4** Dado que no existe ninguna cuenta con `luis@example.com`, cuando el visitante intenta entrar con ese email, entonces ve exactamente el mismo mensaje que en CA-2.3.
 - **CA-2.5** Dado un error de inicio de sesión, cuando se vuelve a mostrar el formulario, entonces el campo email conserva lo escrito y el campo contraseña aparece vacío.
+- **CA-2.6** *(v2.0)* Dado un visitante en la pantalla de registro, cuando elige "Iniciar sesión" en "¿Ya tienes cuenta? Iniciar sesión", entonces ve la pantalla de inicio de sesión.
 
 ### HU-3 · Cerrar sesión (P1)
 
@@ -108,6 +110,7 @@ Como usuario, quiero seguir dentro de la app al volver a abrirla, para no tener 
 - **RF-016** El sistema DEBE conservar la sesión al cerrar y reabrir el navegador hasta que caduque o se cierre la sesión. *(HU-5)*
 - **RF-017** SI una sesión pasa 7 días seguidos sin uso, ENTONCES el sistema DEBE considerarla caducada. *(HU-5)*
 - **RF-018** CUANDO el usuario carga la zona privada o realiza una acción en ella con una sesión válida, el sistema DEBE reiniciar el plazo de 7 días de esa sesión. *(HU-5)*
+- **RF-019** *(v2.0)* La pantalla de inicio de sesión DEBE ofrecer ir a la de registro con el texto "¿No tienes cuenta? Crear cuenta", y la de registro DEBE ofrecer ir a la de inicio de sesión con "¿Ya tienes cuenta? Iniciar sesión". En los dos casos, lo que se elige es la parte final del texto. *(HU-1, HU-2)*
 
 ## 6. Requisitos no funcionales
 
@@ -179,6 +182,7 @@ Como usuario, quiero seguir dentro de la app al volver a abrirla, para no tener 
 | 2026-10-28 | ¿Se aceptan emails con caracteres fuera de ASCII? (surgió en `/sdd-planificar`) | No; se rechazan como formato no válido | E-10 |
 | 2026-10-29 | ¿Tiene que funcionar en Firefox? (surgió en `/sdd-verificar`: no había forma de probarlo en el equipo de desarrollo) | No; la app no se va a usar con Firefox. Navegadores soportados: Chrome, Safari y Edge | RNF-004, §9 |
 | 2026-10-29 | ¿Cómo se comprueba que los errores se anuncian a lectores de pantalla? (surgió en `/sdd-verificar`) | Solo con las pruebas automáticas; no se hace prueba manual con un lector de pantalla. El requisito no cambia | RNF-001 |
+| 2026-10-29 | ¿Cómo llega a la pantalla de registro un visitante sin cuenta, si sin sesión la app lo lleva al inicio de sesión? (surgió en `/sdd-verificar`, I-1) | Con un enlace en cada pantalla hacia la otra: "¿No tienes cuenta? Crear cuenta" y "¿Ya tienes cuenta? Iniciar sesión" | RF-019, CA-1.6, CA-2.6 |
 
 ## 12. Registro de cambios
 
@@ -189,3 +193,4 @@ Como usuario, quiero seguir dentro de la app al volver a abrirla, para no tener 
 | 1.0     | 2026-10-28 | Spec aprobada | Revisión con el checklist de spec superada |
 | 1.1     | 2026-10-28 | RF-010 y E-7 cubren también el error inesperado del servidor; nuevo E-10 (emails fuera de ASCII) | Huecos detectados en `/sdd-planificar`, aprobados por el usuario |
 | 1.2     | 2026-10-29 | RNF-004 sin Firefox (pasa a "Fuera de alcance"); RNF-001 se comprueba solo con pruebas automáticas, sin cambiar el requisito | Decisión del usuario tras `/sdd-verificar` (`/sdd-cambiar-spec`) |
+| 2.0     | 2026-10-29 | Nuevos RF-019, CA-1.6 y CA-2.6: enlaces entre las pantallas de inicio de sesión y registro | Hueco de HU-1 detectado en T-036 y en `/sdd-verificar` (I-1); lo decide el usuario antes de cerrar 001 (`/sdd-cambiar-spec`) |
