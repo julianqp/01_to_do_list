@@ -1,7 +1,7 @@
 ---
 spec: 004
 plan_aprobado: 2026-10-29
-progreso: 4/26
+progreso: 5/26
 ---
 
 # Tareas · Spec 004 · Aplicar el sistema de diseño
@@ -60,7 +60,7 @@ T-003 y T-004 terminan en verde. T-005–T-008 escriben los E2E primero: deben f
   - Cubre: plan §4.3, RF-004 (tonos), RF-019
   - Hecho cuando: `pnpm typecheck` y `pnpm lint` en verde; los tests actuales en verde sin tocarlos; `messageFor('INVALID_CREDENTIALS').tone === 'error'`, `'SESSION_EXPIRED'` → `'info'` y `'NETWORK_ERROR'` → `'offline'` (comprobado en un test nuevo de `apps/web/src/lib/messages.test.ts`, con el nombre `RF-004 …`)
 
-- [ ] **T-005** Escribir los E2E de las pantallas de acceso
+- [x] **T-005** Escribir los E2E de las pantallas de acceso
   - Depende de: T-002
   - Ficheros: `e2e/design-system.spec.ts` (nuevo)
   - Cubre: CA-1.1, CA-1.2, CA-1.4, CA-4.1, CA-4.2, RF-001, RF-002, RF-003, RF-005
@@ -387,4 +387,5 @@ Cada tarea escribe primero sus tests unitarios (rojo), implementa y termina en v
 | T-001 | 8d42da5 | Versiones instaladas con `--save-exact`, iguales a R-7: `lucide-react` 1.62.0, `@fontsource-variable/geist` 5.3.0, `culori` 4.0.2, `@types/culori` 4.0.1 (web) y `@axe-core/playwright` 4.14.0 (raíz). La política de cadena de suministro de pnpm 11 pasa sin excepciones a `minimumReleaseAge`. `pnpm lint` ya fallaba en la rama antes de esta tarea: Prettier marcaba `DESIGN.md` (commit f5a3341, escrito a mano). Con el visto bueno del usuario, `DESIGN.md` se añade a `.prettierignore`, junto a `CLAUDE.md` |
 | T-002 | 08ab097 | `e2e/helpers.ts` exporta las doce utilidades de la tarea; `MAX_TABS` queda dentro del módulo, porque solo lo usa `tabTo`. `auth.spec.ts` importa solo las ocho que usa; el diff no toca ningún `test(...)` (Prettier solo reajusta las líneas en blanco). `pnpm test:e2e`: 21/21 en `chromium`, `chrome` y `webkit` |
 | T-003 | e3af216 | El test temporal falló primero con `TypeError: window.matchMedia is not a function`. `FakeMediaQueryList` extiende `EventTarget` (sin `addListener`/`removeListener`, la API antigua) y hay una lista por consulta: todos los `matchMedia` con la misma consulta comparten oyentes. `setMediaMatches` lanza `change` siempre, aunque el valor no cambie. Por defecto ninguna consulta coincide. Las listas se vacían en `afterEach` y `vi.unstubAllGlobals` restaura el global. Test temporal (2 casos) en verde y borrado |
-| T-004 | (pendiente) | `messages.test.ts` falló primero con `expected undefined to be 'error'`. `AlertTone` vive en `Alert.tsx` (plan §4.3) y `messages.ts` lo importa solo como tipo. Nombres que el plan no fijaba: `IconProps`, `AlertProps`, `AuthCardProps`, `AppHeaderProps` y `AccountMenuProps`. Los contratos devuelven `null` (`void props` para que ESLint no marque la prop sin usar) hasta su tarea. `EMAIL_ALREADY_REGISTERED` → `'error'` y `UNEXPECTED` → `'offline'`. Los tests de la 001, sin tocar: 119/119; `auth.spec.ts` 21/21 |
+| T-004 | cbb9c76 | `messages.test.ts` falló primero con `expected undefined to be 'error'`. `AlertTone` vive en `Alert.tsx` (plan §4.3) y `messages.ts` lo importa solo como tipo. Nombres que el plan no fijaba: `IconProps`, `AlertProps`, `AuthCardProps`, `AppHeaderProps` y `AccountMenuProps`. Los contratos devuelven `null` (`void props` para que ESLint no marque la prop sin usar) hasta su tarea. `EMAIL_ALREADY_REGISTERED` → `'error'` y `UNEXPECTED` → `'offline'`. Los tests de la 001, sin tocar: 119/119; `auth.spec.ts` 21/21 |
+| T-005 | (pendiente) | 7 casos × 3 proyectos = 21, todos en rojo por el aspecto: CA-1.1 mide 384 px (`max-w-sm`); CA-1.2 mide 375 / 320 (sin margen de 16 px); CA-1.6 «`--ring-error` no está definido»; CA-1.4 no hay `[data-tone="offline"]`; CA-4.1 y CA-4.2 no aparece «Iniciando sesión…» / «Creando cuenta…». `auth.spec.ts` 21/21. Selectores que el plan no fijaba: la tarjeta es el padre directo del `h1` (`authCard`) y el botón principal es el único `button` del `form` (`submitButton`), porque su nombre cambia mientras espera. El color de `--ring-error` se lee con un `span` de prueba (`color: var(--ring-error)`), así sale con la misma notación que `box-shadow`, y se espera con `expect.poll` por si el campo tiene transición. Las utilidades propias (`box`, `open`, `expectNoHorizontalScroll`, `fillCredentials`, `slowDown`) se quedan en el spec: un solo uso (C-22) |
