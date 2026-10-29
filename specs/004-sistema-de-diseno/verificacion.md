@@ -264,3 +264,8 @@ Lo resuelto desde la primera verificación ya no es deriva: B-1 (RF-009, CA-3.1,
 1. Hacer la checklist manual de §21, la revisión de X-9 y la del desenfoque del menú en Safari, y anotar el resultado en este informe.
 2. Decidir I-1: corregirlo (con su `D-x` y el par nuevo en `tokens.test.ts`) o acotar E-3 en la spec con `/sdd-cambiar-spec`.
 3. Los menores pueden quedar como observaciones o como ideas en el roadmap. Lo más barato: m-3, m-4 y M-5 son correcciones de texto.
+
+## Revisión manual y cierre
+
+- **2026-10-29, usuario:** ha revisado la checklist de `DESIGN.md` §21 (tres pantallas, tema oscuro y claro mediante la preferencia del sistema, «aumentar contraste» y los tres anchos), el desenfoque del menú de cuenta en Safari y X-9. Resultado: «Lo veo bien». Los ❓ de revisión manual quedan cerrados.
+- **Spec 004 `implementada`.** Las observaciones de este informe que no bloquean (I-1, m-1–m-4 y los M de la primera verificación que siguen) se apuntan en las «Ideas sin priorizar» del roadmap.

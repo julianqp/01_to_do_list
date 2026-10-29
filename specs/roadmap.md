@@ -15,7 +15,7 @@ actualizado: 2026-10-29
 | Spec | Título | Depende de | Estado | Por qué en este orden |
 |------|--------|------------|--------|-----------------------|
 | 001  | Cuentas de usuario | — | hecha | Todo lo demás depende de saber quién es el usuario. Incluye montar el esqueleto del proyecto |
-| 004  | Aplicar el sistema de diseño | 001 | en curso | Da a inicio de sesión, registro y zona privada el aspecto de `DESIGN.md`, con texto más legible (contraste AAA), y deja listos los valores visuales comunes. Va antes de la 002 para que el tablero nazca ya con el sistema de diseño y no haya que rehacerlo |
+| 004  | Aplicar el sistema de diseño | 001 | hecha | Da a inicio de sesión, registro y zona privada el aspecto de `DESIGN.md`, con texto más legible (contraste AAA), y deja listos los valores visuales comunes. Va antes de la 002 para que el tablero nazca ya con el sistema de diseño y no haya que rehacerlo |
 | 002  | Tablero de tareas | 001, 004 | pendiente | Crear, ver por columnas, editar, borrar y cambiar de estado sin arrastrar. Con esta spec la app ya es útil |
 | 003  | Arrastrar y soltar | 002 | pendiente | Mejora de uso con más riesgo (accesibilidad, orden dentro de la columna). Si se retrasa, la 002 ya funciona |
 
@@ -38,10 +38,18 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 - Limitar los intentos fallidos de inicio de sesión (revisar con el ADR de despliegue) — *origen: spec 001, aclaración*
 - Compatibilidad con Firefox (la app no se va a usar con Firefox; el Firefox de Playwright no arrancaba en macOS 27) — *origen: spec 001 v1.2, fuera de alcance*
 - Aviso en la zona privada cuando no se puede contactar con el servidor: hoy, con la API caída, la pantalla se queda en blanco tras los reintentos. Valorar en la 002, que reutiliza la isla — *origen: spec 001, `/sdd-verificar` (M-3)*
-- Reescribir los textos de la spec 001 con la voz de `DESIGN.md` §15 (p. ej. «Este campo es obligatorio») — *origen: spec 004, fuera de alcance (`DESIGN.md`, «Pendiente de decidir» 4)*
+- Reescribir los textos de la spec 001 con la voz de `DESIGN.md` §15 (p. ej. «Este campo es obligatorio») — *origen: spec 004, fuera de alcance (`DESIGN.md`, «Pendiente de decidir» 2)*
 - Selector de tema claro/oscuro dentro de la app — *origen: spec 004, fuera de alcance*
 - Esqueleto de carga mientras se comprueba la sesión (solo tiene sentido si tarda más de 300 ms; revisar con el ADR de despliegue) — *origen: spec 004, fuera de alcance*
 - Botón para mostrar u ocultar la contraseña en los formularios de acceso — *origen: spec 004, fuera de alcance*
+- Probar en navegadores móviles reales (Safari en iOS, Chrome en Android), no solo con la ventana de escritorio estrecha — *origen: spec 004, fuera de alcance*
+- Deuda de la spec 004 según su verificación (`specs/004-sistema-de-diseno/verificacion.md`). Revisarla al planificar la 002, que reutiliza el catálogo y el menú:
+  - el test de contraste no mide el texto que queda debajo de un panel sin blur (I-1);
+  - el test de reglas no vigila la escala de espaciado ni los literales de `global.css` (M-2, m-1);
+  - la posición del panel del menú está copiada a mano de la altura de la cabecera (m-2);
+  - axe sin `wcag21a` y sin las pantallas de acceso a 375 (M-8);
+  - el E2E de E-4 es débil (M-9);
+  - WebKit es intermitente con el servidor de desarrollo (M-7, D-20) — *origen: spec 004, `/sdd-verificar`*
 
 ## Historial
 
@@ -61,3 +69,4 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 | 2026-10-29 | 004 vuelve a `borrador` (v0.4): HU-6 pasa a RNF-006 y referencias `NNN/ID`; la 001 anota en su registro lo que le cambia la 004 | Revisión del usuario antes de aprobar |
 | 2026-10-29 | 004 aprobada de nuevo (spec v1.0) | Aprobación del usuario tras la revisión de la v0.4 |
 | 2026-10-29 | 004: plan aprobado; spec v1.1 (E-12: el foco vuelve al botón de cuenta si falla el cierre de sesión); ADR-0003 (catálogo de tokens vigilado por tests) | `/sdd-planificar` de la spec 004 |
+| 2026-10-29 | 004 `hecha` (spec v1.1 `implementada`, APTO CON OBSERVACIONES tras una primera verificación NO APTO por B-1, resuelta en T-027–T-029); ideas nuevas: navegadores móviles reales (de su «Fuera de alcance») y la deuda de su verificación | `/sdd-verificar` de la spec 004 |
