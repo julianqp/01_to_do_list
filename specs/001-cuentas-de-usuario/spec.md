@@ -1,7 +1,7 @@
 ---
 id: 001
 titulo: Cuentas de usuario
-estado: en-implementacion # borrador | aprobada | en-implementacion | implementada | obsoleta
+estado: implementada # borrador | aprobada | en-implementacion | implementada | obsoleta
 version: 2.0
 autor: Julian Querol Polo
 creada: 2026-10-28

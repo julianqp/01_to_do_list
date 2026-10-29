@@ -2,30 +2,30 @@
 
 Resultado: **APTO CON OBSERVACIONES**
 
-Verifica la spec v1.2 en la rama `feat/001-cuentas-de-usuario` (47 commits sobre `master`, último `351d649`), con el árbol de trabajo limpio.
+Verifica la spec v2.0 en la rama `feat/001-cuentas-de-usuario` (50 commits sobre `master`, último `ac459af`), con el árbol de trabajo limpio.
 
-Es la segunda verificación de hoy. La primera dio NO APTO (el informe está en `dc36256`). Así se resolvieron sus problemas:
-- **B-1** (el error de `role="alert"` no se anunciaba): `dc36256`.
-- **B-2** (T-038 abierta): T-038 cerrada en `351d649`.
-- **I-2** (Firefox): la spec v1.2 lo saca de RNF-004.
+Es la tercera verificación de hoy:
+1. **NO APTO** (informe en `dc36256`). B-1 y B-2 se resolvieron con T-038 (`dc36256`, `351d649`); la I-2 de entonces (Firefox), con la spec v1.2.
+2. **APTO CON OBSERVACIONES** (informe en `965202a`). Su I-1 (no había enlaces entre el inicio de sesión y el registro) se resolvió con la spec v2.0 (RF-019, CA-1.6, CA-2.6) y T-042 (`ac459af`).
+
+Los identificadores de los problemas se mantienen de un informe a otro.
 
 ## Resumen
 
-Los 18 RF, los 18 CA y los 10 casos límite tienen código y al menos un test que pasa. Las 46 IDs aparecen en el nombre de algún test: se comprobó con `vitest list` y `playwright test --list`.
+Los 19 RF, los 20 CA y los 10 casos límite tienen código y al menos un test que pasa. Las 49 IDs aparecen en el nombre de algún test: se comprobó con `vitest list` y `playwright test --list`.
 
 | Comprobación | Resultado |
 |--------------|-----------|
-| `pnpm test` | ✅ 114/114 (13 ficheros: `shared`, `api` contra el Postgres `todo_test` y `web`) |
+| `pnpm test` | ✅ 118/118 (13 ficheros: `shared`, `api` contra el Postgres `todo_test` y `web`) |
 | `pnpm lint` | ✅ ESLint y Prettier sin errores |
 | `pnpm typecheck` | ✅ `tsc` en todos los paquetes, `astro check` y `tsc -p tsconfig.json` de la raíz |
-| `pnpm test:e2e` | ✅ 15/15 (5 tests × `chromium`, `chrome` y `webkit`) |
+| `pnpm test:e2e` | ✅ 21/21 (7 tests × `chromium`, `chrome` y `webkit`) |
 | `grep "not implemented"` en `apps` y `packages` | ✅ ninguno |
+| Spec temporal de auditoría (borrado), en los 3 proyectos | ✅ los enlaces de RF-019 en negro sobre blanco (21:1), subrayados, con el contorno de foco `gray-900`, y «atrás» desde `/signup` vuelve a `/login` |
 
-No hay bloqueantes. Quedan tres observaciones importantes:
-
-1. **I-1:** no hay enlaces entre el inicio de sesión y el registro. Es un hueco de HU-1 que ya está en el roadmap.
-2. **I-2:** que los errores se anuncien a un lector de pantalla (RNF-001) solo se comprueba con un sustituto automático. La única prueba real con VoiceOver se hizo antes del arreglo y falló.
-3. **I-3:** de RNF-004, no se ha probado ni Edge ni Safari de verdad, solo sus motores.
+No hay bloqueantes. Quedan dos observaciones importantes, las dos aceptadas por el usuario en la spec v1.2:
+- **I-2:** que los errores se anuncian a un lector de pantalla (RNF-001) solo se comprueba con un sustituto automático.
+- **I-3:** de RNF-004, Edge y Safari solo se prueban a través de sus motores.
 
 ## Matriz de verificación
 
@@ -51,16 +51,19 @@ Leyenda de las columnas de test: U = unitario, I = integración de la API, C = c
 | RF-016 | `routes/session-cookie.ts:23` (`Max-Age` de 30 días) | I «RF-016 C-12 emite la cookie sid …»; E «CA-5.1 RF-016 …» | ✅ | ✅ |
 | RF-017 | `auth.service.ts:58` | I «CA-4.2 CA-5.2 RF-013 RF-017 E-5 …» | ✅ | ✅ |
 | RF-018 | `auth.service.ts:63`, `require-auth.ts:23` | I «CA-5.3 RF-018 D-3 …» | ✅ | ✅ |
+| RF-019 | D-19: `LoginForm.tsx:58-67` (`href="/signup"`), `SignupForm.tsx:53-62` (`href="/login"`), dentro de la isla | C «CA-1.6 RF-019 ofrece ir al registro…», «CA-2.6 RF-019 ofrece ir al inicio de sesión…» (texto exacto de la spec), «RF-019 D-19 mientras se comprueba la sesión no hay enlace…» ×2; E «CA-1.6 RF-019 RNF-001 …», «CA-2.6 RF-019 RNF-001 …» | ✅ | ✅ |
 | CA-1.1 | RF-001 + RF-002 + RF-015 | I, C, E (email visible tras registrarse) | ✅ | ✅ |
 | CA-1.2 | RF-003 + RF-004 | I (`ANA@Example.com `), C | ✅ | ✅ |
 | CA-1.3 | `emailSchema` | U, C (sin llamar a `fetch`) | ✅ | ✅ |
 | CA-1.4 | `passwordSchema` | U, C | ✅ | ✅ |
 | CA-1.5 | Esquemas | U, C | ✅ | ✅ |
+| CA-1.6 | RF-019 | C; E con teclado: `/` sin sesión → inicio de sesión → «Crear cuenta» → registro → zona privada | ✅ | ✅ |
 | CA-2.1 | RF-008 | I (sesión confirmada con `/me`), C | ✅ | ✅ |
 | CA-2.2 | RF-003 | I, E (`email.toUpperCase()` con teclado) | ✅ | ✅ |
 | CA-2.3 | RF-009 | I, C | ✅ | ✅ |
 | CA-2.4 | RF-009 | I (mismo status y mismo cuerpo) | ✅ | ✅ |
 | CA-2.5 | `credentials-form.ts:72-73` | C «CA-2.3 CA-2.5 RF-009 …» | ✅ | ✅ |
+| CA-2.6 | RF-019 | C; E con teclado: `/signup` → «Iniciar sesión» → `/login` con el formulario | ✅ | ✅ |
 | CA-3.1 | RF-011 | I, C, E | ✅ | ✅ |
 | CA-3.2 | `location.replace` + `PrivateArea.tsx:8-16` (`pageshow`) | C «CA-3.2 D-10 …» ×2; E flujo completo («atrás» y escribir la dirección) | ✅ | ✅ |
 | CA-4.1 | RF-012 | I, C, E | ✅ | ✅ |
@@ -79,21 +82,22 @@ Leyenda de las columnas de test: U = unitario, I = integración de la API, C = c
 | E-8 | D-9 + `disabled={signup.isPending}` | I (dos registros con `Promise.all`), C (botón desactivado) | ✅ | ✅ |
 | E-9 | Una fila `Session` por inicio de sesión | I «E-9 cerrar sesión en un navegador no cierra la del otro» | ✅ | ✅ |
 | E-10 | `z.email()` | U `ñandú@correo.es` | ✅ | ✅ |
-| RNF-001 | `FormField.tsx` (etiqueta, `aria-invalid`, `aria-describedby`, `focus-visible`), zona `role="alert"` persistente (`LoginForm.tsx:47`, `SignupForm.tsx:41`, `PrivateArea.tsx:45`), foco en el primer error | C: etiquetas, foco en el primer error, errores asociados al campo (`expectFieldError`) y «RNF-001 … zona de alerta que ya estaba en la página» ×3; E: todo con teclado; medido en T-038: contraste y foco (ver detalle) | ✅ | ⚠️ que los errores se anuncian solo se comprueba con un sustituto automático (I-2) |
+| RNF-001 | `FormField.tsx` (etiqueta, `aria-invalid`, `aria-describedby`, `focus-visible`), zona `role="alert"` persistente (`LoginForm.tsx:47`, `SignupForm.tsx:41`, `PrivateArea.tsx:45`), foco en el primer error, enlaces de RF-019 subrayados y con foco visible | C: etiquetas, foco en el primer error, errores asociados al campo (`expectFieldError`) y «RNF-001 … zona de alerta que ya estaba en la página» ×3; E: todo con teclado, incluidos los enlaces de RF-019; medido en T-038 y en esta auditoría: contraste y foco (ver detalle) | ✅ | ⚠️ que los errores se anuncian solo se comprueba con un sustituto automático (I-2) |
 | RNF-002 | `password.ts` (argon2id PHC), `PublicUser`, `error-handler.ts:38` (sin cuerpo) | U «RNF-002 el hash no contiene la contraseña»; I «RNF-002 C-12 no guarda la contraseña en claro…», cuerpos con solo `id` y `email`; I `errors.test.ts` (500 sin email ni contraseña en el log) | ✅ | ✅ |
 | RNF-003 | `prisma/schema.prisma` + migración `20261028191330_auth_init` | Revisión manual (abajo); I «RNF-003 C-16 borrar un usuario borra sus sesiones» | ✅ | ✅ |
-| RNF-004 | `playwright.config.ts` (`chromium`, `chrome`, `webkit`; D-18 actualizada a la v1.2) | E 15/15 | ✅ | ⚠️ Chrome sí; Safari y Edge, solo sus motores; las «dos últimas versiones», no verificables (I-3) |
+| RNF-004 | `playwright.config.ts` (`chromium`, `chrome`, `webkit`; D-18 actualizada a la v1.2) | E 21/21 | ✅ | ⚠️ Chrome sí; Safari y Edge, solo sus motores; las «dos últimas versiones», no verificables (I-3) |
 
 **Detalle de RNF-001** (la spec v1.2 lo comprueba solo con pruebas automáticas):
 
 | Punto | Resultado |
 |-------|-----------|
-| Solo con teclado | ✅ E2E con Tab, Option+Tab en WebKit y Enter |
+| Solo con teclado | ✅ E2E con Tab, Option+Tab en WebKit y Enter, también para los enlaces de RF-019 |
 | Etiquetas visibles | ✅ test de componente |
 | Error asociado al campo | ✅ `aria-invalid` y `aria-describedby`, test de componente |
 | Contraste del texto (T-038) | ✅ ≥ 6.42:1 (errores en `red-700`); el resto, entre 17.75 y 21:1 |
+| Contraste de los enlaces (esta auditoría) | ✅ 21:1, y subrayados, así que no se distinguen solo por el color |
 | Bordes de los campos (T-038) | ✅ 4.84:1 |
-| Foco visible (T-038) | ✅ 17.75:1 en los tres proyectos (`3718e5e`) |
+| Foco visible | ✅ 17.75:1 en los tres proyectos: campos y botones (T-038), enlaces (esta auditoría) |
 | Anuncio a lectores de pantalla | ⚠️ ver abajo |
 
 Sobre el anuncio a lectores de pantalla:
@@ -115,20 +119,15 @@ Ninguno.
 
 ### Importantes
 
-- **I-1 · HU-1: un visitante sin cuenta no puede llegar al registro.**
-  - **Qué pasa:** sin sesión, `/` lleva a `/login`, y ni `/login` ni `/signup` tienen un enlace a la otra pantalla ([LoginForm.tsx](../../apps/web/src/components/LoginForm.tsx), [SignupForm.tsx](../../apps/web/src/components/SignupForm.tsx)). Solo se llega a `/signup` escribiendo la dirección.
-  - **No es deriva:** la spec no pide ese enlace, y ya está en «Ideas sin priorizar» del roadmap (origen T-036).
-  - **Propuesta:** decidir antes de cerrar 001 entre:
-    - (a) `/sdd-cambiar-spec` con un RF nuevo para los dos enlaces, una tarea y otra verificación; o
-    - (b) cerrar 001 así y priorizar la idea en el roadmap, sabiendo que hasta entonces el registro no se encuentra desde la app.
+- **I-1 · Resuelta.** Los enlaces entre el inicio de sesión y el registro entran en la spec v2.0 (RF-019, CA-1.6, CA-2.6) y en T-042 (`ac459af`).
 - **I-2 · RNF-001: que los errores se anuncian a un lector de pantalla no está comprobado de verdad.**
   - **Dónde:** [LoginForm.tsx:47](../../apps/web/src/components/LoginForm.tsx#L47), [SignupForm.tsx:41](../../apps/web/src/components/SignupForm.tsx#L41), [PrivateArea.tsx:45](../../apps/web/src/components/PrivateArea.tsx#L45).
-  - **Qué hay:** la spec v1.2 acepta comprobarlo solo con pruebas automáticas, y los tests pasan. Pero solo verifican que la zona `role="alert"` está antes del error y recibe el texto, no lo que dice VoiceOver.
-  - **Por qué importa:** la única prueba real, anterior al arreglo, falló en `/login`. Además, sigue vaciándose la contraseña en el mismo momento que aparece el mensaje ([credentials-form.ts:73](../../apps/web/src/lib/credentials-form.ts#L73)), que es la otra causa posible.
-  - **Propuesta:** aceptarlo como riesgo conocido (decidido en la v1.2). Si alguien vuelve a probar con un lector de pantalla y falla, la siguiente medida es ese `setPassword('')`.
+  - **Qué hay:** la spec v1.2 acepta comprobarlo solo con pruebas automáticas, y los tests pasan. Pero solo verifican que la zona `role="alert"` está antes del error y recibe el texto, no lo que dice el lector.
+  - **Por qué importa:** la única prueba real, anterior al arreglo, falló en `/login`. Sigue vaciándose la contraseña en el mismo momento que aparece el mensaje ([credentials-form.ts:73](../../apps/web/src/lib/credentials-form.ts#L73)), que es la otra causa posible.
+  - **Propuesta:** aceptarlo como riesgo conocido, como decidió el usuario. Si alguien vuelve a probar con un lector de pantalla y falla, la siguiente medida es ese `setPassword('')`.
 - **I-3 · RNF-004: cobertura de navegadores por aproximación.**
   - **Chrome:** probado de verdad (`channel: 'chrome'`).
-  - **Edge:** solo con `chromium`, su mismo motor; no se ha abierto en Edge.
+  - **Edge:** solo con `chromium`, su mismo motor.
   - **Safari:** con el WebKit de Playwright. El usuario usó la app en Safari durante la prueba con VoiceOver, pero sin recorrer el flujo completo.
   - **«Dos últimas versiones estables»:** no verificable con un solo equipo.
   - **Propuesta:** aceptarlo como está en plan §6, o recorrer a mano el flujo del E2E en Edge y Safari una vez y anotarlo aquí.
@@ -158,9 +157,8 @@ Ninguno.
 | RNF-001 | Los errores se anuncian a lectores de pantalla (comprobado con pruebas automáticas, v1.2) | Las pruebas automáticas pasan; con un lector real, sin confirmar (I-2) |
 | RNF-004 | Chrome, Safari y Edge | Chrome directo; Safari y Edge, solo sus motores (I-3) |
 | RF-013 | Cualquier acción con la sesión caducada muestra el aviso | Cerrar sesión con la sesión caducada no lo muestra (M-4) |
-| HU-1 | El visitante puede crear una cuenta | Solo escribiendo `/signup` a mano (I-1; hueco de la spec, no del código) |
 
-Sin otra deriva. Las precisiones de T-024, T-028, T-031, T-037 y T-038, y el cambio v1.2, están anotados en el plan.
+Sin otra deriva. RF-019 se cumple con el texto exacto de la spec. Las precisiones de T-024, T-028, T-031, T-037 y T-038, D-19 y los cambios v1.2 y v2.0 están anotados en el plan.
 
 **Plan:** no hay desviaciones sin documentar, salvo M-2.
 
@@ -174,7 +172,7 @@ Sin otra deriva. Las precisiones de T-024, T-028, T-031, T-037 y T-038, y el cam
 | C-4 | ✅ | Astro estático + Tailwind, tres islas `client:only="react"`. Ningún `fetch(` fuera de `lib/api.ts`. Los dos `useEffect` (redirección con sesión y `pageshow`) sincronizan con la navegación y no piden datos |
 | C-5 | ✅ | Express 5, Prisma 7, Postgres 18 en `docker compose`. Una migración commiteada y sin editar |
 | C-6 | ✅ | Solo uso local |
-| C-7 | ✅ | Rutas relativas `/api/...` (el tipo de `apiFetch` lo obliga); proxy en `astro.config.mjs`; sin CORS |
+| C-7 | ✅ | Rutas relativas `/api/...` (el tipo de `apiFetch` lo obliga); proxy en `astro.config.mjs`; sin CORS. Los enlaces de RF-019 también son relativos |
 | C-8 | ✅ | Prisma solo se importa en `src/repositories/` (`grep`); routes → services → repositories, sin llamadas hacia arriba |
 | C-9 | ✅ | `error-handler.ts`: todo error con `{ error: { code, message } }`; catálogo en `shared/src/errors.ts`; el front elige el texto por `code` |
 | C-10 | ✅ | `shared` solo depende de `zod`, y su `tsconfig` tiene `types: []` |
@@ -184,12 +182,12 @@ Sin otra deriva. Las precisiones de T-024, T-028, T-031, T-037 y T-038, y el cam
 | C-14 | ✅ | `validateBody` con los esquemas de `shared` en signup y login |
 | C-15 | ✅ | `env.ts` con Zod (test); solo `.env.example` versionado; Compose lee la contraseña de `.env` |
 | C-16 | ✅ | Datos mínimos y cascada (revisión manual y test de integración); las sesiones caducan y se borran |
-| C-17 | ✅ | Los 18 RF tienen tests |
+| C-17 | ✅ | Los 19 RF tienen tests |
 | C-18 | ✅ | Vitest + Testing Library, Supertest contra Postgres real (sin mocks de Prisma), Playwright |
 | C-19 | ✅ | Tests, lint y tipos en verde |
-| C-20 | ⚠️ | Teclado, foco visible (17.75:1), roles ARIA y contraste (≥ 4.5:1) comprobados. Que los mensajes se anuncian, solo con el sustituto automático (I-2). No hay arrastre en esta spec |
+| C-20 | ⚠️ | Teclado, foco visible (17.75:1), roles ARIA y contraste (≥ 4.5:1) comprobados, también en los enlaces nuevos. Que los mensajes se anuncian, solo con el sustituto automático (I-2). No hay arrastre en esta spec |
 | C-21 | ✅ | No hay funcionalidad fuera de la spec. Todo el código se traza a una tarea o un requisito |
-| C-22 | ✅ | Las abstracciones tienen ≥ 2 usos (plan §3; `emptyAlert` se usa en 3 tests) |
+| C-22 | ✅ | Las abstracciones tienen ≥ 2 usos (plan §3; `emptyAlert` en 3 tests y `appLink` en 2 E2E) |
 | C-23 | ✅ | Código en inglés, textos en castellano; ningún nombre de fichero con tildes ni `ñ` |
 | C-24 | ⚠️ | Rama `feat/001-…`; los commits de código siguen el formato; 5 de documentación no (M-5) |
 | C-25 | ✅ | ESLint flat con typescript-eslint, plugin de Astro y hooks de React; Prettier. `pnpm lint` en verde |
@@ -197,7 +195,7 @@ Sin otra deriva. Las precisiones de T-024, T-028, T-031, T-037 y T-038, y el cam
 ## Definition of Done
 
 **Trazabilidad**
-- [ ] Todas las tareas de `tasks.md` están `[x]`. *40/41: solo falta T-041, que es esta verificación. Su «Hecho cuando» pide APTO o APTO CON OBSERVACIONES, que se cumple, y el DoD completo, que solo se completa con la entrega.*
+- [ ] Todas las tareas de `tasks.md` están `[x]`. *41/42: solo falta T-041, que es esta verificación. Su «Hecho cuando» pide APTO o APTO CON OBSERVACIONES, que se cumple, y el DoD completo, que solo se completa con la entrega.*
 - [x] Cada RF y CA tiene al menos un test que lo verifica y pasa.
 - [x] Cada caso límite de la spec está implementado y probado (E-1…E-10).
 - [x] No hay código que no se trace a una tarea o un requisito.
@@ -205,7 +203,7 @@ Sin otra deriva. Las precisiones de T-024, T-028, T-031, T-037 y T-038, y el cam
 **Calidad**
 - [ ] Tests, linter y comprobación de tipos en verde (local y CI). *En local, sí; no hay CI (M-6).*
 - [ ] Sin `console.log`, código comentado ni TODO sin ticket. *Queda el `console.log` de `server.ts:8` (M-1).*
-- [x] Accesibilidad revisada en componentes interactivos (T-038, con el alcance de la spec v1.2; observación I-2).
+- [x] Accesibilidad revisada en componentes interactivos (T-038 y esta auditoría, con el alcance de la spec v1.2; observación I-2).
 - [x] Sin secretos ni datos personales en el código o los logs.
 
 **Documentación**
