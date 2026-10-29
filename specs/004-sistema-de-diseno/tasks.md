@@ -1,7 +1,7 @@
 ---
 spec: 004
 plan_aprobado: 2026-10-29
-progreso: 26/27
+progreso: 27/29
 ---
 
 # Tareas · Spec 004 · Aplicar el sistema de diseño
@@ -311,8 +311,28 @@ Cada tarea escribe primero sus tests unitarios (rojo), implementa y termina en v
     - Los tests del menú (RF-020–RF-023, E-10–E-12, E-14) siguen en verde.
   - Hecho cuando: los casos nuevos fallan primero; después, `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde; en `pnpm test:e2e`, los E2E de T-006, T-007 (CA-3.3) y T-008 (axe con el menú abierto) pasan en los tres proyectos; una captura a 375 con el menú abierto, en los dos temas, muestra el título desenfocado detrás del panel
 
+- [x] **T-028** Borde de «aumentar contraste» en la cabecera y E2E de CA-5.2 en la zona privada
+  - Depende de: T-027
+  - Origen: verificación del 2026-10-29, problema M-1. La franja de la cabecera es translúcida y no lleva `border-contrast`, y el E2E de CA-5.2 solo revisa el inicio de sesión
+  - Ficheros: `apps/web/src/components/AppHeader.tsx` (`border-b border-contrast`), `apps/web/src/components/AppHeader.test.tsx`, `apps/web/src/components/AccountMenu.tsx` (posición del panel: la cabecera mide 1 px más, D-22), `e2e/design-system.spec.ts`
+  - Cubre: RF-015, CA-5.2, D-5, D-22
+  - Casos (test primero):
+    - La cabecera lleva `border-b border-contrast`.
+    - E2E, con `contrast: 'more'`: a 1280, la franja de la cabecera es opaca y tiene un borde inferior de 1 px ink‑600; la píldora «Mis tareas», la del email y el botón «Cerrar sesión» son opacos y tienen borde de 1 px ink‑600; a 375, lo mismo para el botón de cuenta y el panel abierto.
+  - Hecho cuando: los casos nuevos fallan primero; después, `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde; en `pnpm test:e2e`, CA-5.2, CA-3.3 y los E2E de T-006 pasan en los tres proyectos
+
+- [ ] **T-029** Alinear con `DESIGN.md` §14 la inicial del botón de cuenta, el tooltip y la talla lg del botón
+  - Depende de: T-027
+  - Origen: verificación del 2026-10-29, problema M-4 (tres desviaciones de `DESIGN.md` sin justificar)
+  - Ficheros: `apps/web/src/components/AccountMenu.tsx` (`font-light` en la inicial), `apps/web/src/components/AccountMenu.test.tsx`, `apps/web/src/components/AppHeader.tsx` (`min-h-8.5` en el tooltip), `apps/web/src/components/AppHeader.test.tsx`, `specs/004-sistema-de-diseno/plan.md` (X-12, X-13), `DESIGN.md` (§14 Button; 1.2.1-todo.1)
+  - Cubre: RF-023, E-1, C-26, X-12, X-13
+  - Casos (test primero):
+    - La inicial del botón de cuenta va en Light (`font-light`, §14 Avatar).
+    - El tooltip mide al menos 34 px de alto (`min-h-8.5`, §14 Tooltip).
+  - Hecho cuando: los casos nuevos fallan primero; después, `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde; X-12 y X-13 en plan §4.5; `DESIGN.md` §14 dice que la talla lg usa `text-body`
+
 - [ ] **T-026** Ejecutar `/sdd-verificar`
-  - Depende de: T-023, T-024, T-025, T-027
+  - Depende de: T-023, T-024, T-025, T-027, T-028, T-029
   - Ficheros: `specs/004-sistema-de-diseno/verificacion.md`
   - Cubre: todos, incluida la checklist manual de `DESIGN.md` §21 (plan §7): tres pantallas en los dos temas, con «aumentar contraste» y a 375, 768 y 1280. También la revisión de X-9 (velocidad del anillo de carga, plan §8)
   - Hecho cuando: el informe da APTO o APTO CON OBSERVACIONES y el Definition of Done está completo
@@ -335,7 +355,7 @@ Cada tarea escribe primero sus tests unitarios (rojo), implementa y termina en v
 | RF-012 | T-007, T-018, T-023 |
 | RF-013 | T-005, T-006, T-013, T-016, T-017, T-019, T-021 |
 | RF-014 | T-008, T-013, T-022 |
-| RF-015 | T-008, T-010 |
+| RF-015 | T-008, T-010, T-028 |
 | RF-016 | T-008, T-010, T-011 |
 | ~~RF-017~~ | Eliminado en la spec (pasa a RNF-006) |
 | ~~RF-018~~ | Eliminado en la spec (pasa a RNF-006) |
@@ -366,7 +386,7 @@ Cada tarea escribe primero sus tests unitarios (rojo), implementa y termina en v
 | CA-4.3 | T-006, T-019, T-021 |
 | CA-4.4 | T-013, T-016, T-017, T-021 |
 | CA-5.1 | T-008, T-023 |
-| CA-5.2 | T-008, T-010, T-023 |
+| CA-5.2 | T-008, T-010, T-023, T-028 |
 | CA-5.3 | T-008, T-010, T-011 |
 | CA-5.4 | T-008, T-011 |
 | ~~CA-6.1~~, ~~CA-6.2~~ | Eliminados en la spec (pasan a RNF-006) |
@@ -420,4 +440,5 @@ Cada tarea escribe primero sus tests unitarios (rojo), implementa y termina en v
 | T-023 | e2353c6 | `pnpm test:e2e` en verde en `chromium`, `chrome` y `webkit` (129 tests: `design-system.spec.ts` y `auth.spec.ts`) en 4 ejecuciones seguidas; en dos, 1–2 tests de WebKit pasaron al reintento («flaky»). axe, sin infracciones. E-14 pasa en los tres navegadores, así que no hace falta el plan B. Cambios: (1) `design-system.spec.ts`: `openPrivateArea` registra siempre a 1280 px; si la ventana ya era estrecha, `signup` no veía el email (CA-3.3 a 375). Sin cambios en la app. (2) **D-20 (añadida al plan, la decidió el usuario):** `retries: 1` solo en el proyecto `webkit`. Diagnóstico: `FAILED …/node_modules/.vite/deps/jsx-runtime-….js The network connection was lost`. WebKit pierde una conexión keep-alive con el servidor de desarrollo y la isla no se hidrata; pasaba en unas 4 de cada 10 ejecuciones y solo con los tres proyectos a la vez. Probé subir `keepAliveTimeout` con un plugin de Vite: siguió fallando 2 de 6 veces y lo revertí. Las dependencias ya estaban preempaquetadas y no hubo reoptimización de Vite |
 | T-024 | ae38f94 | `DESIGN.md` 1.2.0-todo.1. Valores de plan §4.2 en §1.3 (acentos, `*-soft`, `--pill-*`, `--pill-ink`, `--grad-primary`), §1.4 (filas nuevas: `--surface-header`, tooltip, `--ring-error`, `--border-contrast`), §3.3 (retícula), §4 (`--bp-*` ↔ `--breakpoint-*`), §5 (md 26, lg 30), §6.2 (tabla de sombras y `--border-glass`), §8 (`--focus-outline`, `--focus-halo`) y §17 (valores opacos). Reglas: X-4 en §8, X-5 y X-7 en §1.4, X-6 en §1.3 y X-11 en §6.3. También se documenta `--ring-error-width` (D-19). Se quitan los puntos 1 y 2 de «Pendiente de decidir» y se renumeran los demás; se actualizan la versión, el párrafo de origen y el historial. 55 valores revisados uno a uno contra `tokens.css` con un script (en forma canónica, por el formato de Prettier): todos coinciden. Observación para T-026: §18 dice que `global.css` expone los tokens con `@theme`, pero hoy el `@theme` está en `tokens.css` y `global.css` lo importa; no se toca porque la tarea no lo pide |
 | T-025 | 9987799 | Los IDs de la 001 se repiten en la 004 (CA-1.1, E-5…), así que solo cuentan los tests de la 004: `design-system.spec.ts`, `tokens.test.ts`, `design-rules.test.ts`, `messages.test.ts`, los tests de `Icon`, `Button`, `Alert`, `AccountMenu` y `AppHeader`, los bloques «· sistema de diseño» de `LoginForm`, `SignupForm` y `PrivateArea`, y el caso CA-1.6 (D-15) de `SignupForm`. **Faltaban 2 de 66:** RF-019 (nuevo test `RF-019 los textos de los avisos son los de la spec 001` en `messages.test.ts`) y RNF-004 (se añade a los títulos de los E2E de RNF-002, que recorren los anchos de móvil en los tres proyectos). **Encontrados, 66/66:** RF-001 y RF-002 (E2E); RF-003 (Login, Signup, E2E); RF-004 (Alert, Login, Signup, messages, E2E); RF-005 (Signup, E2E); RF-006 (AppHeader, PrivateArea, E2E); RF-007 (AppHeader, E2E); RF-008 (PrivateArea, E2E); RF-009 (tokens, E2E); RF-010 (Signup, tokens); RF-011 (E2E); RF-012 (AccountMenu, E2E); RF-013 (AccountMenu, Button, Login, PrivateArea, Signup, E2E); RF-014 (Button, design-rules, E2E); RF-015 y RF-016 (tokens, E2E); RF-019 (messages); RF-020, RF-022 y RF-023 (AccountMenu, E2E); RF-021 (AccountMenu); RF-024 (AppHeader, PrivateArea, E2E); CA-1.1 (Login, E2E); CA-1.2 (Signup, E2E); CA-1.3 y CA-1.5 (Login); CA-1.4 y CA-1.6 (Signup, E2E); CA-2.1 (AppHeader, PrivateArea, E2E); CA-2.2 (E2E); CA-2.3 (PrivateArea, E2E); CA-2.4 y CA-2.6 (AccountMenu, E2E); CA-2.5 (AccountMenu); CA-3.1 (tokens); CA-3.2–CA-3.4 (E2E); CA-4.1 (Login); CA-4.2 (Signup); CA-4.3 (AccountMenu, AppHeader, PrivateArea, E2E); CA-4.4 (Button, Login); CA-5.1, CA-5.3 y CA-5.4 (E2E); CA-5.2 (tokens, E2E); E-1 (AppHeader, E2E); E-2, E-4, E-8, E-9 y E-13 (E2E); E-3 (tokens); E-5 (Login); E-6 (Alert, E2E); E-7 (Button, Login, PrivateArea); E-10 y E-14 (AccountMenu, E2E); E-11 (AccountMenu); E-12 (AccountMenu, PrivateArea); RNF-001–RNF-004 (E2E); RNF-005 (Icon, design-rules, tokens); RNF-006 (design-rules, tokens) |
-| T-027 | (pendiente) | Arregla B-1 de la verificación (D-21, añadida al plan y decidida por el usuario). El caso nuevo de `AppHeader.test.tsx` falló primero: el panel estaba dentro de la cabecera, que lleva `backdrop-glass`. Ahora el panel se pinta con `createPortal` en `<body>`, `fixed end-4 top-19`, y el clic fuera tiene en cuenta el botón y el panel. `tokens.test.ts` compone el menú sobre la página: cambian tres celdas SB de R-2 (menú 17.53 / 10.90 y opción con foco en oscuro 7.55) y el peor contorno de foco en oscuro (5.55). Corregido en research con la nota ²; todo sigue ≥ 7:1 en el texto y ≥ 3:1 en el foco. 380 tests unitarios; E2E 129 en dos ejecuciones (una con 1 flaky de WebKit, D-20, en CA-2.3). Capturas a 375 con el menú abierto: en Chromium, claro y oscuro, el título sale desenfocado detrás del panel. **En WebKit no se puede comprobar con Playwright:** su WebKit no pinta el desenfoque de `backdrop-filter` en las capturas ni en una página mínima sin la app (`CSS.supports` da `true`, pero el texto sale nítido), así que las capturas de WebKit de la verificación tampoco lo demostraban. Queda para la revisión manual en Safari (§21, T-026) |
+| T-027 | f07dcf2 | Arregla B-1 de la verificación (D-21, añadida al plan y decidida por el usuario). El caso nuevo de `AppHeader.test.tsx` falló primero: el panel estaba dentro de la cabecera, que lleva `backdrop-glass`. Ahora el panel se pinta con `createPortal` en `<body>`, `fixed end-4 top-19`, y el clic fuera tiene en cuenta el botón y el panel. `tokens.test.ts` compone el menú sobre la página: cambian tres celdas SB de R-2 (menú 17.53 / 10.90 y opción con foco en oscuro 7.55) y el peor contorno de foco en oscuro (5.55). Corregido en research con la nota ²; todo sigue ≥ 7:1 en el texto y ≥ 3:1 en el foco. 380 tests unitarios; E2E 129 en dos ejecuciones (una con 1 flaky de WebKit, D-20, en CA-2.3). Capturas a 375 con el menú abierto: en Chromium, claro y oscuro, el título sale desenfocado detrás del panel. **En WebKit no se puede comprobar con Playwright:** su WebKit no pinta el desenfoque de `backdrop-filter` en las capturas ni en una página mínima sin la app (`CSS.supports` da `true`, pero el texto sale nítido), así que las capturas de WebKit de la verificación tampoco lo demostraban. Queda para la revisión manual en Safari (§21, T-026) |
+| T-028 | (pendiente) | Arregla M-1 de la verificación (D-22, añadida al plan y decidida por el usuario). El caso unitario de `AppHeader.test.tsx` falló primero, porque la cabecera no tenía `border-b`. El E2E nuevo no se pudo ver fallar antes de implementar, porque el puerto 4321 estaba ocupado por un `pnpm dev` del usuario. Se comprobó después quitando el borde a propósito: falla con «borde de la franja de la cabecera», y se restauró. `expectOpaqueWithContrastBorder` mide ahora el borde que se le pida (arriba o abajo). El panel del menú pasa a `top-19.25` (77 px) porque la cabecera mide 1 px más. 381 tests unitarios; E2E 132 en dos ejecuciones: la primera, todo en verde; la segunda, con 2 flaky de WebKit (D-20) que no tienen que ver con esta tarea |

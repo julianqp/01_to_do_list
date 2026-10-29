@@ -109,15 +109,15 @@ export function AccountMenu({ email, loggingOut, onLogout }: AccountMenuProps) {
       </button>
       {/* D-21: el panel va en <body>, fuera de la cabecera. Un backdrop-filter dentro de otro solo
           desenfoca lo que hay en su padre, y el título de la página se vería nítido detrás (B-1).
-          Posición fija bajo el botón: la cabecera mide 68 px (py-3 + h-11), más 8 de separación, y
-          por debajo de 768 px el botón está a 16 px del borde (px-4). */}
+          Posición fija bajo el botón: la cabecera mide 69 px (py-3 + h-11 + el borde de D-22), más 8
+          de separación, y por debajo de 768 px el botón está a 16 px del borde (px-4). */}
       {createPortal(
         <div
           ref={panelRef}
           id={panelId}
           hidden={!open}
           onKeyDown={handleKeyDown}
-          className="fixed end-4 top-19 z-(--z-popover) w-72 rounded-md border border-contrast bg-raised p-1.5 shadow-(--shadow-float) backdrop-glass"
+          className="fixed end-4 top-19.25 z-(--z-popover) w-72 rounded-md border border-contrast bg-raised p-1.5 shadow-(--shadow-float) backdrop-glass"
         >
           {/* El contenido solo existe abierto: el email no se repite en la página (spec 001 RF-015). */}
           {open && (

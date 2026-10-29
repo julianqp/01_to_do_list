@@ -606,16 +606,21 @@ function alphaOf(color: string) {
   return rgba ? Number(rgba[1]) : 1;
 }
 
-async function expectOpaqueWithContrastBorder(locator: Locator, name: string) {
-  const style = await locator.evaluate((element) => {
+// `side`: el borde que se mide. La franja de la cabecera solo lleva el de abajo (D-22).
+async function expectOpaqueWithContrastBorder(
+  locator: Locator,
+  name: string,
+  side: 'Top' | 'Bottom' = 'Top',
+) {
+  const style = await locator.evaluate((element, side) => {
     const computed = getComputedStyle(element);
     return {
       background: computed.backgroundColor,
-      width: computed.borderTopWidth,
-      borderStyle: computed.borderTopStyle,
-      color: computed.borderTopColor,
+      width: computed.getPropertyValue(`border-${side.toLowerCase()}-width`),
+      borderStyle: computed.getPropertyValue(`border-${side.toLowerCase()}-style`),
+      color: computed.getPropertyValue(`border-${side.toLowerCase()}-color`),
     };
-  });
+  }, side);
   expect(alphaOf(style.background), `fondo de ${name}: ${style.background}`).toBe(1);
   expect(style, `borde de ${name}`).toMatchObject({
     width: '1px',
@@ -724,6 +729,35 @@ test.describe('preferencias del sistema, peticiones y accesibilidad', () => {
       const tone = await alert.getAttribute('data-tone');
       await expectOpaqueWithContrastBorder(alert, `la alerta ${tone}`);
     }
+  });
+
+  test('CA-5.2 RF-015 D-22 zona privada con «aumentar contraste»: cabecera, píldoras, botones y menú opacos con borde ink‑600', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ contrast: 'more' });
+    const email = await openPrivateArea(page, 1280);
+    const header = banner(page);
+
+    await expectOpaqueWithContrastBorder(header, 'la franja de la cabecera', 'Bottom');
+    await expectOpaqueWithContrastBorder(
+      header.getByText('Mis tareas', { exact: true }),
+      'la píldora «Mis tareas»',
+    );
+    await expectOpaqueWithContrastBorder(
+      header.locator('[tabindex="0"]', { hasText: email }),
+      'la píldora del email',
+    );
+    await expectOpaqueWithContrastBorder(
+      header.getByRole('button', { name: 'Cerrar sesión' }),
+      'el botón «Cerrar sesión»',
+    );
+
+    await page.setViewportSize({ width: 375, height: 900 });
+    await expectOpaqueWithContrastBorder(accountButton(page), 'el botón de cuenta');
+    await accountButton(page).click();
+    const panel = page.locator(`[id="${await accountButton(page).getAttribute('aria-controls')}"]`);
+    await expect(panel).toBeVisible();
+    await expectOpaqueWithContrastBorder(panel, 'el panel del menú');
   });
 
   test('CA-5.1 RF-014 con «reducir movimiento», pulsar un botón no lo escala', async ({ page }) => {

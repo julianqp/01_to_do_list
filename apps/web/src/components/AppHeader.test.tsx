@@ -65,6 +65,13 @@ describe('AppHeader', () => {
     }
   });
 
+  it('CA-5.2 RF-015 D-22 la franja de la cabecera lleva el borde de «aumentar contraste»', () => {
+    const { banner } = renderHeader();
+
+    expect(banner.classList).toContain('border-b');
+    expect(banner.classList).toContain('border-contrast');
+  });
+
   it('RF-006 «Cerrar sesión» llama a onLogout', async () => {
     const { onLogout, banner } = renderHeader();
 

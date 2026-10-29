@@ -289,6 +289,8 @@ Atributos ARIA del menú de cuenta (D-10):
 | X-9 | §8: «nada dura más de 420 ms»; reducir movimiento quita los desplazamientos | El `Spinner` da una vuelta cada 420 ms (`--dur-slow`) y sigue girando con movimiento reducido | Cumple RNF-005 al pie de la letra. Girar no es desplazar ni cambiar de tamaño (CA-5.1); el gerundio dice lo mismo aunque el anillo estuviera quieto |
 | X-10 | §14: controles `sm` (32) en escritorio | Todos los controles en `md` (44) o `lg` (52) | Más simple y cumple RF-012 en cualquier ancho sin cambiar por breakpoint |
 | X-11 | §6.3: sin soporte de blur, «la superficie» al 92 % | Solo glass, raised y la cabecera. `raised-hover` se queda igual | En oscuro, `raised-hover` al 92 % baja el texto a 6.53:1 (R-2) |
+| X-12 (añadida en T-029) | §14 Button: texto 13 / 15 / 16 (sm / md / lg) | md y lg con `text-body`: 15 px en escritorio y 16 en móvil | La escala de §2.2 no tiene 16 px en escritorio, y en móvil `text-body` ya mide 16. Se corrige §14 en `DESIGN.md` (1.2.1-todo.1), así que deja de ser una desviación |
+| X-13 (añadida en T-029) | §14 Tooltip: «píldora de 34px» | Al menos 34 px de alto (`min-h-8.5`); con varias líneas, `rounded-md` | E-1 obliga a mostrar emails de hasta 254 caracteres: en una línea medirían unos 1900 px y se saldrían de la ventana (RNF-002). Con una línea, el tooltip mide los 34 px de §14 |
 
 ### 4.6 Cambios en `DESIGN.md` (RNF-006 c, `DESIGN.md` §19)
 
@@ -401,6 +403,10 @@ En la misma rama, durante la implementación:
 - **D-21 (añadida en T-027)** El panel del menú de cuenta se pinta con `createPortal` en `<body>`, fuera de la cabecera, con `position: fixed` justo debajo del botón de cuenta (`top-19 end-4`: la cabecera mide 68 px de alto, más 8 px de separación, y el botón queda a 16 px del borde por debajo de 768 px). El botón y el panel siguen unidos por `aria-controls`, y el clic fuera del menú tiene en cuenta los dos.
   - *Por qué:* problema B-1 de la verificación. Un `backdrop-filter` dentro de otro elemento con `backdrop-filter` solo desenfoca lo que hay dentro de ese padre (la cabecera), así que el panel no desenfocaba el título de la página y el contraste del texto bajaba a 4.53:1 (RF-009, CA-3.1). Fuera de la cabecera, el desenfoque llega a la página. El test de contraste (D-12) mide ahora el menú sobre la página. Decidido por el usuario el 2026-10-29.
   - *Alternativas descartadas:* dejar el panel en la cabecera y mover el desenfoque de esta a una capa de fondo aparte — el usuario prefirió sacar el panel · calcular la posición del panel con JS — necesitaría `style=`, que D-3 no admite · un panel opaco — se aleja del vidrio de §6.1 sin necesidad.
+
+- **D-22 (añadida en T-028)** La franja de la cabecera lleva `border-b border-contrast`. Normalmente es transparente y, con «aumentar contraste», pasa a ink‑600, como las demás superficies (D-5). La cabecera mide ahora 69 px, así que el panel del menú de cuenta (D-21) pasa a `top-19.25` (69 + 8 px).
+  - *Por qué:* problema M-1 de la verificación. CA-5.2 pide que toda superficie translúcida pase a opaca y lleve un borde de 1 px, y `--surface-header` es translúcida. Decidido por el usuario el 2026-10-29.
+  - *Alternativas descartadas:* anotar la franja como excepción, porque con contraste opaca tiene el mismo color que el lienzo — no cumple CA-5.2 tal como está escrito.
 
 > D-1, D-3 y D-12 son transversales: se recogen en [ADR-0003](../../docs/adr/0003-catalogo-de-tokens-vigilado-por-tests.md) (catálogo de tokens y su vigilancia automática), que aplica también a 002 y 003.
 

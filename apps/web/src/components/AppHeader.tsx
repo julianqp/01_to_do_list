@@ -72,8 +72,9 @@ function EmailPill({ email }: { email: string }) {
 
 export function AppHeader({ email, loggingOut, onLogout }: AppHeaderProps) {
   return (
-    // D-11, X-8: siempre con la superficie de cabecera y blur.
-    <header className="sticky top-0 z-(--z-sticky) bg-header backdrop-glass">
+    // D-11, X-8: siempre con la superficie de cabecera y blur. D-22: borde inferior de contraste
+    // (transparente salvo con «aumentar contraste», CA-5.2).
+    <header className="sticky top-0 z-(--z-sticky) border-b border-contrast bg-header backdrop-glass">
       <div className="mx-auto flex max-w-420 items-center justify-between gap-3 px-4 py-3 md:px-7">
         <span className={`${PILL} inline-flex items-center`}>Mis tareas</span>
         {/* D-11: las dos variantes están en el DOM y se alternan con CSS (RF-006, RF-007). */}
