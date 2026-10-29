@@ -1,4 +1,6 @@
 ---
+// D-7: Geist servida desde la app (RNF-003), con font-display: swap (E-4).
+import '@fontsource-variable/geist/wght.css';
 import '../styles/global.css';
 
 interface Props {
@@ -14,6 +16,17 @@ const { title } = Astro.props;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
+    {/* D-4: el tema se fija antes de pintar <body> (E-13) y sigue al sistema con la página abierta (E-8). */}
+    <script is:inline>
+      {
+        const dark = matchMedia('(prefers-color-scheme: dark)');
+        const applyTheme = () => {
+          document.documentElement.dataset.theme = dark.matches ? 'dark' : 'light';
+        };
+        applyTheme();
+        dark.addEventListener('change', applyTheme);
+      }
+    </script>
   </head>
   <body>
     <slot />
