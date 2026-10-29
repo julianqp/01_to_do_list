@@ -1,4 +1,4 @@
-# DESIGN.md — Tinta & Niebla · adaptación To do list · v1.1.0-todo.1
+# DESIGN.md — Tinta & Niebla · adaptación To do list · v1.2.0-todo.1
 
 Reglas de diseño de la **app de tareas con tablero kanban** (`01_to_do_list`). Es la fuente de verdad de **lo visual**: color, tipografía, espaciado, forma, superficies, movimiento, iconos, componentes y tono de los textos.
 
@@ -17,7 +17,7 @@ Adaptado de **Tinta & Niebla v1.1.0**, el sistema de diseño de un CRM de VTC (c
 - **Eliminado:** pantallas del CRM (panel, despacho, flota, onboarding de conductores), mapas, fotografía, visualización de datos, email, marketing y landing, y los formatos españoles de matrícula, NIF o IBAN.
 - **Adaptado al dominio de tareas:** el significado de los acentos, los iconos, los patrones de pantalla, el vocabulario y los ejemplos.
 
-Los valores que este documento no incluye (acentos, píldoras, sombras, retícula de puntos) estaban en los ficheros de tokens del sistema original: ver §21 y «Pendiente de decidir».
+Los valores que faltaban (acentos, píldoras, sombras, retícula de puntos) estaban en los ficheros de tokens del sistema original. Como no están disponibles, los fijó la spec 004 (plan §4.2), con el contraste calculado, y ya están en este documento (v1.2.0-todo.1).
 
 ---
 
@@ -73,6 +73,18 @@ Todos tienen la misma luminosidad y croma (`oklch 0.68 0.11`). Solo cambia el to
 
 Cada acento tiene su versión `*-soft` para fondos (insignias, tintes de fila y de alerta) y su `--pill-*` para píldoras de estado.
 
+**Valores** (spec 004):
+
+| Token | Claro | Oscuro |
+|---|---|---|
+| `--sage` · `--rose` · `--lilac` · `--amber` · `--signal` | `oklch(0.68 0.11 h)` con h = 150 · 15 · 300 · 75 · 40 (`#63AB74` · `#D37B82` · `#A388D2` · `#C08E43` · `#D28063`) | igual |
+| `--{sage,rose,lilac,amber}-soft` | el acento `/ 0.16` | el acento `/ 0.22` |
+| `--pill-{sage,rose,lilac,amber}` | `radial-gradient(120% 140% at 0 0, rgba(255,255,255,.45), transparent 55%), linear-gradient(100deg, oklch(0.80 0.10 h), oklch(0.74 0.11 h))` | igual |
+| `--pill-ink` | `linear-gradient(100deg, #34495A, var(--ink-800))` | igual |
+| `--grad-primary` | `linear-gradient(135deg, #34495A, var(--ink-800), var(--ink-900))` | igual |
+
+- **Píldoras de acento:** usan el mismo tono y croma que su acento, con L 0.74–0.80, para que `--text-on-pill` llegue a 7:1 (con L 0.68 se queda en 6.16:1). `--pill-ink` va sin brillo radial: el brillo baja el texto claro de 8:1. Los acentos base siguen en `oklch 0.68 0.11`.
+
 **Reglas de acento**
 - Máximo **un** elemento de acento grande y sólido por vista.
 - El acento nunca es fondo de página, de sección ni de columna del tablero.
@@ -105,6 +117,13 @@ Cada acento tiene su versión `*-soft` para fondos (insignias, tintes de fila y 
 | `--text-3` | ink‑700 | `#B0BBBE` | 7:1 |
 | `--text-on-accent` | ink‑0 | ink‑0 | sobre `--grad-primary` / `--pill-ink` ≥ 8:1 |
 | `--text-on-pill` | ink‑950 | ink‑950 | sobre `--pill-sage/rose/lilac/amber` ≥ 7:1 |
+| `--surface-header` | `rgba(227,230,230,.80)` (lienzo al 80 %) | `rgba(6,20,27,.80)` | — |
+| `--surface-tooltip` · `--text-on-tooltip` | ink‑950 · ink‑50 | ink‑950 · ink‑50 | 16.34:1 |
+| `--ring-error` | `oklch(0.55 0.11 15)` (`#A8545D`) | `--rose` | anillo e icono de error ≥ 4.17:1 |
+| `--border-contrast` | `transparent` (con «aumentar contraste», ink‑600; §17) | igual | — |
+
+- **Anillo de error:** usa `--ring-error`, no `--rose`. En claro, `--rose` da 2.37–2.80:1 sobre el campo y la tarjeta, y el anillo necesita 3:1; en oscuro, `--ring-error` es `--rose`. El grosor es `--ring-error-width` (1.5px).
+- **Alertas:** el texto y el icono van en `--text-1`, en todos los tonos. El acento como icono da 2.34–2.50:1 sobre su alerta en claro, y `--text-2` se queda por debajo de 7:1 sobre la alerta oscura. El tono se distingue por el tinte `*-soft` y por la forma del icono (§1.3: nunca solo el color).
 
 En los componentes usa siempre el token semántico, nunca el hex. Los hex de la paleta solo van en la definición de los tokens.
 
@@ -180,6 +199,7 @@ Siempre `flex`/`grid` + `gap`. Nunca separar hermanos con márgenes o espacios e
 
 ### 3.3 Fondo
 - Lienzo liso `--bg-canvas` con retícula de puntos `--dot-grid` (1px cada 22px).
+- Valores: `--dot-color` `rgba(6,20,27,.10)` (oscuro: `rgba(238,240,240,.10)`), `--dot-grid` `radial-gradient(circle at 1px 1px, var(--dot-color) 1px, transparent 0)` y `--dot-grid-size` `22px`.
 - Sin imágenes ni degradados de fondo.
 
 ---
@@ -197,6 +217,8 @@ Siempre `flex`/`grid` + `gap`. Nunca separar hermanos con márgenes o espacios e
 
 Las media queries no aceptan `var()`: copia los valores literales. *Desktop‑first*.
 
+En `tokens.css`, los `--bp-*` se llaman `--breakpoint-*` (`--breakpoint-sm` … `--breakpoint-2xl`), que es el nombre que Tailwind usa para sus variantes (`md:`, `max-md:`…).
+
 **Reglas por tamaño**
 - **Móvil:** la cabecera se reduce al nombre de la app y un botón de cuenta. Los diálogos pasan a *sheets* inferiores con radio 34 arriba. El botón primario («Crear tarea») va abajo, en la zona del pulgar, y puede ser de ancho completo.
 - **Objetivos táctiles ≥ 44px**, con 8px mínimo entre ellos. Los controles `sm` (32px) no se usan por debajo de 1024px.
@@ -210,8 +232,8 @@ Las media queries no aceptan `var()`: copia los valores literales. *Desktop‑fi
 |---|---|---|
 | `--radius-xs` | 8 | Casillas |
 | `--radius-sm` | 14 | Detalles internos pequeños |
-| `--radius-md` | 22–26 | Alertas, textarea (24), menús (26) |
-| `--radius-lg` | 28–30 | Cuerpo de carpeta, tarjeta de tarea |
+| `--radius-md` | 26 | Alertas, textarea (24), menús |
+| `--radius-lg` | 30 | Cuerpo de carpeta, tarjeta de tarea |
 | `--radius-xl` | 34 | Columnas del tablero, tarjetas grandes, diálogos, *sheets* |
 | `--radius-pill` | 999 | **Todos los controles** |
 
@@ -238,10 +260,18 @@ Las media queries no aceptan `var()`: copia los valores literales. *Desktop‑fi
 - Siempre con tinte `rgba(6,20,27,…)`, nunca negro.
 - **Sin bordes sólidos.** La arista es `inset 0 1px 0 rgba(255,255,255,.85)`. Excepciones: anillos de estado de 1.5px (selección en el tono, error rose, casilla vacía ink‑400) y `0 0 0 1px var(--border-glass)` en flotantes.
 
+| Token | Claro | Oscuro |
+|---|---|---|
+| `--shadow-pill` | `inset 0 1px 0 rgba(255,255,255,.85), 0 1px 2px rgba(6,20,27,.06), 0 4px 12px -2px rgba(6,20,27,.08)` | brillo `.08`, sombras `.30` / `.30` |
+| `--shadow-glass` | `inset 0 1px 0 rgba(255,255,255,.85), 0 2px 6px rgba(6,20,27,.05), 0 16px 40px -12px rgba(6,20,27,.18)` | brillo `.08`, sombras `.30` / `.45` |
+| `--shadow-float` | `inset 0 1px 0 rgba(255,255,255,.85), 0 0 0 1px var(--border-glass), 0 24px 56px -16px rgba(6,20,27,.28)` | brillo `.08`, sombra `.60` |
+| `--shadow-accent` | `inset 0 1px 0 rgba(255,255,255,.55), 0 6px 18px -6px rgba(6,20,27,.30)` | sombra `.55` |
+| `--border-glass` | `rgba(6,20,27,.08)` | `rgba(238,240,240,.10)` |
+
 ### 6.3 Vidrio
 - `backdrop-filter: blur(24px) saturate(140%)` en todo lo que flota sobre color o contenido. El velo de los diálogos usa `blur(8px)` + `rgba(6,20,27,.32)`.
 - No pongas `filter` en un ancestro de un elemento con `backdrop-filter`: rompe el blur.
-- Fallback: si no hay soporte, se sube la opacidad de la superficie al 92%.
+- Fallback: si no hay soporte, `--surface-glass`, `--surface-raised` y `--surface-header` suben al 92 %. `--surface-raised-hover` no cambia: en oscuro, al 92 % bajaría el texto a 6.53:1. El filtro es el token `--glass-filter` (`blur(24px) saturate(140%)`).
 
 ### 6.4 Degradados permitidos
 - `--grad-primary` (135°, #34495A → ink‑800 → ink‑900): botón primario, casillas activas y progreso.
@@ -281,7 +311,7 @@ Usa siempre el token. Si algo no encaja, el problema es de estructura, no de nú
 
 - **Hover:** la superficie sube un nivel. Tarjetas de tarea: `translateY(-1px)`.
 - **Press:** `scale(0.97)`, o `0.94` en botones de icono.
-- **Foco:** anillo `0 0 0 3px rgba(74,92,106,.18)` + superficie al 96%. Además, `outline: 2px solid var(--ink-800)` con `outline-offset: 2px` en `:focus-visible`.
+- **Foco:** anillo `--focus-halo` (`0 0 0 3px rgba(74,92,106,.18)`; oscuro: `0 0 0 3px rgba(204,208,207,.18)`) + superficie al 96%. Además, `outline: 2px solid var(--focus-outline)` con `outline-offset: 2px` en `:focus-visible`. `--focus-outline` es ink‑800 en claro e ink‑200 en oscuro: ink‑800 sobre el lienzo oscuro da 1.52:1, y el foco necesita 3:1.
 - **Arrastrar (spec 003):** la tarjeta se levanta con `--shadow-float` y `scale(1.02)`; la columna de destino muestra un hueco en `--surface-sunken` con la altura de la tarjeta.
 - **Toast:** entra desde abajo a la derecha (en móvil, arriba), dura 4s y lleva «Deshacer» cuando aplica.
 - Solo se animan `transform`, `opacity`, `background` y `box-shadow`. Nada dura más de 420ms.
@@ -442,7 +472,15 @@ Alturas de control: **32 (sm, solo escritorio) · 44 (md) · 52–56 (inputs, lg
 - Teclado completo: **mover una tarea entre columnas siempre tiene una alternativa sin arrastre** (C-20).
 - El significado nunca depende solo del color (§1.3).
 - Objetivos ≥ 44px en táctil. El texto puede ampliarse al 200% sin perder contenido.
-- `prefers-reduced-motion` y `prefers-contrast: more` (en este último, subir las superficies al 100% y añadir un borde de 1px ink‑600).
+- `prefers-reduced-motion` y `prefers-contrast: more` (en este último, subir las superficies al 100% y añadir un borde de 1px ink‑600, `--border-contrast`). Los valores opacos son el mismo color que se ve con la transparencia, así que el contraste no empeora:
+
+  | Superficie | Claro | Oscuro |
+  |---|---|---|
+  | `--surface-glass` | `#EDF0F0` | `#0D1C26` |
+  | `--surface-raised` | `#F7F9F9` | `#1E2F3C` |
+  | `--surface-raised-hover` | `#FFFFFF` | `#394B59` |
+  | `--surface-sunken` | `#D9DDDC` | `#06141B` |
+  | `--surface-header` | `#E3E6E6` | `#06141B` |
 
 ---
 
@@ -508,10 +546,8 @@ Alturas de control: **32 (sm, solo escritorio) · 44 (md) · 52–56 (inputs, lg
 
 ## Pendiente de decidir
 
-1. **Valores de tokens que faltan.** Este documento no incluye los valores de `--sage`, `--rose`, `--lilac`, `--amber`, `--signal`, sus `*-soft` y `--pill-*`, las sombras `--shadow-*`, `--border-glass` ni `--dot-grid`: estaban en los ficheros `tokens/*.css` del sistema original. Lo mejor es copiarlos de ahí. Si no, la spec 004 los define respetando §1.3 (misma luminosidad y croma `oklch 0.68 0.11`) y el contraste del §1.6, y se añaden a este documento.
-2. **Tema oscuro:** si la spec 004 lo implementa ya o se deja preparado para después.
-3. **Mapa de colores de los estados** (§1.3): lo confirma la spec 002.
-4. **Textos de la spec 001:** algunos mensajes («Este campo es obligatorio») son más secos que la voz del §15. Si se quieren reescribir, es un cambio de la spec 001.
+1. **Mapa de colores de los estados** (§1.3): lo confirma la spec 002.
+2. **Textos de la spec 001:** algunos mensajes («Este campo es obligatorio») son más secos que la voz del §15. Si se quieren reescribir, es un cambio de la spec 001.
 
 ---
 
@@ -519,4 +555,5 @@ Alturas de control: **32 (sm, solo escritorio) · 44 (md) · 52–56 (inputs, lg
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| 1.2.0-todo.1 | 2026-10-29 | Spec 004: valores de los acentos, `*-soft`, `--pill-*`, sombras, `--border-glass` y retícula; tokens nuevos (`--surface-header`, `--surface-tooltip`, `--text-on-tooltip`, `--ring-error`, `--ring-error-width`, `--border-contrast`, `--focus-outline`, `--focus-halo`, `--glass-filter`); radios md 26 y lg 30; `--bp-*` ↔ `--breakpoint-*`; valores opacos de «aumentar contraste». Nuevas reglas: foco por tema, anillo de error, píldoras de acento más claras, texto de las alertas en `--text-1` y respaldo sin blur solo en glass, raised y cabecera. Tema oscuro aplicado. Salen de «Pendiente de decidir» los valores y el tema oscuro |
 | 1.1.0-todo.1 | 2026-10-29 | Adaptación de Tinta & Niebla v1.1.0 (CRM VTC) a la app de tareas: fuera pantallas del CRM, mapas, fotografía, datos, email y marketing; acentos, iconos, patrones y voz adaptados al tablero kanban; tokens en `apps/web` y fuentes servidas desde el proyecto |
