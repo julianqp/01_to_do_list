@@ -112,31 +112,36 @@ export function AccountMenu({ email, loggingOut, onLogout }: AccountMenuProps) {
         onKeyDown={handleKeyDown}
         className="absolute end-0 top-full z-(--z-popover) mt-2 w-72 rounded-md border border-contrast bg-raised p-1.5 shadow-(--shadow-float) backdrop-glass"
       >
-        {/* R-6: el email va fuera del role="menu" (solo admite opciones) y le da nombre. */}
-        <p id={emailId} className="px-4 py-2.5 text-sm text-1 wrap-anywhere">
-          {email}
-        </p>
-        <ul role="menu" aria-labelledby={emailId}>
-          <li role="none">
-            <button
-              type="button"
-              role="menuitem"
-              tabIndex={-1}
-              aria-disabled={loggingOut || undefined}
-              onClick={chooseLogout}
-              className="flex h-11 w-full items-center gap-2 rounded-pill px-4 text-body text-1 transition duration-(--dur-fast) ease-out hover:bg-raised-hover focus:bg-raised-hover"
-            >
-              {loggingOut ? (
-                <>
-                  <Spinner />
-                  Cerrando sesión…
-                </>
-              ) : (
-                'Cerrar sesión'
-              )}
-            </button>
-          </li>
-        </ul>
+        {/* El contenido solo existe abierto: el email no se repite en la página (spec 001 RF-015). */}
+        {open && (
+          <>
+            {/* R-6: el email va fuera del role="menu" (solo admite opciones) y le da nombre. */}
+            <p id={emailId} className="px-4 py-2.5 text-sm text-1 wrap-anywhere">
+              {email}
+            </p>
+            <ul role="menu" aria-labelledby={emailId}>
+              <li role="none">
+                <button
+                  type="button"
+                  role="menuitem"
+                  tabIndex={-1}
+                  aria-disabled={loggingOut || undefined}
+                  onClick={chooseLogout}
+                  className="flex h-11 w-full items-center gap-2 rounded-pill px-4 text-body text-1 transition duration-(--dur-fast) ease-out hover:bg-raised-hover focus:bg-raised-hover"
+                >
+                  {loggingOut ? (
+                    <>
+                      <Spinner />
+                      Cerrando sesión…
+                    </>
+                  ) : (
+                    'Cerrar sesión'
+                  )}
+                </button>
+              </li>
+            </ul>
+          </>
+        )}
       </div>
     </div>
   );

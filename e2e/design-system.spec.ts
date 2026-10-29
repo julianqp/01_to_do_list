@@ -428,13 +428,17 @@ test.describe('zona privada y menú de cuenta', () => {
       ),
     ).toBe(true);
 
-    // El tooltip es el elemento visible de la cabecera que muestra el email entero, sin recortar.
+    // El tooltip es el elemento visible de la cabecera que muestra el email entero como texto
+    // propio, sin recortar. Texto propio: un contenedor de la píldora recortada tiene el mismo
+    // textContent y no se desborda, aunque el email esté cortado dentro.
     const fullEmailShown = () =>
       header.evaluate(
         (element, text) =>
           [...element.querySelectorAll<HTMLElement>('*')].some(
             (node) =>
-              node.textContent === text &&
+              [...node.childNodes].some(
+                (child) => child.nodeType === Node.TEXT_NODE && child.textContent === text,
+              ) &&
               node.getClientRects().length > 0 &&
               getComputedStyle(node).visibility !== 'hidden' &&
               node.scrollWidth <= node.clientWidth,
@@ -442,6 +446,7 @@ test.describe('zona privada y menú de cuenta', () => {
         email,
       );
 
+    expect(await fullEmailShown()).toBe(false);
     await pill.hover();
     await expect.poll(fullEmailShown).toBe(true);
     await page.keyboard.press('Escape');
