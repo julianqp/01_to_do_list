@@ -33,6 +33,66 @@ const anaEmail = () => `ana-${uniqueEmail()}`;
 const longEmail = () =>
   `${`e2e-${randomUUID()}`.padEnd(64, 'a')}@${'b'.repeat(63)}.${'c'.repeat(63)}.${'d'.repeat(58)}.es`;
 
+// Como en tabTo: WebKit en macOS necesita Option+Tab para pasar de un botón al siguiente.
+const tabKey = (browserName: string) => (browserName === 'webkit' ? 'Alt+Tab' : 'Tab');
+
+const WIDTHS = [320, 375, 768, 1024, 1280, 1600];
+// Lo que se puede pulsar o enfocar. La barra de herramientas de Astro vive en un shadow root y no
+// aparece.
+const INTERACTIVE = 'a[href], button, input, [tabindex="0"]';
+
+type Rect = { name: string; left: number; right: number; top: number; bottom: number };
+
+// El título y los elementos interactivos que se ven, en el orden del DOM.
+async function visibleRects(page: Page, selector: string): Promise<Rect[]> {
+  return page.evaluate(
+    (selector) =>
+      [...document.querySelectorAll<HTMLElement>(selector)]
+        .filter(
+          (element) =>
+            element.getClientRects().length > 0 &&
+            getComputedStyle(element).visibility !== 'hidden',
+        )
+        .map((element) => {
+          const { left, right, top, bottom } = element.getBoundingClientRect();
+          const name =
+            element.getAttribute('aria-label') ||
+            element.id ||
+            element.textContent?.trim() ||
+            element.tagName;
+          return { name, left, right, top, bottom };
+        }),
+    selector,
+  );
+}
+
+// RNF-002: sin scroll horizontal y con el título y los controles dentro de la ventana.
+async function expectFitsViewport(page: Page) {
+  await expectNoHorizontalScroll(page);
+  const innerWidth = await page.evaluate(() => window.innerWidth);
+  for (const rect of await visibleRects(page, `h1, ${INTERACTIVE}`)) {
+    expect(rect.left, `${rect.name} se sale por la izquierda`).toBeGreaterThanOrEqual(0);
+    expect(rect.right, `${rect.name} se sale por la derecha`).toBeLessThanOrEqual(innerWidth + 0.5);
+  }
+}
+
+// RF-012: zona de pulsación ≥ 44 × 44 y ≥ 8 px hasta el siguiente elemento interactivo.
+async function expectTouchTargets(page: Page) {
+  const rects = await visibleRects(page, INTERACTIVE);
+  expect(rects.length).toBeGreaterThan(0);
+  for (const rect of rects) {
+    expect(rect.right - rect.left, `ancho de ${rect.name}`).toBeGreaterThanOrEqual(44);
+    expect(rect.bottom - rect.top, `alto de ${rect.name}`).toBeGreaterThanOrEqual(44);
+  }
+  for (let i = 1; i < rects.length; i++) {
+    const current = rects[i - 1]!;
+    const next = rects[i]!;
+    const gapX = Math.max(0, next.left - current.right, current.left - next.right);
+    const gapY = Math.max(0, next.top - current.bottom, current.top - next.bottom);
+    expect(Math.max(gapX, gapY), `${current.name} → ${next.name}`).toBeGreaterThanOrEqual(8);
+  }
+}
+
 async function box(locator: Locator) {
   const rect = await locator.boundingBox();
   if (!rect) throw new Error(`${locator} no tiene caja: no se ve`);
@@ -287,8 +347,7 @@ test.describe('zona privada y menú de cuenta', () => {
     await page.keyboard.press('Enter');
     await expect(logoutMenuItem(page)).toBeFocused();
 
-    // Como en tabTo: WebKit en macOS necesita Option+Tab para pasar de un botón al siguiente.
-    await page.keyboard.press(browserName === 'webkit' ? 'Alt+Tab' : 'Tab');
+    await page.keyboard.press(tabKey(browserName));
 
     await expect(page.getByRole('menu')).toBeHidden();
     await expect(accountButton(page)).not.toBeFocused();
@@ -390,5 +449,133 @@ test.describe('zona privada y menú de cuenta', () => {
 
     await tabTo(page, pill);
     await expect.poll(fullEmailShown).toBe(true);
+  });
+});
+
+test.describe('responsive, objetivos táctiles y foco', () => {
+  for (const path of ['/login', '/signup'] as const) {
+    test(`RNF-002 E-2 ${path} sin scroll horizontal ni contenido cortado de 320 a 1600`, async ({
+      page,
+    }) => {
+      for (const width of WIDTHS) {
+        await test.step(`${width} px`, async () => {
+          await open(page, path, width);
+          await expectFitsViewport(page);
+        });
+      }
+    });
+  }
+
+  test('RNF-002 E-2 zona privada sin scroll horizontal ni contenido cortado de 320 a 1600', async ({
+    page,
+  }) => {
+    await openPrivateArea(page, 1280);
+    for (const width of WIDTHS) {
+      await test.step(`${width} px`, async () => {
+        await page.setViewportSize({ width, height: 900 });
+        await expectFitsViewport(page);
+      });
+    }
+  });
+
+  test('CA-3.4 RNF-002 registro con zoom al 200 % a 1280 (ventana de 640 px CSS): sin scroll horizontal', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 640, height: 450 });
+    await page.goto('/signup');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expectFitsViewport(page);
+  });
+
+  for (const width of [375, 1023]) {
+    test(`CA-3.3 RF-012 a ${width}: botones, campos, enlaces y menú de 44 × 44 y a 8 px del siguiente`, async ({
+      page,
+    }) => {
+      for (const path of ['/login', '/signup'] as const) {
+        await test.step(path, async () => {
+          await open(page, path, width);
+          await expectTouchTargets(page);
+        });
+      }
+      await openPrivateArea(page, width);
+      await test.step('zona privada', () => expectTouchTargets(page));
+      if (width < 768) {
+        await test.step('zona privada con el menú de cuenta abierto', async () => {
+          await accountButton(page).click();
+          await expect(logoutMenuItem(page)).toBeVisible();
+          await expectTouchTargets(page);
+        });
+      }
+    });
+  }
+
+  test('CA-3.2 RF-011 inicio de sesión con Tab: foco visible de 2 px en el orden en que se ven', async ({
+    page,
+    browserName,
+  }) => {
+    await open(page, '/login', 1280);
+    const expected = await page
+      .locator('main')
+      .evaluate((main, selector) => main.querySelectorAll(selector).length, INTERACTIVE);
+
+    const focused: { top: number; outlineStyle: string; outlineWidth: string }[] = [];
+    for (let i = 0; i <= expected; i++) {
+      await page.keyboard.press(tabKey(browserName));
+      const state = await page.evaluate(() => {
+        const element = document.activeElement;
+        if (!(element instanceof HTMLElement) || !element.closest('main')) return null;
+        const { outlineStyle, outlineWidth } = getComputedStyle(element);
+        return { top: element.getBoundingClientRect().top, outlineStyle, outlineWidth };
+      });
+      if (!state) break;
+      focused.push(state);
+    }
+
+    expect(focused).toHaveLength(expected);
+    for (const [i, state] of focused.entries()) {
+      expect(state.outlineStyle, `elemento ${i + 1}`).toBe('solid');
+      expect(state.outlineWidth, `elemento ${i + 1}`).toBe('2px');
+      if (i > 0) expect(state.top).toBeGreaterThan(focused[i - 1]!.top);
+    }
+  });
+
+  test('E-6 RF-004 a 320, sesión caducada y credenciales incorrectas: dos alertas en varias líneas, sin desbordarse', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto('/login?expired=1');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await fillCredentials(page, uniqueEmail());
+    await submitButton(page).click();
+
+    const alerts = page.locator('[data-tone]');
+    await expect(alerts).toHaveCount(2);
+    for (const alert of await alerts.all()) {
+      const layout = await alert.evaluate((element) => {
+        // Líneas = alturas distintas a las que empiezan los trozos de texto.
+        const tops = new Set<number>();
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          for (const rect of range.getClientRects()) {
+            if (rect.width > 0) tops.add(Math.round(rect.top));
+          }
+        }
+        return { lines: tops.size, overflows: element.scrollWidth > element.clientWidth };
+      });
+      expect(layout.lines).toBeGreaterThan(1);
+      expect(layout.overflows).toBe(false);
+    }
+    await expectNoHorizontalScroll(page);
+  });
+
+  test('E-9 las tres pantallas están en español (html[lang=es])', async ({ page }) => {
+    for (const path of ['/login', '/signup'] as const) {
+      await open(page, path, 1280);
+      await expect(page.locator('html')).toHaveAttribute('lang', 'es');
+    }
+    await openPrivateArea(page, 1280);
+    await expect(page.locator('html')).toHaveAttribute('lang', 'es');
   });
 });
