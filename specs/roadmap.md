@@ -15,7 +15,8 @@ actualizado: 2026-10-29
 | Spec | Título | Depende de | Estado | Por qué en este orden |
 |------|--------|------------|--------|-----------------------|
 | 001  | Cuentas de usuario | — | hecha | Todo lo demás depende de saber quién es el usuario. Incluye montar el esqueleto del proyecto |
-| 002  | Tablero de tareas | 001 | pendiente | Crear, ver por columnas, editar, borrar y cambiar de estado sin arrastrar. Con esta spec la app ya es útil |
+| 004  | Aplicar el sistema de diseño | 001 | pendiente | Da a inicio de sesión, registro y zona privada el aspecto de `DESIGN.md`, con texto más legible (contraste AAA), y deja listos los valores visuales comunes. Va antes de la 002 para que el tablero nazca ya con el sistema de diseño y no haya que rehacerlo |
+| 002  | Tablero de tareas | 001, 004 | pendiente | Crear, ver por columnas, editar, borrar y cambiar de estado sin arrastrar. Con esta spec la app ya es útil |
 | 003  | Arrastrar y soltar | 002 | pendiente | Mejora de uso con más riesgo (accesibilidad, orden dentro de la columna). Si se retrasa, la 002 ya funciona |
 
 ## Ideas sin priorizar
@@ -48,3 +49,4 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 | 2026-10-29 | 001 pasa a v1.2: Firefox sale de RNF-004 y va a "Ideas sin priorizar"; RNF-001 se comprueba solo con tests automáticos | `/sdd-cambiar-spec` de la spec 001, tras `/sdd-verificar` |
 | 2026-10-29 | 001 pasa a v2.0: RF-019 (enlaces entre inicio de sesión y registro), que sale de "Ideas sin priorizar" | `/sdd-cambiar-spec` de la spec 001, observación I-1 de `/sdd-verificar` |
 | 2026-10-29 | 001 `hecha` (spec v2.0 `implementada`, APTO CON OBSERVACIONES); idea nueva desde su verificación (M-3). Ya estaba en las ideas todo lo de su "Fuera de alcance" | `/sdd-verificar` de la spec 001 |
+| 2026-10-29 | Nueva 004 «Aplicar el sistema de diseño», ordenada antes de la 002; la 002 pasa a depender también de la 004 | Llega `DESIGN.md` y la constitución v1.1 (C-26) lo hace obligatorio; las pantallas de la 001 no lo cumplen |
