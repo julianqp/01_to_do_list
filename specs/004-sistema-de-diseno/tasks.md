@@ -1,7 +1,7 @@
 ---
 spec: 004
 plan_aprobado: 2026-10-29
-progreso: 0/26
+progreso: 1/26
 ---
 
 # Tareas · Spec 004 · Aplicar el sistema de diseño
@@ -28,7 +28,7 @@ progreso: 0/26
 
 Secuencial: las dos tareas tocan el lockfile o los E2E de la 001.
 
-- [ ] **T-001** Instalar las dependencias nuevas con versiones fijadas
+- [x] **T-001** Instalar las dependencias nuevas con versiones fijadas
   - Ficheros: `apps/web/package.json` (`lucide-react` 1.62.0, `@fontsource-variable/geist` 5.3.0; dev: `culori` 4.0.2, `@types/culori` 4.0.1), `package.json` (dev: `@axe-core/playwright` 4.14.0), `pnpm-lock.yaml`
   - Cubre: D-7, D-8, D-12, C-2 (plan §2, R-7)
   - Hecho cuando: `pnpm install` termina sin errores ni excepciones a `minimumReleaseAge` (001 D-16); las cinco versiones son exactas (sin `^`); `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde
@@ -384,4 +384,4 @@ Cada tarea escribe primero sus tests unitarios (rojo), implementa y termina en v
 
 | Tarea | Commit | Notas |
 |-------|--------|-------|
-|       |        |       |
+| T-001 | (pendiente) | Versiones instaladas con `--save-exact`, iguales a R-7: `lucide-react` 1.62.0, `@fontsource-variable/geist` 5.3.0, `culori` 4.0.2, `@types/culori` 4.0.1 (web) y `@axe-core/playwright` 4.14.0 (raíz). La política de cadena de suministro de pnpm 11 pasa sin excepciones a `minimumReleaseAge`. `pnpm lint` ya fallaba en la rama antes de esta tarea: Prettier marcaba `DESIGN.md` (commit f5a3341, escrito a mano). Con el visto bueno del usuario, `DESIGN.md` se añade a `.prettierignore`, junto a `CLAUDE.md` |
