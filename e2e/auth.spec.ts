@@ -15,12 +15,15 @@ const emailField = (page: Page) => page.getByLabel(/email/i);
 const passwordField = (page: Page) => page.getByLabel(/contraseña/i);
 const logoutButton = (page: Page) => page.getByRole('button', { name: 'Cerrar sesión' });
 
-// Lleva el foco al elemento solo con la tecla Tab, sin suponer nada del resto de la página.
+// Lleva el foco al elemento solo con el tabulador, sin suponer nada del resto de la página.
+// WebKit en macOS, como Safari, solo recorre los campos de texto con Tab; los botones necesitan
+// Option+Tab.
 async function tabTo(page: Page, target: Locator) {
   await expect(target).toBeVisible();
+  const key = page.context().browser()?.browserType().name() === 'webkit' ? 'Alt+Tab' : 'Tab';
   for (let i = 0; i < MAX_TABS; i++) {
     if (await target.evaluate((element) => element === document.activeElement)) return;
-    await page.keyboard.press('Tab');
+    await page.keyboard.press(key);
   }
   await expect(target).toBeFocused();
 }
@@ -71,9 +74,11 @@ test('CA-3.1 CA-3.2 CA-2.2 CA-4.3 RF-014 flujo completo: registro, recarga, cier
   await page.reload();
   await expectPrivateArea(page, email);
 
-  // El registro y el cierre de sesión navegan con location.replace: sin esta entrada nueva de la
-  // zona privada en el historial, "atrás" saldría de la app en vez de volver a ella.
-  await page.goto('/');
+  // El registro y el cierre de sesión navegan con location.replace: sin una entrada nueva de la
+  // zona privada en el historial, "atrás" saldría de la app en vez de volver a ella. Un goto('/')
+  // no la crea (ir a la misma URL reemplaza la entrada), así que se abre /login, que con sesión
+  // lleva a la zona privada (CA-4.3).
+  await page.goto('/login');
   await expectPrivateArea(page, email);
 
   await logout(page);
