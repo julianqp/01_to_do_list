@@ -2,7 +2,14 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { LoginForm } from './LoginForm';
-import { apiError, expectFieldError, json, mockBrowser, renderWithClient } from './test-utils';
+import {
+  apiError,
+  emptyAlert,
+  expectFieldError,
+  json,
+  mockBrowser,
+  renderWithClient,
+} from './test-utils';
 
 const REQUIRED = 'Este campo es obligatorio';
 const INVALID_CREDENTIALS = 'Email o contraseña incorrectos';
@@ -61,6 +68,19 @@ describe('LoginForm', () => {
     expect((email as HTMLInputElement).value).toBe('ana@example.com');
     expect((password as HTMLInputElement).value).toBe('');
     expect(replace).not.toHaveBeenCalled();
+  });
+
+  it('RNF-001 RF-009 el error del formulario se escribe en la zona de alerta que ya estaba en la página', async () => {
+    browser.routes['POST /api/auth/login'] = () => apiError(401, 'INVALID_CREDENTIALS');
+    const { user, email, password, submit } = await renderForm();
+    const alert = emptyAlert();
+
+    await user.type(email, 'ana@example.com');
+    await user.type(password, 'otra-contrasena');
+    await user.click(submit);
+
+    await waitFor(() => expect(alert.textContent).toBe(INVALID_CREDENTIALS));
+    expect(alert.isConnected).toBe(true);
   });
 
   it('RF-007 con los dos campos vacíos indica en cada uno que es obligatorio y no envía nada', async () => {

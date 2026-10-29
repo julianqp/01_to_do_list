@@ -40,12 +40,11 @@ function PrivateAreaContent() {
           </button>
         </div>
       </header>
-      {/* D-11: si no se ha podido cerrar la sesión, se avisa y se sigue dentro. */}
-      {logout.isError && (
-        <p role="alert" className="text-red-700">
-          {messageForError(logout.error).text}
-        </p>
-      )}
+      {/* D-11: si no se ha podido cerrar la sesión, se avisa y se sigue dentro.
+          RNF-001: la zona de alerta está siempre y solo cambia el texto (ver LoginForm). */}
+      <p role="alert" className="text-red-700 empty:sr-only">
+        {logout.isError && messageForError(logout.error).text}
+      </p>
     </main>
   );
 }

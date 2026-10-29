@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, expect, vi } from 'vitest';
 
@@ -70,6 +70,14 @@ export function descriptionOf(element: HTMLElement) {
     .filter(Boolean)
     .map((id) => document.getElementById(id)?.textContent ?? '')
     .join(' ');
+}
+
+// RNF-001 (T-038): VoiceOver no anuncia una zona role="alert" que se inserta ya con el texto. Tiene que
+// estar en la página, vacía, antes del error; el test comprueba después que el texto llega a este nodo.
+export function emptyAlert() {
+  const alert = screen.getByRole('alert');
+  expect(alert.textContent).toBe('');
+  return alert;
 }
 
 export function expectFieldError(element: HTMLElement, message: string) {

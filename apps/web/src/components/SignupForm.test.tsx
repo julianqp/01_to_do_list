@@ -2,7 +2,14 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { SignupForm } from './SignupForm';
-import { apiError, expectFieldError, json, mockBrowser, renderWithClient } from './test-utils';
+import {
+  apiError,
+  emptyAlert,
+  expectFieldError,
+  json,
+  mockBrowser,
+  renderWithClient,
+} from './test-utils';
 
 const REQUIRED = 'Este campo es obligatorio';
 const INVALID_EMAIL = 'Introduce un email válido';
@@ -123,6 +130,19 @@ describe('SignupForm', () => {
       expect(replace).not.toHaveBeenCalled();
     },
   );
+
+  it('RNF-001 RF-010 el error de conexión se escribe en la zona de alerta que ya estaba en la página', async () => {
+    browser.routes['POST /api/auth/signup'] = () => apiError(500, 'INTERNAL_ERROR');
+    const { user, email, password, submit } = await renderForm();
+    const alert = emptyAlert();
+
+    await user.type(email, 'ana@example.com');
+    await user.type(password, 'correcta-horse-1');
+    await user.click(submit);
+
+    await waitFor(() => expect(alert.textContent).toBe(CONNECTION));
+    expect(alert.isConnected).toBe(true);
+  });
 
   it('E-8 el botón "Crear cuenta" queda desactivado mientras se envía', async () => {
     let respond: (res: Response) => void = () => {};

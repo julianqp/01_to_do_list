@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { PrivateArea } from './PrivateArea';
-import { apiError, json, mockBrowser } from './test-utils';
+import { apiError, emptyAlert, json, mockBrowser } from './test-utils';
 
 const CONNECTION = 'No se ha podido conectar. Inténtalo de nuevo';
 const USER = { id: 'u1', email: 'ana@example.com' };
@@ -72,6 +72,17 @@ describe('PrivateArea', () => {
       expect(screen.getByText(USER.email)).toBeDefined();
     },
   );
+
+  it('RNF-001 D-11 el error al cerrar sesión se escribe en la zona de alerta que ya estaba en la página', async () => {
+    browser.routes['POST /api/auth/logout'] = () => apiError(500, 'INTERNAL_ERROR');
+    const { user, logout } = await renderLoggedIn();
+    const alert = emptyAlert();
+
+    await user.click(logout);
+
+    await waitFor(() => expect(alert.textContent).toBe(CONNECTION));
+    expect(alert.isConnected).toBe(true);
+  });
 
   it('CA-3.2 D-10 al volver con "atrás" desde la caché del navegador (pageshow persisted) recarga la página', async () => {
     await renderLoggedIn();

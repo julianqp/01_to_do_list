@@ -42,12 +42,11 @@ function LoginFormContent() {
           onChange={form.setPassword}
           error={form.fieldErrors.password}
         />
-        {/* RF-009, RF-010 */}
-        {form.formError && (
-          <p role="alert" className="text-red-700">
-            {form.formError}
-          </p>
-        )}
+        {/* RF-009, RF-010. RNF-001: la zona de alerta está siempre y solo cambia el texto; VoiceOver no
+            anuncia una que se inserta ya con él. Vacía, `sr-only` evita el hueco del `gap`. */}
+        <p role="alert" className="text-red-700 empty:sr-only">
+          {form.formError}
+        </p>
         <button
           type="submit"
           disabled={login.isPending}
