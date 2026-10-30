@@ -87,3 +87,4 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 | 2026-10-29 | 002 pasa a `en curso` (spec v0.1); entra en ella el aviso de carga fallida (antes en ideas); ideas nuevas desde su «Fuera de alcance» | `/sdd-especificar` de la spec 002 |
 | 2026-10-30 | 002 aclarada (v0.2); la 004 anota en su registro que la 002 cambia su título grande a «Tablero» | `/sdd-clarificar` de la spec 002 |
 | 2026-10-30 | 002 aprobada (spec v1.0) | Aprobación del usuario tras `/sdd-clarificar` |
+| 2026-10-30 | 002: plan aprobado (sin ADR nuevo); `DESIGN.md` pasará a 1.3.0-todo.1 en su rama (plan §4.6) | `/sdd-planificar` de la spec 002 |
