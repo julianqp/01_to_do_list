@@ -2,7 +2,7 @@ import { afterAll, beforeEach } from 'vitest';
 import { prisma } from '../src/repositories/prisma';
 
 beforeEach(async () => {
-  await prisma.$executeRaw`TRUNCATE "Session", "User"`;
+  await prisma.$executeRaw`TRUNCATE "Task", "Session", "User"`;
 });
 
 afterAll(async () => {
