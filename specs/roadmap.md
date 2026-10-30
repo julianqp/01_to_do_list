@@ -16,7 +16,7 @@ actualizado: 2026-10-29
 |------|--------|------------|--------|-----------------------|
 | 001  | Cuentas de usuario | — | hecha | Todo lo demás depende de saber quién es el usuario. Incluye montar el esqueleto del proyecto |
 | 004  | Aplicar el sistema de diseño | 001 | hecha | Da a inicio de sesión, registro y zona privada el aspecto de `DESIGN.md`, con texto más legible (contraste AAA), y deja listos los valores visuales comunes. Va antes de la 002 para que el tablero nazca ya con el sistema de diseño y no haya que rehacerlo |
-| 002  | Tablero de tareas | 001, 004 | pendiente | Crear, ver por columnas, editar, borrar y cambiar de estado sin arrastrar. Con esta spec la app ya es útil |
+| 002  | Tablero de tareas | 001, 004 | en curso | Crear, ver por columnas, editar, borrar y cambiar de estado sin arrastrar. Con esta spec la app ya es útil |
 | 003  | Arrastrar y soltar | 002 | pendiente | Mejora de uso con más riesgo (accesibilidad, orden dentro de la columna). Si se retrasa, la 002 ya funciona |
 
 ## Ideas sin priorizar
@@ -37,7 +37,7 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 - Interfaz en otros idiomas — *origen: spec 001, fuera de alcance*
 - Limitar los intentos fallidos de inicio de sesión (revisar con el ADR de despliegue) — *origen: spec 001, aclaración*
 - Compatibilidad con Firefox (la app no se va a usar con Firefox; el Firefox de Playwright no arrancaba en macOS 27) — *origen: spec 001 v1.2, fuera de alcance*
-- Aviso en la zona privada cuando no se puede contactar con el servidor: hoy, con la API caída, la pantalla se queda en blanco tras los reintentos. Valorar en la 002, que reutiliza la isla — *origen: spec 001, `/sdd-verificar` (M-3)*
+- ~~Aviso en la zona privada cuando no se puede contactar con el servidor~~ → entra en la spec 002 (RF-008) — *origen: spec 001, `/sdd-verificar` (M-3)*
 - Reescribir los textos de la spec 001 con la voz de `DESIGN.md` §15 (p. ej. «Este campo es obligatorio») — *origen: spec 004, fuera de alcance (`DESIGN.md`, «Pendiente de decidir» 2)*
 - Selector de tema claro/oscuro dentro de la app — *origen: spec 004, fuera de alcance*
 - Esqueleto de carga mientras se comprueba la sesión (solo tiene sentido si tarda más de 300 ms; revisar con el ADR de despliegue) — *origen: spec 004, fuera de alcance*
@@ -50,6 +50,20 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
   - axe sin `wcag21a` y sin las pantallas de acceso a 375 (M-8);
   - el E2E de E-4 es débil (M-9);
   - WebKit es intermitente con el servidor de desarrollo (M-7, D-20) — *origen: spec 004, `/sdd-verificar`*
+- Cambiar el estado de una tarea directamente desde su tarjeta, sin abrir el detalle — *origen: spec 002, fuera de alcance*
+- Deshacer el borrado de una tarea (aviso con «Deshacer», §12) — *origen: spec 002, fuera de alcance*
+- Avisos de éxito tipo toast al crear, guardar o borrar una tarea — *origen: spec 002, fuera de alcance*
+- Buscar, filtrar u ordenar las tareas — *origen: spec 002, fuera de alcance*
+- Etiquetas, prioridades, subtareas, comentarios o adjuntos en las tareas — *origen: spec 002, fuera de alcance*
+- Recordatorios o notificaciones de fechas — *origen: spec 002, fuera de alcance*
+- Archivar u ocultar las tareas terminadas — *origen: spec 002, fuera de alcance*
+- Estados o columnas personalizados — *origen: spec 002, fuera de alcance*
+- Compartir tareas o tableros con otros usuarios — *origen: spec 002, fuera de alcance*
+- Formato en la descripción de la tarea (negritas, listas, enlaces) — *origen: spec 002, fuera de alcance*
+- Recalcular «Retrasada» al cambiar el día sin volver a cargar el tablero — *origen: spec 002, fuera de alcance*
+- Selector de fecha en calendario (§14) para las fechas de la tarea — *origen: spec 002, fuera de alcance*
+- Cambiar de columna deslizando el dedo en móvil (§4) — *origen: spec 002, supuestos*
+- Elegir el estado al crear una tarea, o crearla desde una columna concreta — *origen: spec 002, aclaración*
 
 ## Historial
 
@@ -70,3 +84,6 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 | 2026-10-29 | 004 aprobada de nuevo (spec v1.0) | Aprobación del usuario tras la revisión de la v0.4 |
 | 2026-10-29 | 004: plan aprobado; spec v1.1 (E-12: el foco vuelve al botón de cuenta si falla el cierre de sesión); ADR-0003 (catálogo de tokens vigilado por tests) | `/sdd-planificar` de la spec 004 |
 | 2026-10-29 | 004 `hecha` (spec v1.1 `implementada`, APTO CON OBSERVACIONES tras una primera verificación NO APTO por B-1, resuelta en T-027–T-029); ideas nuevas: navegadores móviles reales (de su «Fuera de alcance») y la deuda de su verificación | `/sdd-verificar` de la spec 004 |
+| 2026-10-29 | 002 pasa a `en curso` (spec v0.1); entra en ella el aviso de carga fallida (antes en ideas); ideas nuevas desde su «Fuera de alcance» | `/sdd-especificar` de la spec 002 |
+| 2026-10-30 | 002 aclarada (v0.2); la 004 anota en su registro que la 002 cambia su título grande a «Tablero» | `/sdd-clarificar` de la spec 002 |
+| 2026-10-30 | 002 aprobada (spec v1.0) | Aprobación del usuario tras `/sdd-clarificar` |
