@@ -1,3 +1,4 @@
+import type { Task } from '@todo/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -26,6 +27,41 @@ class FakeMediaQueryList extends EventTarget {
   constructor(readonly media: string) {
     super();
   }
+}
+
+// Spec 002 §7: jsdom 30 no tiene showModal ni close. Doble mínimo: `open`, el evento `close` y, como
+// el navegador al abrirlo, el foco en el primer elemento enfocable. El comportamiento real del diálogo
+// (Esc, foco atrapado, ::backdrop) se prueba en E2E.
+const FOCUSABLE = 'input, textarea, select, button, [tabindex="0"]';
+function installDialogDouble() {
+  const proto = HTMLDialogElement.prototype;
+  proto.showModal ??= function (this: HTMLDialogElement) {
+    this.toggleAttribute('open', true);
+    this.querySelector<HTMLElement>(FOCUSABLE)?.focus();
+  };
+  proto.close ??= function (this: HTMLDialogElement) {
+    if (!this.hasAttribute('open')) return;
+    this.toggleAttribute('open', false);
+    this.dispatchEvent(new Event('close'));
+  };
+}
+installDialogDouble();
+
+let fixtureCount = 0;
+
+// Spec 002: una tarea de ejemplo con un id distinto en cada llamada.
+export function taskFixture(overrides: Partial<Task> = {}): Task {
+  fixtureCount += 1;
+  return {
+    id: `00000000-0000-4000-8000-${String(fixtureCount).padStart(12, '0')}`,
+    title: 'Preparar la demo',
+    description: '',
+    status: 'backlog',
+    estimatedStartDate: null,
+    estimatedEndDate: null,
+    actualEndDate: null,
+    ...overrides,
+  };
 }
 
 // Sustituye fetch (respuestas por "MÉTODO /ruta"; sin sesión por defecto), location y matchMedia
@@ -65,6 +101,8 @@ export function mockBrowser() {
   beforeEach(() => {
     for (const key of Object.keys(routes)) delete routes[key];
     routes['GET /api/auth/me'] = () => apiError(401, 'UNAUTHENTICATED');
+    // Spec 002: un tablero vacío por defecto.
+    routes['GET /api/tasks'] = () => json(200, { tasks: [] });
     vi.stubGlobal('fetch', fetchMock);
     vi.stubGlobal('matchMedia', mediaList);
     setSearch('');

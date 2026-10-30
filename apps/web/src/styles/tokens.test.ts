@@ -191,6 +191,10 @@ const EXPECTED: Record<string, string> = {
   '--surface-tooltip': 'var(--ink-950)',
   '--text-on-tooltip': 'var(--ink-50)',
   '--animate-spin': 'spin var(--dur-slow) linear infinite',
+  // Spec 002, plan §4.6
+  '--surface-veil': 'rgba(6,20,27,.32)',
+  '--veil-filter': 'blur(8px)',
+  '--board-column-min': '280px',
 };
 
 const tailwindName = (token: string) => token.replace(/^--bp-/, '--breakpoint-');
@@ -210,6 +214,14 @@ describe('tokens.css', () => {
       expect(canonical(light.get(tailwindName(token)))).toBe(canonical(value));
     },
   );
+
+  it('RNF-006 (spec 002, plan §4.6) los tokens nuevos del tablero están en el catálogo con su valor', () => {
+    expect(canonical(light.get('--surface-veil'))).toBe(canonical('rgba(6,20,27,.32)'));
+    expect(light.get('--veil-filter')).toBe('blur(8px)');
+    expect(light.get('--board-column-min')).toBe('280px');
+    // El velo es igual en los dos temas: el bloque oscuro no lo redefine.
+    expect(declarationsAt(":root[data-theme='dark']").has('--surface-veil')).toBe(false);
+  });
 
   it('RNF-006 la escala tipográfica lleva interlineado, tracking y peso de DESIGN.md §2.2', () => {
     const scale = {
@@ -315,6 +327,9 @@ function catalog(theme: Theme, variant: Variant) {
   const card = stack(underGlass, '--surface-glass');
   const field = stack(underGlass, '--surface-glass', '--surface-raised');
   const header = stack(underGlass, '--surface-header');
+  // Spec 002 D-22: el diálogo va sobre el velo (sin contar el blur, R-1); las carpetas son opacas.
+  const dialog = stack(underGlass, '--surface-veil', '--surface-raised');
+  const folder = color('--surface-folder');
   const surfaces = {
     canvas: dot,
     card,
@@ -331,6 +346,21 @@ function catalog(theme: Theme, variant: Variant) {
     // La parada más clara del degradado es el peor caso para el texto claro.
     primary: parseColor(value('--grad-primary').match(/#[0-9a-f]{6}/i)![0]),
     tooltip: color('--surface-tooltip'),
+    // Spec 002, research R-1. La columna es la tarjeta de la 004 y la tarjeta de tarea, su campo.
+    column: card,
+    taskCard: field,
+    emptySlot: stack(underGlass, '--surface-glass', '--surface-sunken'),
+    badgeLate: over(field, color('--amber-soft')),
+    dialog,
+    folder,
+    folderField: over(folder, color('--surface-raised')),
+    segTrackFolder: over(folder, color('--surface-sunken')),
+    // La opción elegida va encima de la pista.
+    segOnFolder: stack(folder, '--surface-sunken', '--surface-raised-hover'),
+    segTrackCanvas: over(dot, color('--surface-sunken')),
+    segOnCanvas: stack(dot, '--surface-sunken', '--surface-raised-hover'),
+    alertInDialogError: over(dialog, color('--rose-soft')),
+    alertInDialogOffline: over(dialog, color('--amber-soft')),
   };
   return { tokens, value, color, surfaces };
 }
@@ -350,7 +380,7 @@ type Pair = {
 // Tabla «Texto por superficie» de plan §4.2 con los números de research R-2.
 const TEXT_PAIRS: Pair[] = [
   {
-    name: 'título «Mis tareas» sobre el lienzo (grande)',
+    name: 'título «Tablero» sobre el lienzo (grande)',
     surface: 'canvas',
     ink: '--text-1',
     min: 4.5,
@@ -447,6 +477,119 @@ const TEXT_PAIRS: Pair[] = [
     min: 7,
     r2: { light: [16.34, 16.34, 16.34], dark: [16.34, 16.34, 16.34] },
   },
+  // Spec 002 D-9, con los números de research R-1 (r2 = [N, SB, C+]).
+  {
+    name: 'recuento total, estado vacío y error de carga sobre el lienzo',
+    surface: 'canvas',
+    ink: '--text-2',
+    min: 7,
+    r2: { light: [7.98, 7.98, 7.98], dark: [9.46, 9.46, 9.46] },
+  },
+  {
+    name: 'nombre y recuento de la columna',
+    surface: 'column',
+    ink: '--text-2',
+    min: 7,
+    r2: { light: [10.71, 11.02, 10.71], dark: [11.14, 10.44, 11.14] },
+  },
+  {
+    name: 'título de la tarjeta de tarea',
+    surface: 'taskCard',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [17.69, 17.87, 17.69], dark: [12.02, 11.05, 12.02] },
+  },
+  {
+    name: 'fechas de la tarjeta de tarea (X-1)',
+    surface: 'taskCard',
+    ink: '--text-2',
+    min: 7,
+    r2: { light: [11.61, 11.74, 11.61], dark: [8.83, 8.12, 8.83] },
+  },
+  {
+    name: 'frase del hueco de la columna vacía (X-1)',
+    surface: 'emptySlot',
+    ink: '--text-2',
+    min: 7,
+    r2: { light: [9.48, 9.6, 8.96], dark: [11.57, 11.26, 12.01] },
+  },
+  {
+    name: 'insignia «Retrasada»',
+    surface: 'badgeLate',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [15.32, 15.49, 15.32], dark: [8.63, 8.0, 8.63] },
+  },
+  {
+    name: 'título y preguntas sobre el diálogo',
+    surface: 'dialog',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [15.34, 16.78, 17.69], dark: [12.39, 11.02, 12.02] },
+  },
+  {
+    name: 'título y etiquetas de las carpetas',
+    surface: 'folder',
+    ink: '--text-2',
+    min: 7,
+    r2: { light: [11.02, 11.02, 11.02], dark: [10.55, 10.55, 10.55] },
+  },
+  {
+    name: '«(opcional)» y ayuda de los campos en la carpeta',
+    surface: 'folder',
+    ink: '--text-3',
+    min: 7,
+    r2: { light: [8.0, 8.0, 8.0], dark: [8.36, 8.36, 8.36] },
+  },
+  {
+    name: 'valor del campo en la carpeta',
+    surface: 'folderField',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [17.72, 17.87, 17.69], dark: [11.84, 11.05, 12.02] },
+  },
+  {
+    name: 'opción no elegida del selector de estado (X-1)',
+    surface: 'segTrackFolder',
+    ink: '--text-2',
+    min: 7,
+    r2: { light: [9.6, 9.6, 8.96], dark: [11.26, 11.26, 12.01] },
+  },
+  {
+    name: 'opción elegida Backlog del selector de estado',
+    surface: 'segOnFolder',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [18.53, 18.53, 18.69], dark: [8.95, 8.95, 7.9] },
+  },
+  {
+    name: 'opción no elegida del selector de columna (X-1)',
+    surface: 'segTrackCanvas',
+    ink: '--text-2',
+    min: 7,
+    r2: { light: [7.97, 7.97, 8.96], dark: [10.8, 10.8, 12.01] },
+  },
+  {
+    name: 'opción elegida del selector de columna',
+    surface: 'segOnCanvas',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [18.37, 18.37, 18.69], dark: [8.67, 8.67, 7.9] },
+  },
+  {
+    name: 'alerta de error en el diálogo',
+    surface: 'alertInDialogError',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [13.37, 14.52, 15.21], dark: [9.05, 8.21, 8.76] },
+  },
+  {
+    name: 'alerta sin conexión en el diálogo',
+    surface: 'alertInDialogOffline',
+    ink: '--text-1',
+    min: 7,
+    r2: { light: [13.47, 14.63, 15.32], dark: [8.92, 8.0, 8.63] },
+  },
 ];
 
 // Elementos no textuales (RF-010): ≥ 3:1. R-2 solo da N y SB del anillo de error.
@@ -457,6 +600,18 @@ const RING_R2: Record<Theme, Record<'field' | 'card', [number, number]>> = {
 // Contorno de foco: peor superficie de las que lo llevan alrededor (R-2).
 const FOCUS_R2: Record<Theme, number> = { light: 7.98, dark: 5.55 };
 const FOCUS_SURFACES: Surface[] = ['canvas', 'card', 'field', 'headerPill', 'menu', 'menuFocus'];
+// Spec 002 §7: superficies nuevas alrededor de las que hay foco (tarjeta, selectores, campos,
+// botones del diálogo y del hueco vacío).
+const BOARD_FOCUS_SURFACES: Surface[] = [
+  'column',
+  'taskCard',
+  'emptySlot',
+  'dialog',
+  'folder',
+  'folderField',
+  'segTrackFolder',
+  'segTrackCanvas',
+];
 
 const SEMANTIC = [
   // DESIGN.md §1.4
@@ -569,6 +724,36 @@ describe('tokens.css · variantes y contraste', () => {
         }
       });
     }
+
+    it(`RNF-001 D-9 X-3 ${theme}: iconos de estado, anillo de error y foco del tablero ≥ 3:1 en N, SB y C+`, () => {
+      for (const variant of VARIANTS) {
+        const { color, surfaces } = catalog(theme, variant);
+        const status = ratio(color('--text-2'), surfaces.column);
+        expect(
+          status,
+          `icono de estado en --text-2 sobre la columna (${variant})`,
+        ).toBeGreaterThanOrEqual(10.44);
+        const ring = ratio(color('--ring-error'), surfaces.folderField);
+        expect(
+          ring,
+          `anillo de error sobre el campo de la carpeta (${variant})`,
+        ).toBeGreaterThanOrEqual(3);
+        for (const surface of BOARD_FOCUS_SURFACES) {
+          const focus = ratio(color('--focus-outline'), surfaces[surface]);
+          expect(focus, `foco sobre ${surface} (${variant})`).toBeGreaterThanOrEqual(3);
+        }
+      }
+    });
+
+    it(`D-9 D-15 ${theme}: «Borrar tarea» (--pill-rose) con --text-on-pill da 7.71`, () => {
+      const { color, value } = catalog(theme, 'N');
+      const darkest = parseColor(
+        value('--pill-rose')
+          .match(/oklch\([^)]+\)/g)!
+          .at(-1)!,
+      );
+      expect(ratio(color('--text-on-pill'), darkest)).toBeCloseTo(7.71, 2);
+    });
 
     it(`RF-010 ${theme}: el peor contorno de foco coincide con R-2`, () => {
       const worst = Math.min(

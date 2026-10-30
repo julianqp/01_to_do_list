@@ -6,7 +6,8 @@ import { Button } from './Button';
 // (PrivateArea).
 export type LogoutHandler = (callbacks?: { onError?: () => void }) => void;
 
-export type AppHeaderProps = { email: string; loggingOut: boolean; onLogout: LogoutHandler };
+// Spec 002 D-8: sin email (no se ha podido comprobar la sesión) solo se ve el nombre de la app.
+export type AppHeaderProps = { email?: string; loggingOut: boolean; onLogout: LogoutHandler };
 
 // Píldora glass de la cabecera (§3.2), sin el display: cada uso pone el suyo.
 const PILL =
@@ -78,21 +79,25 @@ export function AppHeader({ email, loggingOut, onLogout }: AppHeaderProps) {
     <header className="sticky top-0 z-(--z-sticky) border-b border-contrast bg-header backdrop-glass">
       <div className="mx-auto flex max-w-420 items-center justify-between gap-3 px-4 py-3 md:px-7">
         <span className={`${PILL} inline-flex items-center`}>Mis tareas</span>
-        {/* D-11: las dos variantes están en el DOM y se alternan con CSS (RF-006, RF-007). */}
-        <div className="flex min-w-0 items-center gap-2 max-md:hidden">
-          <EmailPill email={email} />
-          <Button
-            variant="glass"
-            loading={loggingOut}
-            loadingLabel="Cerrando sesión…"
-            onClick={() => onLogout()}
-          >
-            Cerrar sesión
-          </Button>
-        </div>
-        <div className="md:hidden">
-          <AccountMenu email={email} loggingOut={loggingOut} onLogout={onLogout} />
-        </div>
+        {email !== undefined && (
+          <>
+            {/* D-11: las dos variantes están en el DOM y se alternan con CSS (RF-006, RF-007). */}
+            <div className="flex min-w-0 items-center gap-2 max-md:hidden">
+              <EmailPill email={email} />
+              <Button
+                variant="glass"
+                loading={loggingOut}
+                loadingLabel="Cerrando sesión…"
+                onClick={() => onLogout()}
+              >
+                Cerrar sesión
+              </Button>
+            </div>
+            <div className="md:hidden">
+              <AccountMenu email={email} loggingOut={loggingOut} onLogout={onLogout} />
+            </div>
+          </>
+        )}
       </div>
     </header>
   );

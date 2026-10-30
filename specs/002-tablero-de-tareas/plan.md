@@ -297,6 +297,7 @@ apiFetch   method + 'PUT' | 'DELETE' (cuerpo JSON, `{}` si no hay datos)
 | X-6 | §14 Dialog: título Light 28 | `--text-h2` (30 / 26 px), el token de §2.2 para «título de diálogo» | §2.2 y §14 no coinciden; se usa el token, que tiene nombre |
 | X-7 | §11.4: «Borrar tarea» con confirmación (nuevo diálogo) | La confirmación sustituye el contenido del mismo diálogo | §7: «Solo puede haber un diálogo abierto a la vez» |
 | X-8 | §11.3: «Crear tarea» junto al título | En el estado vacío (RF-006), el botón está dentro del bloque vacío y no en la cabecera del tablero; en móvil, fijo abajo (RF-036) | Un solo primario por vista (§14) |
+| X-9 *(añadida en T-012)* | §14 Textarea: radio 24 | `--radius-md` (26) | El 24 no está en el catálogo de §5 (ADR-0003); 26 es el radio más cercano |
 
 ### 4.6 Cambios en `DESIGN.md` (§19, MINOR → `1.3.0-todo.1`)
 
