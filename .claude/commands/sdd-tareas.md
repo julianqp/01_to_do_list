@@ -37,3 +37,5 @@ Spec indicada: $ARGUMENTS (si está vacío, la spec activa).
 ## Al terminar
 
 Muestra el número de tareas por fase, la ruta crítica (dependencias) y la tabla de cobertura. Recomienda `/sdd-implementar` empezando por T-001.
+
+**Commit:** termina con el bloque «Commit sugerido» de `CLAUDE.md` para lo que ha cambiado en esta fase. **No hagas el commit.**

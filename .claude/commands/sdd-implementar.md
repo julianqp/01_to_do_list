@@ -1,6 +1,6 @@
 ---
 description: SDD fase 6 — implementar la siguiente tarea (o la indicada) con test primero
-argument-hint: [T-00x | T-00x..T-00y | "fase N" | vacío = siguiente pendiente] [con commit por tarea]
+argument-hint: [T-00x | T-00x..T-00y | "fase N" | todas | vacío = siguiente pendiente] [sin pausas] [autorizo dependencias]
 ---
 
 Actúa como desarrollador senior disciplinado. Implementas **exactamente** lo que dice la tarea, con test primero, y paras.
@@ -10,7 +10,9 @@ Indicación del usuario: $ARGUMENTS
 - Vacío → la primera tarea pendiente cuyas dependencias estén completas.
 - `T-00x` → esa tarea.
 - `T-00x..T-00y`, una lista (`T-024 T-025 T-027`) o `fase N` → **modo lote** (ver abajo).
-- Si incluye "con commit" o "commit por tarea", estás autorizado a hacer un commit al cerrar cada tarea.
+- `todas` → modo lote con todas las tareas pendientes, en orden, **excepto la de `/sdd-verificar`**, que se hace siempre aparte y en una sesión nueva.
+- Si incluye "sin pausas", no apliques la pausa de 6 tareas (punto 4 del modo lote). El resto de motivos para parar se mantienen.
+- Si incluye "autorizo dependencias", puedes ejecutar los comandos de instalación, base de datos y Docker que pidan las tareas sin parar a preguntar.
 
 ## Pasos
 
@@ -22,20 +24,22 @@ Indicación del usuario: $ARGUMENTS
 6. Ejecuta tests, linter y comprobación de tipos (comandos en `CLAUDE.md`). Arregla hasta que todo esté en verde.
 7. Marca la tarea `[x]` en `tasks.md`, actualiza `progreso` y si `estado` de la spec era `aprobada`, cámbialo a `en-implementacion`.
 8. Anota en el **Registro** de `tasks.md` lo relevante: versiones reales instaladas, nombres que el plan no fijaba, problemas encontrados y cómo se resolvieron. Si cambia o se añade una decisión técnica, regístrala también en el plan como `D-x (añadida en T-00x)`.
-9. Propón un mensaje de commit: `<tipo>(<ámbito>): T-00x <resumen> [spec NNN]`. Commitea solo si el usuario lo ha pedido o lo indica `CLAUDE.md`.
+9. **Sugiere el commit, nunca lo hagas** (formato del bloque «Commit sugerido» de `CLAUDE.md`): `<tipo>(<ámbito>): T-00x <resumen> [spec NNN]`, con los ficheros de la tarea uno a uno y un cuerpo con los IDs cubiertos.
 
 ## Modo lote (varias tareas)
 
 1. Antes de empezar, enseña la lista de tareas que vas a hacer, en el orden en que las harás (respetando "Depende de"), y empieza sin esperar confirmación salvo que alguna tenga una dependencia pendiente fuera del lote.
 2. Haz las tareas **de una en una y en orden**, aplicando a cada una los pasos 1–9 completos. No mezcles el trabajo de dos tareas.
-3. **Cierra cada tarea antes de abrir la siguiente:** tests, linter y tipos en verde; `[x]` y Registro en `tasks.md`; y, si estás autorizado, **un commit por tarea** (nunca uno para varias).
+3. **Cierra cada tarea antes de abrir la siguiente:** tests, linter y tipos en verde; `[x]` y Registro en `tasks.md`. **No hagas commits**: anota qué ficheros ha tocado cada tarea para sugerir sus commits al final.
 4. **Para el lote y avisa** en cuanto ocurra cualquiera de estas cosas:
    - algo no encaja con la spec o el plan, o hay que tomar una decisión que el plan no recoge;
    - una tarea no queda en verde tras un intento razonable de arreglarla;
    - una tarea es un punto de control (su "Hecho cuando" dice que se pare y se avise, o es una comprobación de punta a punta);
    - una tarea necesita un comando que instala dependencias, cambia la base de datos o toca Docker y el usuario no lo ha autorizado en este lote;
-   - llevas 6 tareas en esta sesión: para y recomienda `/clear` antes de seguir.
-5. Al terminar (o al parar), muestra una tabla: tarea · estado · commit · notas, y la siguiente tarea disponible.
+   - llevas 6 tareas en esta sesión (salvo "sin pausas"): para y recomienda `/clear` antes de seguir.
+   - sin pausas, si notas que la conversación se ha compactado o ya no recuerdas con detalle las tareas anteriores: antes de seguir, vuelve a leer `tasks.md`, el plan y la constitución; no te fíes de lo que recuerdes.
+5. Al terminar (o al parar), muestra una tabla: tarea · estado · ficheros · notas, y la siguiente tarea disponible.
+6. Después, el bloque **«Commits sugeridos»**: un `git add <ficheros>` + `git commit -m …` por tarea, en orden, para que el usuario pueda hacer un commit por tarea. `tasks.md` (y el plan, si cambió) lo tocan todas: inclúyelo en el commit de la última tarea del lote y avísalo. Si dos tareas tocaron el mismo fichero de código, dilo y propón un único commit para las dos.
 
 ## Reglas
 

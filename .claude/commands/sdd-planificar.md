@@ -34,3 +34,5 @@ Indicaciones técnicas del usuario: $ARGUMENTS
 ## Al terminar
 
 Resume el enfoque, las decisiones clave, riesgos y excepciones a la constitución. Evalúa `.sdd/checklists/revision-plan.md`. Pregunta si aprueba el plan; **solo si dice que sí**, pon `estado: aprobado` y la fecha.
+
+**Commit:** termina con el bloque «Commit sugerido» de `CLAUDE.md` para lo que ha cambiado en esta fase. **No hagas el commit.**

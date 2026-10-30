@@ -35,3 +35,5 @@ Indicaciones del usuario: $ARGUMENTS
 ## Al terminar
 
 Muestra la tabla, explica brevemente el orden y pregunta si lo aprueba. Recomienda `/sdd-especificar` con la primera spec `pendiente`.
+
+**Commit:** termina con el bloque «Commit sugerido» de `CLAUDE.md` para lo que ha cambiado en esta fase. **No hagas el commit.**
