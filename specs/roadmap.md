@@ -72,6 +72,8 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 - Ver en tiempo real los cambios hechos en otra pestaña u otro dispositivo — *origen: spec 003, fuera de alcance*
 - Límite de tareas por columna — *origen: spec 003, fuera de alcance*
 - Arrastrar tarjetas fuera del tablero o soltar ficheros en él — *origen: spec 003, fuera de alcance*
+- Pasar una tarjeta a otra columna arrastrándola en móvil (por ejemplo, soltándola sobre el selector de estados) — *origen: spec 003, aclaración*
+- Acciones «Subir» y «Bajar» en el detalle de la tarea — *origen: spec 003, aclaración*
 
 ## Historial
 
@@ -98,3 +100,4 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 | 2026-10-30 | 002: plan aprobado (sin ADR nuevo); `DESIGN.md` pasará a 1.3.0-todo.1 en su rama (plan §4.6) | `/sdd-planificar` de la spec 002 |
 | 2026-10-31 | 002 `hecha` (spec v1.1 `implementada`, APTO en la segunda verificación; la primera, APTO CON OBSERVACIONES, se resolvió en T-030–T-035). Spec v1.1 (aclaración de §10) y `DESIGN.md` 1.3.1-todo.1. Ideas: «Trabajar sin conexión» (de su «Fuera de alcance») y el esqueleto de carga se amplía al tablero. La PR #2 se fusionó antes de verificar; el cierre va en una PR de seguimiento | `/sdd-verificar` de la spec 002 |
 | 2026-10-31 | 003 pasa a `en curso` (spec v0.1); ideas nuevas desde su «Fuera de alcance». La 003 sustituye el orden por creación de la 002 (002/RF-002) por un orden manual | `/sdd-especificar` de la spec 003 |
+| 2026-10-31 | 003 aclarada (v0.2); ideas nuevas desde su «Fuera de alcance» (arrastrar entre columnas en móvil, «Subir»/«Bajar» en el detalle) | `/sdd-clarificar` de la spec 003 |

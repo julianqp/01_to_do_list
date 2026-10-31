@@ -2,7 +2,7 @@
 id: 003
 titulo: Arrastrar y soltar
 estado: borrador          # borrador | aprobada | en-implementacion | implementada | obsoleta
-version: 0.1
+version: 0.2
 autor: Julian Querol Polo
 creada: 2026-10-31
 aprobada:                 # AAAA-MM-DD, por quién
@@ -45,7 +45,7 @@ Como usuario, quiero arrastrar una tarjeta a otra columna, para cambiar el estad
 - **CA-1.1** Dada «Preparar la demo» en To do (To do · 2, In progress · 3), cuando el usuario la arrastra con el ratón y la suelta en la columna In progress encima de la primera tarjeta, entonces «Preparar la demo» aparece la primera de In progress, los recuentos pasan a «To do · 1» e «In progress · 4» y el total no cambia.
 - **CA-1.2** Dado el arrastre de CA-1.1, mientras el usuario mueve el puntero sobre In progress, entonces la tarjeta sigue al puntero levantada y la columna muestra el hueco donde caerá (§8).
 - **CA-1.3** Dada «Preparar la demo» movida a In progress como en CA-1.1, cuando el usuario vuelve a cargar el tablero, entonces la tarjeta sigue la primera de In progress.
-- **CA-1.4** Dada «Preparar la demo» en In progress con fecha estimada de fin 28/10/2026 (insignia «Retrasada»), cuando el usuario la suelta en Done, entonces la tarjeta pasa a Done sin la insignia «Retrasada» y con la fecha real de fin «31 oct». [NECESITA ACLARACIÓN: al soltar en Done, ¿la fecha real de fin se pone sola con la de hoy (y se cambia luego en el detalle si hace falta), o se abre el detalle con Done elegido y la fecha propuesta para que el usuario la confirme con «Guardar cambios»?]
+- **CA-1.4** Dada «Preparar la demo» en In progress con fecha estimada de fin 28/10/2026 (insignia «Retrasada»), cuando el usuario la suelta en Done, entonces la tarjeta pasa a Done sin la insignia «Retrasada» y con la fecha real de fin «31 oct», sin que se abra el detalle. Si el usuario la terminó otro día, la cambia después en el detalle (002/HU-4).
 - **CA-1.5** Dada una tarea en Done con fecha real de fin 27/10/2026, cuando el usuario la suelta en To do, entonces la tarjeta pasa a To do sin fecha real de fin (002/RF-041).
 - **CA-1.6** Dada la columna Done vacía («Nada terminado todavía»), cuando el usuario suelta en ella una tarjeta, entonces el hueco vacío desaparece, la tarjeta queda en Done y el recuento pasa a «Done · 1».
 - **CA-1.7** Dada «Preparar la demo» en pleno arrastre, cuando el usuario la suelta fuera de cualquier columna o pulsa Esc, entonces la tarjeta vuelve a su sitio de antes, no se guarda nada y no aparece ningún aviso.
@@ -62,7 +62,7 @@ Como usuario, quiero arrastrar una tarjeta a otra posición de su misma columna,
 - **CA-2.1** Dada To do con «Comprar pan», «Llamar al banco» y «Preparar la demo», en este orden, cuando el usuario arrastra «Preparar la demo» y la suelta encima de «Comprar pan», entonces el orden pasa a ser «Preparar la demo», «Comprar pan», «Llamar al banco» y el recuento no cambia.
 - **CA-2.2** Dado el orden de CA-2.1, cuando el usuario vuelve a cargar el tablero o entra con su cuenta desde otro navegador, entonces ve el mismo orden.
 - **CA-2.3** Dado el orden de CA-2.1, cuando el usuario crea la tarea «Revisar el correo», entonces «Revisar el correo» aparece la primera de Backlog, como en 002/CA-2.1, y el orden de las demás columnas no cambia.
-- **CA-2.4** Dada «Preparar la demo» la segunda de To do, cuando el usuario cambia su estado a In progress desde el detalle (002/HU-4), entonces aparece la primera de In progress. [NECESITA ACLARACIÓN: al cambiar el estado desde el detalle, ¿la tarjeta entra la primera de la columna nueva (como una tarea nueva en Backlog), la última, o en el sitio que le toca por su momento de creación, como hoy (002/E-22)?]
+- **CA-2.4** Dada «Preparar la demo» la segunda de To do, cuando el usuario cambia su estado a In progress desde el detalle (002/HU-4), entonces aparece la primera de In progress, y el orden de las demás tarjetas de To do y de In progress no cambia.
 - **CA-2.5** Dada una tarjeta que el usuario suelta en el mismo sitio del que salió, cuando termina el arrastre, entonces nada cambia y no aparece ningún aviso.
 - **CA-2.6** Dado que el servidor no responde, cuando el usuario suelta «Preparar la demo» encima de «Comprar pan», entonces la columna vuelve al orden de antes y aparece el aviso de CA-1.9.
 
@@ -70,7 +70,7 @@ Como usuario, quiero arrastrar una tarjeta a otra posición de su misma columna,
 
 Como usuario que no usa ratón, quiero mover una tarjeta a otra posición o a otra columna solo con teclado, para hacer lo mismo que con el arrastre (C-20).
 
-[NECESITA ACLARACIÓN: ¿se confirma este modo de mover con teclado desde el asa de la tarjeta (Espacio o Enter para cogerla, flechas para moverla, Espacio o Enter para soltarla, Esc para cancelar), o se prefiere otra alternativa, como unas acciones «Subir» y «Bajar» en el detalle?]
+Se mueve desde el asa de la tarjeta: Espacio o Enter para cogerla, flechas para moverla, Espacio o Enter para soltarla y Esc para cancelar, con un anuncio del lector de pantalla en cada paso.
 
 **Criterios de aceptación**
 
@@ -82,12 +82,14 @@ Como usuario que no usa ratón, quiero mover una tarjeta a otra posición o a ot
 - **CA-3.6** Dada la tarjeta cogida y movida a In progress sin soltar, cuando el usuario pulsa Esc, entonces vuelve a la posición 2 de To do, no se guarda nada, el foco sigue en su asa y el lector anuncia «Movimiento cancelado. «Preparar la demo» sigue en To do, posición 2 de 3.».
 - **CA-3.7** Dada una tarjeta cogida en la primera posición de Backlog, cuando el usuario pulsa Flecha arriba o Flecha izquierda, entonces la tarjeta no se mueve.
 - **CA-3.8** Dada la tarjeta «Preparar la demo» con el foco en la tarjeta (no en el asa), cuando el usuario pulsa Enter, entonces se abre su detalle, como en 002/CA-3.1.
+- **CA-3.9** *(v0.2)* Dada una ventana de 375 px con To do visible y «Preparar la demo» cogida con teclado en la posición 2 de 3, cuando el usuario pulsa Flecha derecha, entonces el tablero muestra In progress, el selector de estados marca In progress, la tarjeta queda la primera y el lector anuncia «In progress, posición 1 de 4.».
+- **CA-3.10** *(v0.2)* Dada la situación de CA-3.9, cuando el usuario pulsa Esc, entonces la tarjeta vuelve a la posición 2 de To do, el tablero vuelve a mostrar To do, el selector marca To do y el lector anuncia el mensaje de CA-3.6.
 
 ### HU-4 · Arrastrar con el dedo (P2)
 
 Como usuario con pantalla táctil, quiero arrastrar las tarjetas con el dedo, para ordenar mi tablero también desde el móvil o la tablet.
 
-[NECESITA ACLARACIÓN: con menos de 768 px solo se ve una columna (002/RF-034). ¿Allí el arrastre solo ordena dentro de la columna visible y el cambio de columna se hace desde el detalle; se puede soltar la tarjeta sobre el selector de estados para pasarla a esa columna; o no hay arrastre por debajo de 768 px?]
+Por debajo de 768 px solo se ve una columna (002/RF-034): allí el arrastre solo ordena la columna visible, y para cambiar de columna se usa el detalle (002/HU-4) o el teclado (HU-3).
 
 **Criterios de aceptación**
 
@@ -95,6 +97,7 @@ Como usuario con pantalla táctil, quiero arrastrar las tarjetas con el dedo, pa
 - **CA-4.2** Dada una ventana de 375 px con To do visible, cuando el usuario desliza el dedo sobre la columna sin mantenerlo antes sobre una tarjeta, entonces la columna hace scroll y no empieza ningún arrastre.
 - **CA-4.3** Dada una ventana de 375 px con To do visible y 3 tarjetas, cuando el usuario mantiene el dedo sobre la tercera y la suelta encima de la primera, entonces pasa a ser la primera de To do, como en CA-2.1.
 - **CA-4.4** Dada una ventana de 375 px, cuando el usuario toca una tarjeta sin mantener el dedo, entonces se abre su detalle como panel inferior (002/CA-7.2).
+- **CA-4.5** *(v0.2)* Dada una ventana de 375 px con To do visible, cuando el usuario arrastra con el dedo «Preparar la demo» y la suelta sobre el selector de estados o fuera de la columna, entonces la tarjeta vuelve a su sitio de antes, no se guarda nada y no aparece ningún aviso (RF-005).
 
 > Prioridades: **P1** imprescindible (sin esto no se publica) · **P2** importante · **P3** deseable.
 
@@ -104,7 +107,7 @@ Como usuario con pantalla táctil, quiero arrastrar las tarjetas con el dedo, pa
 
 - **RF-001** CUANDO el usuario arrastre una tarjeta y la suelte en otra columna, el sistema DEBE cambiar la tarea al estado de esa columna, colocarla en la posición donde se soltó y actualizar los recuentos. *(HU-1)*
 - **RF-002** MIENTRAS el usuario arrastra una tarjeta, el sistema DEBE mostrarla levantada, siguiendo al puntero o al dedo, y mostrar en la columna de destino el hueco donde caerá (§8). *(HU-1, HU-2, HU-4)*
-- **RF-003** CUANDO el usuario suelte en Done una tarea que no estaba en Done, el sistema DEBE ponerle como fecha real de fin la fecha de hoy del navegador. *(HU-1; pendiente de la aclaración de CA-1.4)*
+- **RF-003** CUANDO el usuario suelte en Done una tarea que no estaba en Done, el sistema DEBE ponerle como fecha real de fin la fecha de hoy del navegador, sin abrir el detalle; el usuario puede cambiarla después desde el detalle (002/RF-038). *(HU-1)*
 - **RF-004** CUANDO el usuario suelte fuera de Done una tarea que estaba en Done, el sistema DEBE dejarla sin fecha real de fin (002/RF-041). *(HU-1)*
 - **RF-005** SI el usuario suelta la tarjeta fuera de cualquier columna o pulsa Esc durante el arrastre, ENTONCES el sistema DEBE devolverla a su sitio de antes sin guardar nada. *(HU-1)*
 - **RF-006** CUANDO el usuario haga clic o toque una tarjeta sin arrastrarla, el sistema DEBE abrir su detalle como en 002/RF-012. *(HU-1, HU-4)*
@@ -114,7 +117,7 @@ Como usuario con pantalla táctil, quiero arrastrar las tarjetas con el dedo, pa
 - **RF-007** CUANDO el usuario suelte una tarjeta en otra posición de su misma columna, el sistema DEBE colocarla en esa posición y mantener el orden relativo de las demás. *(HU-2)*
 - **RF-008** Cada columna DEBE mostrar las tareas en el orden en que el usuario las ha dejado, y ese orden DEBE conservarse al volver a cargar el tablero y desde otro navegador. Sustituye a 002/RF-002. *(HU-2)*
 - **RF-009** CUANDO se cree una tarea, el sistema DEBE colocarla la primera de Backlog sin cambiar el orden de las demás tarjetas. *(HU-2)*
-- **RF-010** CUANDO se guarde un cambio de estado desde el detalle, el sistema DEBE colocar la tarjeta la primera de la columna nueva. *(HU-2; pendiente de la aclaración de CA-2.4)*
+- **RF-010** CUANDO se guarde un cambio de estado desde el detalle, el sistema DEBE colocar la tarjeta la primera de la columna nueva, sin cambiar el orden relativo de las demás tarjetas de la columna de origen ni de la de destino. *(HU-2)*
 - **RF-011** SI el usuario suelta una tarjeta en el mismo sitio del que salió, ENTONCES el sistema NO DEBE guardar nada. *(HU-2)*
 
 **Teclado y lector de pantalla**
@@ -129,7 +132,8 @@ Como usuario con pantalla táctil, quiero arrastrar las tarjetas con el dedo, pa
 **Táctil**
 
 - **RF-018** CUANDO el usuario mantenga el dedo sobre una tarjeta y lo desplace sin levantarlo, el sistema DEBE empezar a arrastrarla; un deslizamiento sin mantener antes el dedo DEBE hacer scroll y no arrastrar. *(HU-4)*
-- **RF-019** MIENTRAS la ventana mida menos de 768 px, el arrastre DEBE permitir ordenar las tarjetas de la columna visible. *(HU-4; pendiente de la aclaración de HU-4)*
+- **RF-019** MIENTRAS la ventana mida menos de 768 px, el arrastre (con el dedo o con el ratón) DEBE limitarse a ordenar las tarjetas de la columna visible; soltar la tarjeta fuera de esa columna, incluido el selector de estados, cuenta como soltarla fuera de cualquier columna (RF-005). *(HU-4)*
+- **RF-023** *(v0.2)* MIENTRAS la ventana mida menos de 768 px y haya una tarjeta cogida con teclado, CUANDO Flecha izquierda o Flecha derecha la pasen a otra columna, el sistema DEBE mostrar esa columna y marcarla en el selector de estados; SI el movimiento se cancela (RF-017), ENTONCES DEBE volver a mostrar la columna de partida. *(HU-3, HU-4)*
 
 **Guardar y errores**
 
@@ -190,6 +194,8 @@ Como usuario con pantalla táctil, quiero arrastrar las tarjetas con el dedo, pa
 - Ver en tiempo real los movimientos hechos en otra pestaña u otro dispositivo (E-11).
 - Límite de tareas por columna.
 - Cambiar de columna deslizando el dedo en móvil (§4; ya en «Ideas sin priorizar»).
+- *(v0.2)* Pasar una tarjeta a otra columna arrastrándola por debajo de 768 px (por ejemplo, soltándola sobre el selector de estados): allí se hace desde el detalle o con teclado (RF-019).
+- *(v0.2)* Acciones «Subir» y «Bajar» en el detalle de la tarea: la alternativa con teclado es el asa (HU-3).
 - Arrastrar tarjetas fuera del tablero (a otra ventana o aplicación) o soltar ficheros en él.
 
 ## 10. Dependencias y supuestos
@@ -199,6 +205,7 @@ Como usuario con pantalla táctil, quiero arrastrar las tarjetas con el dedo, pa
 - **Supuestos:**
   - Con ratón, la tarjeta se arrastra desde cualquier punto; el asa es el punto de entrada para el teclado. Un clic sin desplazar el puntero abre el detalle (RF-006).
   - Con el dedo, el arrastre empieza al mantener el dedo sobre la tarjeta; el tiempo exacto lo fija el plan.
+  - Al soltar en Done no se pregunta la fecha real de fin: se pone la de hoy y se corrige en el detalle si hace falta (RF-003).
   - La tarjeta aparece en su sitio nuevo al soltarla, sin esperar al servidor, y vuelve atrás si falla (RF-020, RF-021).
   - El aviso de error al mover sale en la zona de alerta del tablero, debajo de la cabecera, como «Esta tarea ya no existe.» (§11.3), y es el texto de RF-021.
   - Con teclado, al pasar a otra columna la tarjeta entra la primera; luego se ajusta con Flecha arriba y abajo.
@@ -213,10 +220,15 @@ Historial de preguntas resueltas durante `/sdd-clarificar`.
 
 | Fecha | Pregunta | Respuesta | Afecta a |
 |-------|----------|-----------|----------|
-|       |          |           |          |
+| 2026-10-31 | Al soltar una tarjeta en Done, ¿cómo se pone la fecha real de fin? | Sola, con la fecha de hoy del navegador y sin abrir el detalle; si no es esa, el usuario la cambia después en el detalle | CA-1.4, RF-003, §10 |
+| 2026-10-31 | Al cambiar el estado desde el detalle, ¿dónde entra la tarjeta en la columna nueva? | La primera, sin cambiar el orden de las demás (como una tarea nueva en Backlog y como el teclado al pasar de columna) | CA-2.4, RF-010 |
+| 2026-10-31 | ¿Cómo se mueve y ordena con teclado (C-20)? | Desde el asa: Espacio o Enter para coger y soltar, flechas para mover, Esc para cancelar, con anuncios. Sin acciones «Subir»/«Bajar» en el detalle | HU-3, §9 |
+| 2026-10-31 | Por debajo de 768 px (una sola columna visible), ¿qué permite el arrastre? | Solo ordenar la columna visible; para cambiar de columna, el detalle o el teclado. Soltar sobre el selector de estados no mueve la tarea | HU-4, CA-4.5, RF-019, §9 |
+| 2026-10-31 | Por debajo de 768 px, con una tarjeta cogida con teclado, ¿qué hacen Flecha izquierda y derecha? | Pasan la tarjeta a la columna anterior o siguiente, y el tablero muestra esa columna; si se cancela, vuelve a la de partida | CA-3.9, CA-3.10, RF-023 |
 
 ## 12. Registro de cambios
 
 | Versión | Fecha | Cambio | Motivo |
 |---------|-------|--------|--------|
 | 0.1     | 2026-10-31 | Borrador inicial | Spec 003 del roadmap |
+| 0.2     | 2026-10-31 | Resueltas 5 aclaraciones: fecha real de fin automática al soltar en Done (CA-1.4, RF-003); al cambiar de estado desde el detalle, la tarjeta entra la primera (CA-2.4, RF-010); teclado desde el asa (HU-3); por debajo de 768 px el arrastre solo ordena la columna visible (HU-4, RF-019, CA-4.5) y el teclado sí cambia de columna mostrando la nueva (RF-023, CA-3.9, CA-3.10). Dos puntos nuevos en «Fuera de alcance» | `/sdd-clarificar` |
