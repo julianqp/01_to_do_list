@@ -84,6 +84,7 @@ RNF-001 pide AA para el hueco de destino, y un objeto gráfico necesita 3:1 cont
 - En `chromium` y `chrome`, la sesión CDP (`Input.dispatchTouchEvent`) genera eventos táctiles de confianza, que además hacen scroll: valen para CA-4.1, CA-4.2, CA-4.3 y CA-4.5.
 - En `webkit` no hay CDP. Se crean `TouchEvent` sintéticos con `new Touch(...)` en `page.evaluate`, en un contexto con `hasTouch: true`. Los oyentes de dnd-kit sí los reciben, pero un evento sintético no hace scroll: CA-4.2 (deslizar hace scroll) solo se comprueba en los proyectos Chromium.
 - **A verificar en la primera tarea táctil** (plan D-15). Si WebKit no acepta `new Touch`, esa parte de RNF-004 se queda sin prueba en WebKit y se avisa antes como cambio del plan.
+- **Resultado (T-006):** WebKit no acepta `new Touch` («Illegal constructor»), pero sí `document.createTouch` + `document.createTouchList`. Se usan estos (plan D-17).
 
 ## R-7 · Actualización optimista con varios movimientos a la vez
 

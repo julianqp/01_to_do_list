@@ -415,6 +415,10 @@ El resto sigue `DESIGN.md` tal cual:
 - **D-16** Tests de la 002 que dependen del orden por creación (RF-008 sustituye a 002/RF-002):
   - En `tasks.list.test.ts`, CA-1.8 y E-24 pasan a probar `position`, y E-22 pasa a RF-010 («entra la primera»).
   - Los tests que buscan la tarjeta con `getByRole('button', { name: /título/ })` pasan a usar el nombre exacto, porque el asa («Mover «…»») también coincidiría.
+- **D-17 (añadida en T-006)** En WebKit, los toques sintéticos de los E2E se crean con `document.createTouch` y `document.createTouchList`, no con `new Touch(...)` (R-6).
+  - *Por qué:* en el WebKit de Playwright, `new Touch(...)` lanza `TypeError: Illegal constructor` y `new TouchEvent` con arrays da `Type error`. `createTouch` + `createTouchList` dan objetos `Touch` reales, y el oyente recibe sus coordenadas (sonda del 2026-10-31). Así se mantiene la prueba táctil en WebKit (RNF-004), que era lo que buscaba R-6.
+  - *Alternativas descartadas:* saltar los tests de dedo en `webkit` (RNF-004 sin prueba táctil en WebKit); redefinir `touches` en el evento a mano (funciona, pero con objetos que no son `Touch`).
+  - Decidido con el usuario. Que dnd-kit arranque el arrastre con estos eventos se sigue comprobando en T-018 (D-15).
 
 ## 6. Trazabilidad
 

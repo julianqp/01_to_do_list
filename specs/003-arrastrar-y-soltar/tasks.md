@@ -1,7 +1,7 @@
 ---
 spec: 003
 plan_aprobado: 2026-10-31
-progreso: 0/25
+progreso: 6/25
 ---
 
 # Tareas · Spec 003 · Arrastrar y soltar
@@ -57,7 +57,7 @@ Las tres tareas son independientes.
     - los tests de la 002 siguen en verde (el orden por `createdAt` aún coincide);
     - los casos fallan primero; después, `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde; solo `task.repository.ts` importa Prisma
 
-- [ ] **T-003** [P] Anotar en la spec 002 que la modifica la 003
+- [x] **T-003** [P] Anotar en la spec 002 que la modifica la 003
   - Ficheros: `specs/002-tablero-de-tareas/spec.md` (solo el Registro de cambios)
   - Cubre: spec §10, RF-008, RF-010
   - Hecho cuando: el Registro de cambios de la 002 tiene una fila «Modificada por la spec 003»: RF-008 de la 003 sustituye a 002/RF-002 (y con él a 002/CA-1.8, 002/E-22 y 002/E-24), y RF-010 completa 002/RF-024. No cambia nada más de la 002 (`git diff` solo en esa tabla)
@@ -66,7 +66,7 @@ Las tres tareas son independientes.
 
 T-004 termina en verde. T-005 y T-006 escriben los E2E, que **deben fallar** por la razón indicada (se anota en el Registro), sin errores de sintaxis ni de tipos.
 
-- [ ] **T-004** [P] Definir `moveTaskInputSchema` y `actualEndDateAfterMove` en `shared`
+- [x] **T-004** [P] Definir `moveTaskInputSchema` y `actualEndDateAfterMove` en `shared`
   - Ficheros: `packages/shared/src/tasks.ts`, `packages/shared/src/tasks.test.ts`, `packages/shared/src/index.ts` (si hace falta exportar)
   - Cubre: RF-003, RF-004, E-15, E-16 (`today` como `YYYY-MM-DD`), D-3, D-4, C-10, C-11
   - Casos (test primero):
@@ -74,7 +74,7 @@ T-004 termina en verde. T-005 y T-006 escriben los E2E, que **deben fallar** por
     - `actualEndDateAfterMove`: entra en Done → `today` (`003 RF-003`); sale de Done → `null` (`003 RF-004`); dentro de Done → la que tenía (`003 E-15`); entre dos columnas que no son Done → `null`.
   - Hecho cuando: los casos fallan primero; después, `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde
 
-- [ ] **T-005** [P] Escribir los E2E de teclado y ratón (en rojo)
+- [x] **T-005** [P] Escribir los E2E de teclado y ratón (en rojo)
   - Ficheros: `e2e/drag-and-drop.spec.ts` (nuevo), `e2e/helpers.ts` (`dragCard` con `page.mouse` y pasos intermedios, `moveHandle`)
   - Cubre: CA-1.1, CA-1.2, CA-1.3, CA-1.6, CA-1.7, CA-1.8, CA-1.9, CA-2.1, CA-2.2, CA-2.5, CA-3.1, CA-3.5, CA-3.6, E-7, E-17, E-18, D-15 (plan §7, E2E 1 y 2)
   - Casos:
@@ -86,7 +86,7 @@ T-004 termina en verde. T-005 y T-006 escriben los E2E, que **deben fallar** por
     - E-17 (cambiar el tamaño a mitad de arrastre) y E-18 (con el detalle abierto, ni el ratón ni Tab llegan a una tarjeta o a un asa).
   - Hecho cuando: `pnpm test:e2e e2e/drag-and-drop.spec.ts` falla porque no existen el asa ni el arrastre (no por la sintaxis ni por los tipos); los otros tres ficheros E2E siguen en verde; `pnpm typecheck` y `pnpm lint` en verde
 
-- [ ] **T-006** Escribir los E2E de dedo, móvil, accesibilidad y rendimiento (en rojo)
+- [x] **T-006** Escribir los E2E de dedo, móvil, accesibilidad y rendimiento (en rojo)
   - Depende de: T-005 (mismos ficheros)
   - Ficheros: `e2e/drag-and-drop.spec.ts`, `e2e/helpers.ts` (`touchDragCard`: CDP en `chromium` y `chrome`, `TouchEvent` en `webkit`, R-6)
   - Cubre: CA-3.9, CA-3.10, CA-4.1, CA-4.2, CA-4.3, CA-4.4, CA-4.5, RF-018, RF-019, RF-023, RNF-001, RNF-002, RNF-004, E-4, E-5, E-6 (plan §7, E2E 3 a 7)
@@ -147,7 +147,7 @@ T-004 termina en verde. T-005 y T-006 escriben los E2E, que **deben fallar** por
     - `003 E-11`: dos `move` seguidos sobre la misma columna; el orden final es el del segundo y no se repite ninguna posición.
   - Hecho cuando: los tests fallan primero por la ruta que falta; después, `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde
 
-- [ ] **T-010** [P] Crear las funciones puras de orden del tablero
+- [x] **T-010** [P] Crear las funciones puras de orden del tablero
   - Ficheros: `apps/web/src/lib/board-order.ts`, `apps/web/src/lib/board-order.test.ts` (nuevos); `apps/web/src/components/Board.tsx` (solo importar `groupByStatus` desde `board-order.ts`)
   - Cubre: RF-007, RF-011, RF-014, RF-015, CA-3.3, CA-3.4, CA-3.7, E-1, E-3, D-8, D-9
   - Casos (test primero):
@@ -157,7 +157,7 @@ T-004 termina en verde. T-005 y T-006 escriben los E2E, que **deben fallar** por
     - `placementFromOver`: misma columna hacia arriba y hacia abajo (como `arrayMove`); otra columna por encima y por debajo del centro; columna vacía → al final (`003 E-1`).
   - Hecho cuando: los casos fallan primero; después, `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde; los tests de `Board` de la 002 siguen en verde
 
-- [ ] **T-011** [P] Añadir el texto del aviso de mover y los anuncios del teclado
+- [x] **T-011** [P] Añadir el texto del aviso de mover y los anuncios del teclado
   - Depende de: T-010 (tipo `Placement`)
   - Ficheros: `apps/web/src/lib/task-messages.ts`, `apps/web/src/lib/task-messages.test.ts`
   - Cubre: RF-013, RF-014, RF-016, RF-017, RF-021, RF-022, E-20, D-14
@@ -321,3 +321,9 @@ Todas tocan `Board.tsx`, `BoardColumn.tsx`, `TaskCard.tsx` o `task-move.ts`: van
 | Tarea | Commit | Notas |
 |-------|--------|-------|
 | —     |        | 2026-10-31, revisión de las tareas con el usuario. Se confirman: (1) el prefijo `003 ` en los nombres de los tests, porque los IDs se repiten en las specs 001, 002 y 004; (2) la migración `task_position` y `createTask` en la misma tarea (T-002), porque la migración quita el valor por defecto de `position`; (3) `DndContext` se monta en T-015, para cumplir a la vez plan §8 (React 19) y D-15 (teclado primero); (4) E-19 se comprueba a mano (plan §6) y es la única excepción del `grep` de T-024 |
+| T-003 |        | Fila «Modificada por la spec 003» en el Registro de cambios de la 002, con versión «—» porque el texto de la 002 no cambia (ni su `version`). `git diff` solo en esa tabla |
+| T-004 |        | Test primero: los 18 casos nuevos fallaban con `TypeError: Cannot read properties of undefined` (no existían `moveTaskInputSchema` ni `actualEndDateAfterMove`). `index` como `'0'` (texto) también se rechaza. `index.ts` no cambia: ya reexporta `./tasks`. 773 tests en verde |
+| T-005 | | E2E en `e2e/drag-and-drop.spec.ts` (13 tests). Nombres que el plan no fijaba: la capa se localiza como `[inert]` con el título (D-10), el hueco como la tarjeta de la columna de destino con el título oculto (`invisible`, D-10) y la región viva como `[aria-live="assertive"]` (D-7); ayudas nuevas en `helpers.ts`: `moveHandle`, `dragCard` (coge por el centro y por defecto suelta en el cuarto superior del destino), `pointIn` y `tabKey` (sacado de `tabTo`, sin cambio de comportamiento). D-15 se salta en `chrome` con `channel === 'chrome'`. En rojo en `chromium`: 12 fallan porque no existen el asa (`Mover «…»`), la capa `[inert]` ni el arrastre; **E-18 pasa ya en rojo** (comprueba que nada llega a las tarjetas, y aún no hay nada que arrastrar). Los otros tres ficheros, en verde en los tres proyectos (180 + 2 skipped); `board.spec.ts` «axe (dark)» en `webkit` falló una vez porque la isla de `/signup` no se hidrató (deuda M-7 de la 004, `retries: 1`) y pasó 4 de 4 al repetirlo. Hubo que parar el `pnpm dev` del usuario: Playwright no lo reutiliza |
+| T-006 | | 14 tests más en `e2e/drag-and-drop.spec.ts` (27 en total); ayudas `touchFinger`, `touchDragCard`, `touchSwipe` y `TOUCH_HOLD_MS` (400 ms, por encima de los 250 de D-6) en `helpers.ts`. **R-6:** en WebKit, `new Touch` da «Illegal constructor» → con el usuario se decide `document.createTouch` + `createTouchList` (plan **D-17**, nota en `research.md` R-6). Hallazgos: a 375 px el scroll es de `main`, no de la ventana (CA-4.2 mira `main.scrollTop`); los tests que esperaban a un elemento sin `expect` previo agotaban el tiempo (RNF-002 se quedaba 4 min), así que todos comprueban antes que la capa existe y RNF-002 da `Infinity` a los 2 s. En rojo, en los tres proyectos: fallan porque no existen el asa, la capa ni el arrastre; **pasan ya en rojo** CA-4.2 (el dedo hace scroll: confirma que CDP sirve) y CA-4.4 (el toque de la 002). CA-4.2 se salta en `webkit` y RNF-002, E-4 y E-5 solo corren en `chromium`. `pnpm test` (773), `pnpm lint` y `pnpm typecheck` en verde |
+| T-010 | | `apps/web/src/lib/board-order.ts` con lo de plan §4.3 y, además, los tipos exportados `Over` (el destino de `placementFromOver`) y `MoveKey`. Test primero: el fichero de test fallaba al no resolver `./board-order`; 17 casos. `placeTask` también pone `status = to.status` (la tarea queda en `to` aunque llegue con el estado viejo). `placementFromOver` lanza un error si la tarjeta de debajo no está en `groups` (no debería pasar: los droppables son las tarjetas pintadas). `Board.tsx` solo importa `groupByStatus`. `pnpm test` (790), `pnpm lint` y `pnpm typecheck` en verde; los tests de `Board` de la 002 siguen en verde |
+| T-011 | | `moveErrorText`, `pickedText`, `movedText`, `droppedText` y `cancelledText` en `task-messages.ts`, con un ayudante interno `where` («<columna>, posición <n> de <total>»). Los nombres de columna salen de `STATUS_NAMES`, que vive en `components/BoardColumn.tsx`: `task-messages.ts` lo importa de ahí (no se ha movido para no tocar ficheros fuera de la tarea). Test primero: 9 casos fallaban con `moveErrorText is not a function`. `pnpm test` (799), `pnpm lint` y `pnpm typecheck` en verde |
