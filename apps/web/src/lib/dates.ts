@@ -58,11 +58,6 @@ export function formatShortDate(date: IsoDate, today: IsoDate): string {
   return (sameYear ? shortDate : longDate).format(utcDate(date));
 }
 
-// D-18: detalle, siempre con año.
-export function formatLongDate(date: IsoDate): string {
-  return longDate.format(utcDate(date));
-}
-
 // RF-032: no está en Done y su fin estimado es anterior a hoy (las ISO se comparan como texto).
 export function isOverdue(task: Task, today: IsoDate): boolean {
   return task.status !== 'done' && task.estimatedEndDate !== null && task.estimatedEndDate < today;

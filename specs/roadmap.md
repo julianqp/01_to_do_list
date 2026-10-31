@@ -1,6 +1,6 @@
 ---
 proyecto: to-do-list
-actualizado: 2026-10-29
+actualizado: 2026-10-31
 ---
 
 # Roadmap
@@ -16,7 +16,7 @@ actualizado: 2026-10-29
 |------|--------|------------|--------|-----------------------|
 | 001  | Cuentas de usuario | — | hecha | Todo lo demás depende de saber quién es el usuario. Incluye montar el esqueleto del proyecto |
 | 004  | Aplicar el sistema de diseño | 001 | hecha | Da a inicio de sesión, registro y zona privada el aspecto de `DESIGN.md`, con texto más legible (contraste AAA), y deja listos los valores visuales comunes. Va antes de la 002 para que el tablero nazca ya con el sistema de diseño y no haya que rehacerlo |
-| 002  | Tablero de tareas | 001, 004 | en curso | Crear, ver por columnas, editar, borrar y cambiar de estado sin arrastrar. Con esta spec la app ya es útil |
+| 002  | Tablero de tareas | 001, 004 | hecha | Crear, ver por columnas, editar, borrar y cambiar de estado sin arrastrar. Con esta spec la app ya es útil |
 | 003  | Arrastrar y soltar | 002 | pendiente | Mejora de uso con más riesgo (accesibilidad, orden dentro de la columna). Si se retrasa, la 002 ya funciona |
 
 ## Ideas sin priorizar
@@ -40,7 +40,7 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 - ~~Aviso en la zona privada cuando no se puede contactar con el servidor~~ → entra en la spec 002 (RF-008) — *origen: spec 001, `/sdd-verificar` (M-3)*
 - Reescribir los textos de la spec 001 con la voz de `DESIGN.md` §15 (p. ej. «Este campo es obligatorio») — *origen: spec 004, fuera de alcance (`DESIGN.md`, «Pendiente de decidir» 2)*
 - Selector de tema claro/oscuro dentro de la app — *origen: spec 004, fuera de alcance*
-- Esqueleto de carga mientras se comprueba la sesión (solo tiene sentido si tarda más de 300 ms; revisar con el ADR de despliegue) — *origen: spec 004, fuera de alcance*
+- Esqueleto de carga mientras se comprueba la sesión o se cargan las tareas del tablero (solo tiene sentido si tarda más de 300 ms; revisar con el ADR de despliegue) — *origen: specs 004 y 002, fuera de alcance*
 - Botón para mostrar u ocultar la contraseña en los formularios de acceso — *origen: spec 004, fuera de alcance*
 - Probar en navegadores móviles reales (Safari en iOS, Chrome en Android), no solo con la ventana de escritorio estrecha — *origen: spec 004, fuera de alcance*
 - Deuda de la spec 004 según su verificación (`specs/004-sistema-de-diseno/verificacion.md`). Revisarla al planificar la 002, que reutiliza el catálogo y el menú:
@@ -64,6 +64,7 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 - Selector de fecha en calendario (§14) para las fechas de la tarea — *origen: spec 002, fuera de alcance*
 - Cambiar de columna deslizando el dedo en móvil (§4) — *origen: spec 002, supuestos*
 - Elegir el estado al crear una tarea, o crearla desde una columna concreta — *origen: spec 002, aclaración*
+- Trabajar sin conexión o guardar los cambios para enviarlos después (§12) — *origen: spec 002, fuera de alcance*
 
 ## Historial
 
@@ -88,3 +89,4 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 | 2026-10-30 | 002 aclarada (v0.2); la 004 anota en su registro que la 002 cambia su título grande a «Tablero» | `/sdd-clarificar` de la spec 002 |
 | 2026-10-30 | 002 aprobada (spec v1.0) | Aprobación del usuario tras `/sdd-clarificar` |
 | 2026-10-30 | 002: plan aprobado (sin ADR nuevo); `DESIGN.md` pasará a 1.3.0-todo.1 en su rama (plan §4.6) | `/sdd-planificar` de la spec 002 |
+| 2026-10-31 | 002 `hecha` (spec v1.1 `implementada`, APTO en la segunda verificación; la primera, APTO CON OBSERVACIONES, se resolvió en T-030–T-035). Spec v1.1 (aclaración de §10) y `DESIGN.md` 1.3.1-todo.1. Ideas: «Trabajar sin conexión» (de su «Fuera de alcance») y el esqueleto de carga se amplía al tablero. La PR #2 se fusionó antes de verificar; el cierre va en una PR de seguimiento | `/sdd-verificar` de la spec 002 |

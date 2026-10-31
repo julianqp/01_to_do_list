@@ -1,8 +1,8 @@
 ---
 id: 002
 titulo: Tablero de tareas
-estado: en-implementacion # borrador | aprobada | en-implementacion | implementada | obsoleta
-version: 1.0
+estado: implementada # borrador | aprobada | en-implementacion | implementada | obsoleta
+version: 1.1
 autor: Julian Querol Polo
 creada: 2026-10-29
 aprobada: 2026-10-30, Julian Querol Polo
@@ -276,7 +276,7 @@ Como usuario, quiero manejar el tablero en una pantalla estrecha, para consultar
   - Se valida al pulsar «Crear tarea» o «Guardar cambios», como en la spec 001, y el foco va al primer error (§13).
   - El estado se cambia dentro del detalle y se guarda con «Guardar cambios», junto con el resto de cambios; no se guarda al elegirlo.
   - «Borrar tarea» solo está en el detalle, no en la tarjeta.
-  - En la tarjeta, las fechas van sin año si son del año en curso («14 nov → 28 nov») y con año si no («14 nov 2027»); en el detalle, siempre con año.
+  - En la tarjeta, las fechas van sin año si son del año en curso («14 nov → 28 nov») y con año si no («14 nov 2027»). En los campos del detalle, siempre con año («14/11/2026»); el aviso de retraso del detalle, como en la tarjeta (CA-6.2: «28 oct.»).
   - No hay límite de tareas por usuario; RNF-004 se mide con 500.
   - En móvil, se cambia de columna con el selector de estados; deslizar el dedo para cambiar de columna (§4) no se incluye.
   - En móvil, al abrir el tablero se ve la columna Backlog.
@@ -293,6 +293,7 @@ Historial de preguntas resueltas durante `/sdd-clarificar`.
 | 2026-10-30 | ¿En qué orden van las tarjetas dentro de una columna? | De la creada más recientemente a la más antigua (el orden manual llega con la 003) | RF-002, CA-1.8, E-22, E-24, §8 |
 | 2026-10-30 | El aviso de tareas retrasadas no estaba en la descripción (viene de `DESIGN.md` §1.3): ¿se queda? | Se queda, como P2 | HU-6, §10 |
 | 2026-10-30 | ¿El título grande de la vista pasa a «Tablero» o se queda «Mis tareas» (lo dejó abierto la 004)? | «Tablero»; «Mis tareas» sigue como nombre de la app en la cabecera y la pestaña | CA-1.1, RF-037, §8; modifica 004/RF-024 |
+| 2026-10-31 | §10 decía «en el detalle, siempre con año», pero CA-6.2 muestra el aviso de retraso sin año («28 oct.»). ¿Qué manda? | CA-6.2: los campos del detalle llevan siempre año («14/11/2026»); el aviso de retraso va como en la tarjeta | §10; sin cambio de comportamiento |
 
 ## 12. Registro de cambios
 
@@ -301,3 +302,4 @@ Historial de preguntas resueltas durante `/sdd-clarificar`.
 | 0.1     | 2026-10-29 | Borrador inicial | Spec 002 del roadmap |
 | 0.2     | 2026-10-30 | Resueltas 5 aclaraciones: título «Tablero» (RF-037); tarea nueva en Backlog (RF-011); orden por creación (RF-002, CA-1.8); fecha real de fin propuesta al pasar a Done, editable y no futura (RF-025, RF-038–RF-041, CA-4.5–CA-4.9); HU-6 se mantiene. Nuevos E-20–E-24 | `/sdd-clarificar` |
 | 1.0     | 2026-10-30 | Spec aprobada (versión 0.2 sin cambios) | Revisión con el checklist de spec superada; extensión de ~5 páginas aceptada sin dividir |
+| 1.1     | 2026-10-31 | §10: el formato de fecha con año se limita a los campos del detalle; el aviso de retraso va como en la tarjeta. Sin cambio de comportamiento ni de IDs | Deriva detectada en `/sdd-verificar` (`verificacion.md`): §10 contradecía CA-6.2. Aprobado por el usuario |

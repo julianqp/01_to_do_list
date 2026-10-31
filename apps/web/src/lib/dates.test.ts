@@ -2,7 +2,6 @@ import type { Task } from '@todo/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   formatDisplayDate,
-  formatLongDate,
   formatShortDate,
   isOverdue,
   parseDisplayDate,
@@ -84,12 +83,6 @@ describe('formatShortDate', () => {
     expect(formatShortDate('2026-11-14', TODAY)).toBe('14 nov');
     process.env.TZ = 'Pacific/Kiritimati';
     expect(formatShortDate('2026-11-14', TODAY)).toBe('14 nov');
-  });
-});
-
-describe('formatLongDate', () => {
-  it('D-18 siempre con año (detalle)', () => {
-    expect(formatLongDate('2026-10-28')).toBe('28 oct 2026');
   });
 });
 

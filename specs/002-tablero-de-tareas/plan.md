@@ -1,6 +1,6 @@
 ---
 spec: 002
-spec_version: 1.0        # versión de la spec sobre la que se planifica
+spec_version: 1.1        # versión de la spec sobre la que se planifica (1.1: aclaración de §10, sin cambios en el plan; D-18 ya la recogía)
 estado: aprobado         # borrador | aprobado
 creado: 2026-10-30
 aprobado: 2026-10-30, Julian Querol Polo
@@ -231,7 +231,6 @@ todayLocal(now?: Date): IsoDate                       // fecha local del navegad
 parseDisplayDate(text: string): IsoDate | null | 'invalid' // '' → null; '14/11/2026' → '2026-11-14'
 formatDisplayDate(date: IsoDate): string               // '14/11/2026' (campo)
 formatShortDate(date: IsoDate, today: IsoDate): string // '14 nov' o '14 nov 2027' si no es del año en curso
-formatLongDate(date: IsoDate): string                  // '28 oct 2026' (detalle)
 isOverdue(task: Task, today: IsoDate): boolean         // RF-032: status ≠ done y estimatedEndDate < today
 tasksCount(count: number): string                      // '1 tarea' / '6 tareas' (Intl.PluralRules)
 ```
@@ -251,6 +250,8 @@ FolderCard       { title: string; children: ReactNode }
 FormField  + type 'text', multiline?: boolean, optional?: boolean, help?: string, inputMode?: 'numeric',
            autoComplete + 'off'
 Button     + variant 'destructive' (--pill-rose + --text-on-pill)
+           + autoFocus (opción segura de una confirmación, D-19) y ref («Crear tarea», D-14)   // añadido en T-019
+Icon       + size 26 (estado vacío y error de página, §9)                                    // añadido en T-017
 AppHeader  email?: string: sin email (no se pudo comprobar la sesión, D-8) solo muestra el nombre
 apiFetch   method + 'PUT' | 'DELETE' (cuerpo JSON, `{}` si no hay datos)
 ```
@@ -309,6 +310,7 @@ apiFetch   method + 'PUT' | 'DELETE' (cuerpo JSON, `{}` si no hay datos)
 - **§1.3:** el mapa de estados queda confirmado tal cual, añadiendo dónde se usa el tono (X-3). Sale de «Pendiente de decidir» (punto 1).
 - **§11.3 y §11.4:** dejan de ser orientativos y recogen lo que fija la spec 002 (título «Tablero», orden, Backlog al crear, fecha real de fin) y las desviaciones X-1, X-2, X-4, X-6, X-7 y X-8.
 - **Historial:** una fila nueva.
+- *(Añadido el 2026-10-31 tras `/sdd-verificar`, M-4)* **PATCH → `1.3.1-todo.1`:** §11.4 deja «Borrar tarea» del detalle en glass y `destructive` solo en la confirmación (D-19), para cumplir «un solo acento fuerte por vista» (§21). Nueva fila en el Historial.
 
 ## 5. Decisiones
 
@@ -368,7 +370,7 @@ apiFetch   method + 'PUT' | 'DELETE' (cuerpo JSON, `{}` si no hay datos)
     - en una vista de confirmación: volver al formulario.
 
     El evento `cancel` también se cancela, como segunda red.
-  - **Clic fuera:** `pointerdown` con `target === dialog` (el contenido llena el diálogo, que no tiene padding), con la misma regla.
+  - **Clic fuera:** `pointerdown` con `target === dialog` **y el punto fuera de `dialog.getBoundingClientRect()`**, con la misma regla. *(Modificada el 2026-10-31 tras `/sdd-verificar`, I-1: antes bastaba `target === dialog`, suponiendo que el contenido llenaba el diálogo. No es así: en el panel inferior, los márgenes del asa son del propio `<dialog>`, y en escritorio también lo sería su barra de scroll. Un clic en el velo cae fuera del rectángulo del diálogo; uno en esos huecos, dentro.)*
   - **Vistas** del mismo diálogo (X-7): `form`, `discard` y `confirmDelete`.
   - **Una tarea primero** (D-24): comprobar en Chromium y WebKit que dos Esc seguidos con cambios no cierran el diálogo (R-2). Si no se cumple, el diálogo pasa a ser un `role="dialog" aria-modal` propio, con `inert` en el resto de la isla. Sería un cambio de este plan, que se avisaría antes.
   - *Por qué:* el `<dialog>` nativo ya trae la capa superior, el fondo inerte, la trampa de foco y `::backdrop` para el velo. Es mucho menos código que hacerlo a mano.
@@ -400,6 +402,7 @@ apiFetch   method + 'PUT' | 'DELETE' (cuerpo JSON, `{}` si no hay datos)
   - *Por qué:* la restauración nativa del `<dialog>` vuelve a un elemento que puede haber desaparecido (R-2).
   - *Alternativas descartadas:* confiar en la restauración nativa.
 - **D-15** `SegmentedControl` es un `<fieldset>` con `<legend>` y radios nativos `<input type="radio">` dentro de `<label>` de 44 px (X-4). Las flechas, el foco y el anuncio los da el navegador (CA-4.2).
+  - *(Añadido en T-024:* las opciones son `min-h-11 flex-auto px-2 py-1` en lugar de `h-11 flex-1 px-3`: a 375 px, «In progress · 1» se salía de la píldora (RNF-002). Siguen midiendo 44 px como mínimo.)*
   - **Opción elegida del selector de estado**, con el tono de §1.3:
     - Backlog: `--surface-raised-hover` + `--text-1`.
     - To do: `--pill-lilac` + `--text-on-pill`.
@@ -424,7 +427,7 @@ apiFetch   method + 'PUT' | 'DELETE' (cuerpo JSON, `{}` si no hay datos)
     - Una sola fecha: «Fin estimado: 28 nov» o «Inicio estimado: 14 nov».
     - Las dos: «14 nov → 28 nov».
     - El año aparece si la fecha no es del año en curso.
-  - **Detalle:** siempre con año.
+  - **Detalle:** los campos, siempre con año («14/11/2026», `formatDisplayDate`; spec §10, v1.1). *(Modificada el 2026-10-31 tras `/sdd-verificar`, M-3: sale `formatLongDate`, que no usaba ninguna pantalla.)*
   - **Aviso de retrasada:** «Esta tarea tenía que terminar el 28 oct.», sin año si es del año en curso (como en CA-6.2).
   - **«Hoy»:** `todayLocal()` en cada render del tablero (E-10). No hay temporizador a medianoche (E-11, fuera de alcance).
   - **Septiembre:** sale «sept», la salida de `Intl` (R-3).
@@ -438,6 +441,7 @@ apiFetch   method + 'PUT' | 'DELETE' (cuerpo JSON, `{}` si no hay datos)
   - **Confirmaciones:**
     - Descartar: «Descartar cambios» (glass) y «Seguir editando» (primario, la opción segura).
     - Borrar: «Borrar tarea» (destructive) y «Cancelar» (glass).
+  - **«Borrar tarea» en el detalle** (el botón que abre la confirmación): glass, a la izquierda del pie. El único acento de la vista es la opción elegida del estado (D-15); `destructive` solo aparece en la confirmación, donde es la acción de la vista. *(Modificada el 2026-10-31 tras `/sdd-verificar`, M-4: antes era `destructive` en las dos vistas, y el detalle tenía dos acentos.)*
 - **D-20** Zonas de alerta, siempre presentes y vacías hasta que hay mensaje (004 D-14):
   - una en el tablero, debajo de la cabecera, para `TASK_NOT_FOUND`, que se vacía al abrir otro diálogo;
   - otra dentro del diálogo, encima de las carpetas, para los errores de guardar y de borrar.

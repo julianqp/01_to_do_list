@@ -1,4 +1,4 @@
-# DESIGN.md — Tinta & Niebla · adaptación To do list · v1.3.0-todo.1
+# DESIGN.md — Tinta & Niebla · adaptación To do list · v1.3.1-todo.1
 
 Reglas de diseño de la **app de tareas con tablero kanban** (`01_to_do_list`). Es la fuente de verdad de **lo visual**: color, tipografía, espaciado, forma, superficies, movimiento, iconos, componentes y tono de los textos.
 
@@ -377,7 +377,7 @@ Usa siempre el token. Si algo no encaja, el problema es de estructura, no de nú
 - Las fechas se escriben a mano como «14/11/2026»; no hay selector de calendario.
 - Al crear no se elige estado: la tarea entra en Backlog. Al editar, el estado se cambia con el control segmentado de §14 (radios nativos, con flechas), con opciones de 44px como mínimo (X-4: no 38); la elegida lleva el tono de §1.3. Al elegir Done, la fecha real de fin se rellena con hoy, y el usuario la puede cambiar (nunca a un día futuro).
 - Si la tarea va retrasada, un aviso en `--amber-soft` con `clock-alert`: «Esta tarea tenía que terminar el 28 oct.».
-- Acciones al pie, a la derecha: secundario «Cancelar» y primario «Crear tarea» / «Guardar cambios». «Borrar tarea» va aparte, a la izquierda, en `destructive`.
+- Acciones al pie, a la derecha: secundario «Cancelar» y primario «Crear tarea» / «Guardar cambios». «Borrar tarea» va aparte, a la izquierda, en glass: el único acento del detalle es la opción elegida del estado (un solo acento fuerte por vista, §21); `destructive` solo aparece en la confirmación.
 - **Confirmaciones en el mismo diálogo** (X-7: solo un diálogo abierto a la vez, §7): «¿Descartar los cambios?» con «Descartar cambios» (glass) y «Seguir editando» (primario, con el foco), y «¿Borrar «<título>»? No se puede deshacer.» con «Cancelar» (glass, con el foco) y «Borrar tarea» (`destructive`).
 - Los errores al guardar o borrar salen como Alert amber dentro del diálogo, encima de las carpetas.
 
@@ -573,6 +573,7 @@ Alturas de control: **32 (sm, solo escritorio) · 44 (md) · 52–56 (inputs, lg
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| 1.3.1-todo.1 | 2026-10-31 | Spec 002 (T-031, verificación M-4): en el detalle, «Borrar tarea» pasa a glass; `destructive` queda solo en la confirmación de borrado, para cumplir «un solo acento fuerte por vista» (§21) |
 | 1.3.0-todo.1 | 2026-10-30 | Spec 002: tokens nuevos `--surface-veil`, `--veil-filter` y `--board-column-min` (§1.4, §3.2, §6.3). §1.3: mapa de estados confirmado y dónde se usa el tono (sale de «Pendiente de decidir»). §11.2–§11.4 dejan de ser orientativos y recogen el tablero y el detalle de la spec 002, con sus desviaciones X-1, X-2, X-4, X-6, X-7 y X-8 |
 | 1.2.1-todo.1 | 2026-10-29 | Spec 004 (T-029, X-12): el texto de los botones md y lg es `--text-body`, porque la escala de §2.2 no tiene 16 px en escritorio |
 | 1.2.0-todo.1 | 2026-10-29 | Spec 004: valores de los acentos, `*-soft`, `--pill-*`, sombras, `--border-glass` y retícula; tokens nuevos (`--surface-header`, `--surface-tooltip`, `--text-on-tooltip`, `--ring-error`, `--ring-error-width`, `--border-contrast`, `--focus-outline`, `--focus-halo`, `--glass-filter`); radios md 26 y lg 30; `--bp-*` ↔ `--breakpoint-*`; valores opacos de «aumentar contraste». Nuevas reglas: foco por tema, anillo de error, píldoras de acento más claras, texto de las alertas en `--text-1` y respaldo sin blur solo en glass, raised y cabecera. Tema oscuro aplicado. Salen de «Pendiente de decidir» los valores y el tema oscuro |
