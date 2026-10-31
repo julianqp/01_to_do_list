@@ -17,7 +17,7 @@ actualizado: 2026-10-31
 | 001  | Cuentas de usuario | — | hecha | Todo lo demás depende de saber quién es el usuario. Incluye montar el esqueleto del proyecto |
 | 004  | Aplicar el sistema de diseño | 001 | hecha | Da a inicio de sesión, registro y zona privada el aspecto de `DESIGN.md`, con texto más legible (contraste AAA), y deja listos los valores visuales comunes. Va antes de la 002 para que el tablero nazca ya con el sistema de diseño y no haya que rehacerlo |
 | 002  | Tablero de tareas | 001, 004 | hecha | Crear, ver por columnas, editar, borrar y cambiar de estado sin arrastrar. Con esta spec la app ya es útil |
-| 003  | Arrastrar y soltar | 002 | pendiente | Mejora de uso con más riesgo (accesibilidad, orden dentro de la columna). Si se retrasa, la 002 ya funciona |
+| 003  | Arrastrar y soltar | 002 | en curso | Mejora de uso con más riesgo (accesibilidad, orden dentro de la columna). Si se retrasa, la 002 ya funciona |
 
 ## Ideas sin priorizar
 
@@ -65,6 +65,13 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 - Cambiar de columna deslizando el dedo en móvil (§4) — *origen: spec 002, supuestos*
 - Elegir el estado al crear una tarea, o crearla desde una columna concreta — *origen: spec 002, aclaración*
 - Trabajar sin conexión o guardar los cambios para enviarlos después (§12) — *origen: spec 002, fuera de alcance*
+- Mover varias tarjetas a la vez — *origen: spec 003, fuera de alcance*
+- Reordenar las columnas arrastrándolas — *origen: spec 003, fuera de alcance*
+- Deshacer un movimiento de tarjeta (aviso con «Deshacer», §12) — *origen: spec 003, fuera de alcance*
+- Avisos de éxito tipo toast al mover una tarea — *origen: spec 003, fuera de alcance*
+- Ver en tiempo real los cambios hechos en otra pestaña u otro dispositivo — *origen: spec 003, fuera de alcance*
+- Límite de tareas por columna — *origen: spec 003, fuera de alcance*
+- Arrastrar tarjetas fuera del tablero o soltar ficheros en él — *origen: spec 003, fuera de alcance*
 
 ## Historial
 
@@ -90,3 +97,4 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 | 2026-10-30 | 002 aprobada (spec v1.0) | Aprobación del usuario tras `/sdd-clarificar` |
 | 2026-10-30 | 002: plan aprobado (sin ADR nuevo); `DESIGN.md` pasará a 1.3.0-todo.1 en su rama (plan §4.6) | `/sdd-planificar` de la spec 002 |
 | 2026-10-31 | 002 `hecha` (spec v1.1 `implementada`, APTO en la segunda verificación; la primera, APTO CON OBSERVACIONES, se resolvió en T-030–T-035). Spec v1.1 (aclaración de §10) y `DESIGN.md` 1.3.1-todo.1. Ideas: «Trabajar sin conexión» (de su «Fuera de alcance») y el esqueleto de carga se amplía al tablero. La PR #2 se fusionó antes de verificar; el cierre va en una PR de seguimiento | `/sdd-verificar` de la spec 002 |
+| 2026-10-31 | 003 pasa a `en curso` (spec v0.1); ideas nuevas desde su «Fuera de alcance». La 003 sustituye el orden por creación de la 002 (002/RF-002) por un orden manual | `/sdd-especificar` de la spec 003 |
