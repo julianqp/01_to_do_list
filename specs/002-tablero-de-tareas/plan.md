@@ -1,6 +1,6 @@
 ---
 spec: 002
-spec_version: 1.0        # versión de la spec sobre la que se planifica
+spec_version: 1.1        # versión de la spec sobre la que se planifica (1.1: aclaración de §10, sin cambios en el plan; D-18 ya la recogía)
 estado: aprobado         # borrador | aprobado
 creado: 2026-10-30
 aprobado: 2026-10-30, Julian Querol Polo
