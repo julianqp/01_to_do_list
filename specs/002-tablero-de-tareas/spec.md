@@ -1,7 +1,7 @@
 ---
 id: 002
 titulo: Tablero de tareas
-estado: en-implementacion # borrador | aprobada | en-implementacion | implementada | obsoleta
+estado: implementada # borrador | aprobada | en-implementacion | implementada | obsoleta
 version: 1.1
 autor: Julian Querol Polo
 creada: 2026-10-29
