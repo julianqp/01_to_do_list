@@ -1,9 +1,9 @@
 ---
 spec: 003
 spec_version: 1.0        # versión de la spec sobre la que se planifica
-estado: borrador         # borrador | aprobado
+estado: aprobado         # borrador | aprobado
 creado: 2026-10-31
-aprobado:
+aprobado: 2026-10-31, Julian Querol Polo
 ---
 
 # Plan técnico · Spec 003 · Arrastrar y soltar

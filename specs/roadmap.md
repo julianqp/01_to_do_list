@@ -103,3 +103,4 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 | 2026-10-31 | 003 pasa a `en curso` (spec v0.1); ideas nuevas desde su «Fuera de alcance». La 003 sustituye el orden por creación de la 002 (002/RF-002) por un orden manual | `/sdd-especificar` de la spec 003 |
 | 2026-10-31 | 003 aclarada (v0.2); ideas nuevas desde su «Fuera de alcance» (arrastrar entre columnas en móvil, «Subir»/«Bajar» en el detalle) | `/sdd-clarificar` de la spec 003 |
 | 2026-10-31 | 003 aprobada (spec v1.0) | Aprobación del usuario tras `/sdd-clarificar` |
+| 2026-10-31 | 003: plan aprobado (sin ADR nuevo; una dependencia nueva, `@dnd-kit/core`); `DESIGN.md` pasará a 1.4.0-todo.1 en su rama (plan §4.6); idea nueva desde X-2 (animar el reordenado) | `/sdd-planificar` de la spec 003 |
