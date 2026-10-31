@@ -1,7 +1,7 @@
 ---
 spec: 002
 plan_aprobado: 2026-10-30
-progreso: 34/35
+progreso: 35/35
 ---
 
 # Tareas · Spec 002 · Tablero de tareas
@@ -447,7 +447,7 @@ Salen de `verificacion.md` (2026-10-31) y de los cambios del plan de ese día: D
   - Cubre: C-17, todos los RF, CA, E y RNF
   - Hecho cuando: el mismo `grep` de T-028 encuentra al menos un test que empieza por cada ID (114/114), y el resultado se anota en el Registro
 
-- [ ] **T-035** Ejecutar `/sdd-verificar` de nuevo (en una sesión nueva)
+- [x] **T-035** Ejecutar `/sdd-verificar` de nuevo (en una sesión nueva)
   - Depende de: T-034
   - Ficheros: `specs/002-tablero-de-tareas/verificacion.md`
   - Cubre: todos
@@ -493,3 +493,4 @@ Salen de `verificacion.md` (2026-10-31) y de los cambios del plan de ese día: D
 | T-032 | — | Caso nuevo en el `it.each` de CA-2.3–CA-2.6 de `TaskDialog.test.tsx`: `'RF-016 E-6 descripción de 5001 caracteres'` (sin POST, mensaje bajo «Descripción (opcional)» y foco en el campo). Como cubre código que ya existía, pasó a la primera; con la regla de longitud de `shared/tasks.ts` anulada a mano falló (se hacía el POST), y el fichero se restauró sin cambios. RNF-004: el tiempo va en `test.info().annotations` (137 ms en `chromium`); `grep -rn "console.log" e2e/` vacío. `pnpm test` 756/756 |
 | T-033 | — | Se quitan `formatLongDate` de `dates.ts` y su test de `dates.test.ts`. Al ser un borrado, no hay un test que falle primero. Se queda `longDate`, que `formatShortDate` usa para las fechas de otro año («14 nov 2027», cubierto por CA-1.5). `grep -rn "formatLongDate" apps/ packages/` vacío. `pnpm test` 755/755 |
 | T-034 | — | Mismo criterio que T-028: solo las líneas de test **añadidas** desde la base de la rama (`git diff adc7fa7`) en los globs de la tarea, para que no cuenten los IDs homónimos de la 001 y la 004; un ID cuenta si está en la secuencia de IDs con la que empieza el nombre de un test o de un caso de `it.each`. **114/114**, sin tests nuevos que añadir. Los de esta fase aparecen donde tocaba: RF-016 y E-6 ahora también en `TaskDialog.test.tsx` (T-032), RF-021, RF-035 y CA-7.2 en `TaskDialog.test.tsx` y `board.spec.ts` (T-030), y RF-026 en `TaskDialog.test.tsx` (T-031). Siguiente: T-035 (`/sdd-verificar`) en una sesión nueva |
+| T-035 | — | Segunda `/sdd-verificar` el 2026-10-31: **APTO** (`verificacion.md`). Se hizo en la misma sesión que T-030 a T-033, no en una nueva: se repitió todo desde cero. `pnpm test` 755/755, lint y tipos en verde; `pnpm test:e2e` 181 pasan y 2 saltados, sin *flaky*; trazabilidad 114/114. I-1 y M-1 a M-5 resueltos; I-2 se cierra con la PR de seguimiento; N-1: faltan los commits de T-030 a T-034 en este Registro |
