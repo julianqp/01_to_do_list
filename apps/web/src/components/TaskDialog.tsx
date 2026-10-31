@@ -106,9 +106,14 @@ export function TaskDialog({ mode, onClose }: TaskDialogProps) {
     requestClose();
   }
 
-  // D-12: el contenido llena el diálogo, así que un clic en el propio <dialog> es un clic en el velo.
+  // D-12: el velo (::backdrop) pertenece al <dialog>, pero cae fuera de su rectángulo. Dentro de él,
+  // el propio <dialog> también recibe los toques en los huecos sin contenido (el margen del asa, la
+  // barra de scroll): esos no son «fuera» (T-030).
   function handlePointerDown(event: PointerEvent<HTMLDialogElement>) {
-    if (event.target === event.currentTarget) requestClose();
+    if (event.target !== event.currentTarget) return;
+    const { left, right, top, bottom } = event.currentTarget.getBoundingClientRect();
+    const { clientX: x, clientY: y } = event;
+    if (x < left || x > right || y < top || y > bottom) requestClose();
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -258,10 +263,11 @@ export function TaskDialog({ mode, onClose }: TaskDialogProps) {
             )}
           </FolderCard>
           <div className={ACTIONS}>
-            {/* §11.4: «Borrar tarea» va aparte, en destructive y con confirmación (RF-026). */}
+            {/* §11.4: «Borrar tarea» va aparte y con confirmación (RF-026). D-15, D-19: en glass; el único
+                acento del detalle es el estado elegido, y destructive solo sale en la confirmación. */}
             {!creating && (
               <span className="me-auto">
-                <Button variant="destructive" onClick={() => showConfirmation('confirmDelete')}>
+                <Button variant="glass" onClick={() => showConfirmation('confirmDelete')}>
                   Borrar tarea
                 </Button>
               </span>

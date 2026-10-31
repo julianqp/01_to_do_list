@@ -30,6 +30,24 @@ function renderDialog(mode: TaskFormMode = { kind: 'create' }) {
 
 const titleField = () => screen.getByLabelText('Título') as HTMLInputElement;
 
+// D-12 (T-030): un pointerdown sobre el propio <dialog> solo es un «clic fuera» si el punto cae fuera
+// de su rectángulo (en el velo). jsdom no calcula la disposición: el rectángulo se simula.
+function pointerDownOnDialog(dialog: HTMLElement, at: 'outside' | 'inside') {
+  vi.spyOn(dialog, 'getBoundingClientRect').mockReturnValue({
+    x: 100,
+    y: 100,
+    left: 100,
+    top: 100,
+    right: 560,
+    bottom: 700,
+    width: 460,
+    height: 600,
+    toJSON: () => ({}),
+  });
+  const [clientX, clientY] = at === 'outside' ? [20, 20] : [140, 108];
+  fireEvent.pointerDown(dialog, { clientX, clientY });
+}
+
 describe('TaskDialog · cerrar y descartar', () => {
   it('D-12 es un <dialog> abierto con showModal, con su título como nombre', () => {
     const { dialog } = renderDialog();
@@ -72,10 +90,26 @@ describe('TaskDialog · cerrar y descartar', () => {
   it('RF-021 D-12 sin cambios, un clic fuera (en el velo, sobre el propio <dialog>) cierra', () => {
     const { dialog, onClose } = renderDialog();
 
-    fireEvent.pointerDown(dialog);
+    pointerDownOnDialog(dialog, 'outside');
 
     expect(onClose).toHaveBeenCalledWith({ kind: 'cancelled' });
   });
+
+  it.each([
+    ['sin cambios', false],
+    ['con cambios', true],
+  ])(
+    'RF-021 RF-035 D-12 %s, un pointerdown sobre el <dialog> dentro de su rectángulo (junto al asa) no cierra ni pregunta',
+    async (_name, edited) => {
+      const { dialog, onClose, user } = renderDialog();
+      if (edited) await user.type(titleField(), 'Preparar la demo');
+
+      pointerDownOnDialog(dialog, 'inside');
+
+      expect(onClose).not.toHaveBeenCalled();
+      expect(screen.queryByText(DISCARD_QUESTION)).toBeNull();
+    },
+  );
 
   it('D-12 un clic dentro del contenido no cierra', () => {
     const { onClose } = renderDialog();
@@ -95,7 +129,7 @@ describe('TaskDialog · cerrar y descartar', () => {
     [
       'clic fuera',
       async () => {
-        fireEvent.pointerDown(screen.getByRole('dialog'));
+        pointerDownOnDialog(screen.getByRole('dialog'), 'outside');
       },
     ],
   ])(
@@ -343,14 +377,24 @@ describe('TaskDialog · crear', () => {
       'Fecha estimada de inicio (opcional)',
       'Esa fecha no existe. Escríbela como 14/11/2026.',
     ],
+    [
+      'RF-016 E-6 descripción de 5001 caracteres',
+      { title: 'Preparar la demo', description: 'a'.repeat(5001) },
+      'Descripción (opcional)',
+      'La descripción puede tener hasta 5000 caracteres. Acórtala un poco.',
+    ],
   ])(
     '%s → no se crea, error bajo el campo y foco en él (RF-019)',
     async (_name, values, label, message) => {
       serveTasks([]);
       const { user, dialog } = await openCreate();
 
-      // fireEvent: escribir 201 caracteres uno a uno con user-event es lento.
+      // fireEvent: escribir 201 (o 5001) caracteres uno a uno con user-event es lento.
       fireEvent.change(field(dialog, 'Título'), { target: { value: values.title } });
+      if ('description' in values)
+        fireEvent.change(field(dialog, 'Descripción (opcional)'), {
+          target: { value: values.description },
+        });
       if ('start' in values)
         await user.type(field(dialog, 'Fecha estimada de inicio (opcional)'), values.start);
       if ('end' in values)
@@ -782,16 +826,16 @@ async function askToDelete(tasks: Task[] = [DEMO, taskFixture({ title: 'Comprar 
 }
 
 describe('TaskDialog · borrar', () => {
-  it('RF-026 D-19 al crear no hay «Borrar tarea»; en el detalle sí, en destructive', async () => {
+  it('RF-026 D-15 D-19 al crear no hay «Borrar tarea»; en el detalle sí, en glass (el único acento es el estado elegido)', async () => {
     serveTasks([]);
     const created = await openCreate();
     expect(within(created.dialog).queryByRole('button', { name: 'Borrar tarea' })).toBeNull();
     await created.user.keyboard('{Escape}');
 
     const { dialog } = await openDetail();
-    expect(within(dialog).getByRole('button', { name: 'Borrar tarea' }).className).toContain(
-      '--pill-rose',
-    );
+    const remove = within(dialog).getByRole('button', { name: 'Borrar tarea' });
+    expect(remove.classList).toContain('bg-glass');
+    expect(remove.className).not.toContain('--pill-rose');
   });
 
   it('CA-5.1 RF-026 X-7 la pregunta «¿Borrar «Preparar la demo»? No se puede deshacer.» con «Borrar tarea» y «Cancelar», en el mismo diálogo', async () => {

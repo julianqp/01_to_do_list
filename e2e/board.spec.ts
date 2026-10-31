@@ -107,6 +107,25 @@ test.describe('diálogo: descartar cambios', () => {
     await expect(card).toBeFocused();
   });
 
+  test('RF-021 RF-035 CA-7.2 D-12 a 375, un toque dentro del panel inferior junto al asa no lo cierra', async ({
+    page,
+  }) => {
+    await openBoard(page, MOBILE);
+    await createTaskViaApi(page, { title: 'Preparar la demo' });
+    await reloadBoard(page);
+    const dialog = taskDialog(page);
+
+    await taskCard(page, 'Preparar la demo').click();
+    const panel = await box(dialog);
+    // T-030: el margen que deja el asa (36 px centrados) es del propio <dialog>, pero está dentro de
+    // su rectángulo: no es el velo.
+    await page.mouse.click(panel.x + 40, panel.y + 8);
+
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText('¿Descartar los cambios?')).toHaveCount(0);
+    await expect(titleField(page)).toHaveValue('Preparar la demo');
+  });
+
   test('CA-3.4 RF-022 sin cambios, Esc cierra sin preguntar y el foco vuelve a la tarjeta', async ({
     page,
   }) => {
@@ -462,7 +481,9 @@ test.describe('rendimiento', () => {
       await expect(boardColumn(page, name)).toHaveAccessibleName(`${name}, ${count} tareas`);
     }
     const elapsed = Date.now() - start;
-    console.log(`RNF-004: columnas a la vista en ${elapsed} ms`);
+    test
+      .info()
+      .annotations.push({ type: 'RNF-004', description: `columnas a la vista en ${elapsed} ms` });
     expect(elapsed).toBeLessThanOrEqual(2000);
 
     // E-2: la lista de la columna hace scroll por su cuenta y la cabecera sigue a la vista.
