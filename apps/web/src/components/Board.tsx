@@ -1,6 +1,7 @@
 import { TASK_STATUSES, type Task, type TaskStatus } from '@todo/shared';
 import { ListTodo } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { groupByStatus } from '../lib/board-order';
 import { tasksCount, todayLocal } from '../lib/dates';
 import type { TaskFormMode } from '../lib/task-form';
 import { Alert } from './Alert';
@@ -16,13 +17,6 @@ export type BoardProps = { tasks: Task[] };
 // el del estado vacío.
 type FocusTarget =
   { kind: 'card'; id: string; status: TaskStatus } | { kind: 'create'; removedId?: string };
-
-// D-7: el orden lo da el servidor (RF-002); aquí solo se reparte por estado, sin reordenar.
-function groupByStatus(tasks: Task[]) {
-  const groups = Object.fromEntries(TASK_STATUSES.map((status) => [status, [] as Task[]]));
-  for (const task of tasks) groups[task.status]!.push(task);
-  return groups as Record<TaskStatus, Task[]>;
-}
 
 // §12 «Vacío (primera vez)»: círculo glass de 72 px con icono 26, el mensaje y un primario.
 function EmptyBoard({ createButton }: { createButton: ReactNode }) {
