@@ -1,11 +1,11 @@
 ---
 id: 003
 titulo: Arrastrar y soltar
-estado: borrador          # borrador | aprobada | en-implementacion | implementada | obsoleta
-version: 0.2
+estado: aprobada          # borrador | aprobada | en-implementacion | implementada | obsoleta
+version: 1.0
 autor: Julian Querol Polo
 creada: 2026-10-31
-aprobada:                 # AAAA-MM-DD, por quién
+aprobada: 2026-10-31, Julian Querol Polo   # AAAA-MM-DD, por quién
 ticket:
 ---
 
@@ -232,3 +232,4 @@ Historial de preguntas resueltas durante `/sdd-clarificar`.
 |---------|-------|--------|--------|
 | 0.1     | 2026-10-31 | Borrador inicial | Spec 003 del roadmap |
 | 0.2     | 2026-10-31 | Resueltas 5 aclaraciones: fecha real de fin automática al soltar en Done (CA-1.4, RF-003); al cambiar de estado desde el detalle, la tarjeta entra la primera (CA-2.4, RF-010); teclado desde el asa (HU-3); por debajo de 768 px el arrastre solo ordena la columna visible (HU-4, RF-019, CA-4.5) y el teclado sí cambia de columna mostrando la nueva (RF-023, CA-3.9, CA-3.10). Dos puntos nuevos en «Fuera de alcance» | `/sdd-clarificar` |
+| 1.0     | 2026-10-31 | Spec aprobada | Aprobación del usuario tras `/sdd-clarificar` |
