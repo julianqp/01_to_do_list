@@ -31,6 +31,18 @@ Plantillas en `.sdd/templates/`, checklists en `.sdd/checklists/`.
 - **Haz solo lo que pide la spec.** Las ideas extra van a "Fuera de alcance" y a "Ideas sin priorizar" del roadmap; nunca se quedan solo en el chat.
 - **Nada importante vive solo en el chat.** Si se decide algo (orden de specs, una regla, un cambio), se escribe en el fichero que corresponde.
 - **Referencia IDs** (RF-xxx, CA-x.y, T-xxx, D-x, C-x) en commits, comentarios de PR y respuestas.
+- **Nunca hagas commits.** No ejecutes `git commit`, `git push`, `git merge`, `git rebase`, `git reset` ni nada que cambie el historial. Los commits los hace siempre el usuario.
+- **Al terminar cada fase o tarea, sugiere el commit** con un bloque al final de tu respuesta:
+
+  ````
+  ### Commit sugerido
+  ```bash
+  git add <ficheros de esta fase o tarea>
+  git commit -m "<tipo>(<ámbito>): <resumen en imperativo> [spec NNN]" -m "<cuerpo: qué se ha hecho, IDs cubiertos (T-xxx, RF-xxx…) y desviaciones, si las hay>"
+  ```
+  ````
+
+  Conventional Commits. Lista los ficheros uno a uno (nunca `git add .`) y excluye lo que no sea de esta fase o tarea.
 - Antes de dar algo por hecho: tests, linter y tipos en verde.
 
 ## Spec activa

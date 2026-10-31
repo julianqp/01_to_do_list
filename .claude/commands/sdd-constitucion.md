@@ -23,3 +23,5 @@ Notas del usuario: $ARGUMENTS
 - No toques ningún otro fichero.
 
 Al terminar, muestra un resumen de los artículos y pregunta si los aprueba.
+
+**Commit:** termina con el bloque «Commit sugerido» de `CLAUDE.md` para lo que ha cambiado en esta fase. **No hagas el commit.**

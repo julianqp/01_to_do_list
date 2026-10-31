@@ -46,6 +46,15 @@ describe('AppHeader', () => {
     expect(logout.className).toContain('bg-glass');
   });
 
+  it('CA-1.6 D-8 (spec 002) sin email solo muestra el nombre de la app: ni email ni «Cerrar sesión» ni menú', () => {
+    render(<AppHeader loggingOut={false} onLogout={vi.fn()} />);
+    const banner = screen.getByRole('banner');
+
+    expect(within(banner).getByText('Mis tareas')).toBeDefined();
+    expect(within(banner).queryAllByRole('button')).toEqual([]);
+    expect(banner.querySelector('[tabindex="0"]')).toBeNull();
+  });
+
   it('RF-007 D-11 escritorio y móvil están en el DOM y se alternan con max-md:hidden / md:hidden', () => {
     const { banner, pill } = renderHeader();
     const logout = within(banner).getByRole('button', { name: 'Cerrar sesión' });

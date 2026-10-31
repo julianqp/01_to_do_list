@@ -35,9 +35,12 @@ $ARGUMENTS
 - **Prohibido** mencionar tecnologías, frameworks, librerías, tablas, endpoints, nombres de componentes o ficheros de código.
 - Prohibidas las palabras vagas: rápido, fácil, intuitivo, robusto, adecuado, etc., debería, si es posible.
 - No inventes funcionalidades que el usuario no haya pedido; si se te ocurren, ponlas en "Fuera de alcance" y añádelas a "Ideas sin priorizar" del roadmap.
+- Para citar IDs de otra spec usa su prefijo (`001/RF-015`). Si esta spec cambia el comportamiento de otra ya implementada, dilo en "Dependencias" y propón añadir en la spec afectada una fila "Modificada por la spec NNN" en su Registro de cambios.
 - Si la feature es demasiado grande (más de ~5 historias P1 o más de ~3 páginas), propón dividirla en varias specs antes de seguir.
 - No escribas código ni crees otros ficheros (salvo actualizar el roadmap).
 
 ## Al terminar
 
 Muestra: ruta de la spec, resumen de historias, lista de `[NECESITA ACLARACIÓN]` y supuestos. Recomienda ejecutar `/sdd-clarificar`.
+
+**Commit:** termina con el bloque «Commit sugerido» de `CLAUDE.md` para lo que ha cambiado en esta fase. **No hagas el commit.**

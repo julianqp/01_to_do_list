@@ -30,6 +30,15 @@ describe('Button', () => {
     expect(glass.getAttribute('type')).toBe('button');
   });
 
+  it('RF-026 D-9 D-19 variante destructive: --pill-rose con --text-on-pill', () => {
+    render(<Button variant="destructive">Borrar tarea</Button>);
+    const button = screen.getByRole('button', { name: 'Borrar tarea' });
+
+    expect(button.className).toContain('bg-(image:--pill-rose)');
+    expect(button.classList).toContain('text-on-pill');
+    expect(button.classList).toContain('h-11');
+  });
+
   it('RF-014 X-10 la presión escala solo con motion-safe', () => {
     render(<Button variant="primary">Iniciar sesión</Button>);
     expect(screen.getByRole('button').classList).toContain('motion-safe:active:scale-97');

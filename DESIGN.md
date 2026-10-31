@@ -1,4 +1,4 @@
-# DESIGN.md — Tinta & Niebla · adaptación To do list · v1.2.1-todo.1
+# DESIGN.md — Tinta & Niebla · adaptación To do list · v1.3.0-todo.1
 
 Reglas de diseño de la **app de tareas con tablero kanban** (`01_to_do_list`). Es la fuente de verdad de **lo visual**: color, tipografía, espaciado, forma, superficies, movimiento, iconos, componentes y tono de los textos.
 
@@ -91,7 +91,7 @@ Cada acento tiene su versión `*-soft` para fondos (insignias, tintes de fila y 
 - Los estados neutros usan tinta, no un quinto acento.
 - El significado nunca depende solo del color. Siempre lo acompaña una etiqueta, un icono o un glifo. El modo «solo tinta» (todos los acentos → `--ink-600`) debe seguir siendo comprensible.
 
-**Mapa de estados del dominio** *(propuesta; la confirma la spec 002)*
+**Mapa de estados del dominio** *(confirmado por la spec 002)*
 
 | Estado de la tarea | Tono | Icono |
 |---|---|---|
@@ -100,6 +100,12 @@ Cada acento tiene su versión `*-soft` para fondos (insignias, tintes de fila y 
 | In progress | ink (`--pill-ink`) | `circle-dot` |
 | Done | sage | `circle-check` |
 | Retrasada (cualquier estado salvo Done, con fecha estimada de fin pasada) | amber, como insignia añadida al estado | `clock-alert` |
+
+**Dónde se usa el tono** (spec 002, X-3):
+- Los iconos de estado van siempre en `--text-2`, nunca en el color del acento: sobre la columna clara, los acentos dan 2.41–2.76:1 y un icono necesita 3:1. El significado lo dan la forma del icono y el nombre.
+- El tono solo aparece en la **opción elegida del selector de estado** del detalle: Backlog en `--surface-raised-hover` + `--text-1`, To do en `--pill-lilac` + `--text-on-pill`, In progress en `--pill-ink` + `--text-on-accent` y Done en `--pill-sage` + `--text-on-pill`. Es el único acento de la vista.
+- La insignia «Retrasada» va en `--amber-soft`, con un punto `--amber` de 7px, el icono `clock-alert` y el texto en `--text-1`.
+- El selector de columna en móvil es neutro: la opción elegida va en `--surface-raised-hover` + `--text-1`.
 
 ### 1.4 Tokens semánticos
 
@@ -121,6 +127,7 @@ Cada acento tiene su versión `*-soft` para fondos (insignias, tintes de fila y 
 | `--surface-tooltip` · `--text-on-tooltip` | ink‑950 · ink‑50 | ink‑950 · ink‑50 | 16.34:1 |
 | `--ring-error` | `oklch(0.55 0.11 15)` (`#A8545D`) | `--rose` | anillo e icono de error ≥ 4.17:1 |
 | `--border-contrast` | `transparent` (con «aumentar contraste», ink‑600; §17) | igual | — |
+| `--surface-veil` | `rgba(6,20,27,.32)` (velo de los diálogos, §6.3) | igual | — |
 
 - **Anillo de error:** usa `--ring-error`, no `--rose`. En claro, `--rose` da 2.37–2.80:1 sobre el campo y la tarjeta, y el anillo necesita 3:1; en oscuro, `--ring-error` es `--rose`. El grosor es `--ring-error-width` (1.5px).
 - **Alertas:** el texto y el icono van en `--text-1`, en todos los tonos. El acento como icono da 2.34–2.50:1 sobre su alerta en claro, y `--text-2` se queda por debajo de 7:1 sobre la alerta oscura. El tono se distingue por el tinte `*-soft` y por la forma del icono (§1.3: nunca solo el color).
@@ -194,7 +201,7 @@ Siempre `flex`/`grid` + `gap`. Nunca separar hermanos con márgenes o espacios e
 
 ### 3.2 Layout de la app (escritorio, ≥ 1280px)
 - Cabecera **sin barra**: píldoras flotantes sobre el lienzo, fija (`--z-sticky`) con lienzo al 80% y blur al hacer scroll. A la izquierda, el nombre de la app; a la derecha, el email del usuario y «Cerrar sesión».
-- Tablero: **cuatro columnas** de igual ancho (`repeat(4, minmax(280px, 1fr))`), una por estado. Cada columna hace scroll vertical por su cuenta; la cabecera se queda fija.
+- Tablero: **cuatro columnas** de igual ancho (`repeat(4, minmax(var(--board-column-min), 1fr))`, con `--board-column-min` = 280px), una por estado. Cada columna hace scroll vertical por su cuenta; la cabecera se queda fija. En `global.css` son las utilidades `board-columns` (≥ 1024px) y `board-columns-two` (dos visibles de 768 a 1023px), porque las clases con corchetes están prohibidas (ADR-0003).
 - El detalle o la edición de una tarea se abre en un diálogo (§15, Overlays) sin cambiar de página.
 
 ### 3.3 Fondo
@@ -269,7 +276,7 @@ En `tokens.css`, los `--bp-*` se llaman `--breakpoint-*` (`--breakpoint-sm` … 
 | `--border-glass` | `rgba(6,20,27,.08)` | `rgba(238,240,240,.10)` |
 
 ### 6.3 Vidrio
-- `backdrop-filter: blur(24px) saturate(140%)` en todo lo que flota sobre color o contenido. El velo de los diálogos usa `blur(8px)` + `rgba(6,20,27,.32)`.
+- `backdrop-filter: blur(24px) saturate(140%)` en todo lo que flota sobre color o contenido. El velo de los diálogos usa `blur(8px)` + `rgba(6,20,27,.32)`: los tokens `--veil-filter` y `--surface-veil`, en `dialog::backdrop` (`global.css`).
 - No pongas `filter` en un ancestro de un elemento con `backdrop-filter`: rompe el blur.
 - Fallback: si no hay soporte, `--surface-glass`, `--surface-raised` y `--surface-header` suben al 92 %. `--surface-raised-hover` no cambia: en oscuro, al 92 % bajaría el texto a 6.53:1. El filtro es el token `--glass-filter` (`blur(24px) saturate(140%)`).
 
@@ -347,20 +354,32 @@ Usa siempre el token. Si algo no encaja, el problema es de estructura, no de nú
 
 ### 11.2 Zona privada
 - Cabecera flotante de §3.2 en todas las pantallas con sesión.
-- Debajo, el tablero (§11.3). Mientras no exista la spec 002, la zona privada muestra solo la cabecera.
+- Debajo, el tablero (§11.3). La página ocupa el alto de la ventana: desde 768px no hace scroll la página, sino cada columna.
+- Si no se pueden cargar las tareas, el error de página de §12 (círculo glass con `cloud-off`, el mensaje y «Reintentar» glass), sin código técnico (spec 002, X-5).
 
-### 11.3 Tablero kanban *(orientativo; lo concreta la spec 002)*
-- Título display «Tablero» + recuento de tareas en `--text-3` + primario «Crear tarea».
-- Cuatro columnas glass, una por estado: título h3 con el icono del estado y el recuento («In progress · 3»).
-- **Tarjeta de tarea:** raised, radio 30, padding 16–20. Título en `--text-body` (varias líneas si hace falta), fechas estimadas en `--text-xs` tabular («14 nov → 28 nov»), insignia amber «Retrasada» cuando aplique. En Done, la fecha real de fin con `calendar-check`.
-- Clic o Enter en la tarjeta abre su detalle en un diálogo.
-- Columna vacía: hueco en `--surface-sunken` con una frase corta en `--text-3` («Nada en curso»), nunca una columna en blanco.
+### 11.3 Tablero kanban *(spec 002)*
+- Título display «Tablero» (el h1 de la vista; «Mis tareas» sigue siendo el nombre de la app en la cabecera y en la pestaña) y, debajo, el recuento («6 tareas», «1 tarea») en `--text-2`. A la derecha, el primario «Crear tarea».
+- Cuatro columnas glass de radio 34, una por estado y en este orden: Backlog, To do, In progress y Done. Cabecera h2 con el estilo h3: icono del estado en `--text-2`, nombre en `--text-1` y «· 3» en `--text-2`. Cada columna es una región con nombre «In progress, 3 tareas».
+- Las tarjetas van de la creada más recientemente a la más antigua; una tarea nueva entra siempre en Backlog.
+- **Tarjeta de tarea:** un botón raised de radio 30 y padding 16–20. Título en `--text-body` y `--text-1`, que parte las palabras largas. Fechas en `--text-xs` tabular y `--text-2`, con `calendar-days`: «14 nov → 28 nov», o «Fin estimado: 28 nov» / «Inicio estimado: 14 nov» si solo hay una; con año si no es del año en curso. En Done, la fecha real de fin con `calendar-check` («Fecha real de fin:» para lectores de pantalla). La insignia «Retrasada» de §1.3 cuando aplique.
+- Con hover, la tarjeta no sube de superficie: pasa a `--shadow-glass` y se eleva 1px con `motion-safe` (X-2: con `--surface-raised-hover`, el `--text-2` de las fechas baja de 7:1 en oscuro).
+- Clic o Enter en la tarjeta abre su detalle (§11.4).
+- Columna vacía: hueco en `--surface-sunken` con su frase en `--text-2` («Nada en el backlog», «Nada por hacer», «Nada en curso», «Nada terminado todavía»), nunca una columna en blanco.
+- **Textos en `--text-2`, no `--text-3`** (X-1): el recuento, las fechas de la tarjeta, la frase del hueco vacío y las opciones no elegidas de los selectores. `--text-3` no llega a 7:1 sobre el lienzo con punto, en el hueco ni en la tarjeta oscura sin blur.
+- **Sin tareas:** el estado vacío de §12 en lugar de las columnas, con el «Crear tarea» dentro del bloque, no junto al título (X-8: un solo primario).
+- **Móvil (< 768px):** una sola columna y, encima, un control segmentado con los cuatro estados y su recuento («Done · 0»); se empieza en Backlog. «Crear tarea» va fijo abajo y a todo el ancho (X-8). De 768 a 1023px se ven dos columnas y el resto con scroll horizontal dentro del tablero.
+- El aviso «Esta tarea ya no existe.» sale en una zona de alerta del tablero, debajo de la cabecera.
 
-### 11.4 Detalle y edición de una tarea *(orientativo)*
-- Diálogo de 460px como máximo (en móvil, *sheet* al 92%). Título h2 Light.
-- Campos agrupados en dos carpetas: **Datos** (título, descripción) y **Fechas** (inicio estimado, fin estimado, fin real).
-- El estado se cambia con un Select o un control segmentado con los cuatro estados (y, en la spec 003, también arrastrando).
-- Acciones al pie: secundario «Cancelar», primario «Guardar cambios». «Borrar tarea» va aparte, en `destructive`, con confirmación.
+### 11.4 Detalle y edición de una tarea *(spec 002)*
+- Un `<dialog>` modal de 460px como máximo y radio 34, en `--surface-raised` con blur y `--shadow-float`, sobre el velo de §6.3. En móvil, panel inferior a todo el ancho, con radio arriba, un asa de 36 × 4 y el 92% del alto como máximo.
+- Título h2 en `--text-h2` (X-6: el token de «título de diálogo» de §2.2, no el Light 28 de §14): «Nueva tarea» al crear y «Detalle de la tarea» al editar. Sobre el diálogo, fuera de las carpetas, solo `--text-1`.
+- Campos agrupados en dos carpetas: **Datos** (título, descripción y, al editar, el estado) y **Fechas** (inicio estimado, fin estimado y, solo en Done, fin real). Etiquetas en `--text-2`; «(opcional)» y la ayuda («Ejemplo: 14/11/2026») en `--text-3`, que dentro de la carpeta opaca sí llega a 7:1.
+- Las fechas se escriben a mano como «14/11/2026»; no hay selector de calendario.
+- Al crear no se elige estado: la tarea entra en Backlog. Al editar, el estado se cambia con el control segmentado de §14 (radios nativos, con flechas), con opciones de 44px como mínimo (X-4: no 38); la elegida lleva el tono de §1.3. Al elegir Done, la fecha real de fin se rellena con hoy, y el usuario la puede cambiar (nunca a un día futuro).
+- Si la tarea va retrasada, un aviso en `--amber-soft` con `clock-alert`: «Esta tarea tenía que terminar el 28 oct.».
+- Acciones al pie, a la derecha: secundario «Cancelar» y primario «Crear tarea» / «Guardar cambios». «Borrar tarea» va aparte, a la izquierda, en `destructive`.
+- **Confirmaciones en el mismo diálogo** (X-7: solo un diálogo abierto a la vez, §7): «¿Descartar los cambios?» con «Descartar cambios» (glass) y «Seguir editando» (primario, con el foco), y «¿Borrar «<título>»? No se puede deshacer.» con «Cancelar» (glass, con el foco) y «Borrar tarea» (`destructive`).
+- Los errores al guardar o borrar salen como Alert amber dentro del diálogo, encima de las carpetas.
 
 ---
 
@@ -546,8 +565,7 @@ Alturas de control: **32 (sm, solo escritorio) · 44 (md) · 52–56 (inputs, lg
 
 ## Pendiente de decidir
 
-1. **Mapa de colores de los estados** (§1.3): lo confirma la spec 002.
-2. **Textos de la spec 001:** algunos mensajes («Este campo es obligatorio») son más secos que la voz del §15. Si se quieren reescribir, es un cambio de la spec 001.
+1. **Textos de la spec 001:** algunos mensajes («Este campo es obligatorio») son más secos que la voz del §15. Si se quieren reescribir, es un cambio de la spec 001.
 
 ---
 
@@ -555,6 +573,7 @@ Alturas de control: **32 (sm, solo escritorio) · 44 (md) · 52–56 (inputs, lg
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| 1.3.0-todo.1 | 2026-10-30 | Spec 002: tokens nuevos `--surface-veil`, `--veil-filter` y `--board-column-min` (§1.4, §3.2, §6.3). §1.3: mapa de estados confirmado y dónde se usa el tono (sale de «Pendiente de decidir»). §11.2–§11.4 dejan de ser orientativos y recogen el tablero y el detalle de la spec 002, con sus desviaciones X-1, X-2, X-4, X-6, X-7 y X-8 |
 | 1.2.1-todo.1 | 2026-10-29 | Spec 004 (T-029, X-12): el texto de los botones md y lg es `--text-body`, porque la escala de §2.2 no tiene 16 px en escritorio |
 | 1.2.0-todo.1 | 2026-10-29 | Spec 004: valores de los acentos, `*-soft`, `--pill-*`, sombras, `--border-glass` y retícula; tokens nuevos (`--surface-header`, `--surface-tooltip`, `--text-on-tooltip`, `--ring-error`, `--ring-error-width`, `--border-contrast`, `--focus-outline`, `--focus-halo`, `--glass-filter`); radios md 26 y lg 30; `--bp-*` ↔ `--breakpoint-*`; valores opacos de «aumentar contraste». Nuevas reglas: foco por tema, anillo de error, píldoras de acento más claras, texto de las alertas en `--text-1` y respaldo sin blur solo en glass, raised y cabecera. Tema oscuro aplicado. Salen de «Pendiente de decidir» los valores y el tema oscuro |
 | 1.1.0-todo.1 | 2026-10-29 | Adaptación de Tinta & Niebla v1.1.0 (CRM VTC) a la app de tareas: fuera pantallas del CRM, mapas, fotografía, datos, email y marketing; acentos, iconos, patrones y voz adaptados al tablero kanban; tokens en `apps/web` y fuentes servidas desde el proyecto |

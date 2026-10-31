@@ -40,3 +40,5 @@ Spec indicada: $ARGUMENTS (si está vacío, usa la spec activa según `CLAUDE.md
 ## Al terminar
 
 Muestra: cambios hechos, dudas pendientes (si hay) y, si no queda ninguna, el checklist `.sdd/checklists/revision-spec.md` evaluado punto por punto. Pregunta al usuario si aprueba la spec. **Solo si responde que sí**, cambia `estado: aprobada`, pon la fecha en `aprobada:` y la versión a `1.0`.
+
+**Commit:** termina con el bloque «Commit sugerido» de `CLAUDE.md` para lo que ha cambiado en esta fase. **No hagas el commit.**

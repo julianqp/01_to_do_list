@@ -12,6 +12,7 @@ model User {
   email        String    @unique // ya normalizado: sin espacios y en minúsculas (RF-003)
   passwordHash String // formato PHC de argon2id
   sessions     Session[]
+  tasks        Task[]
 }
 
 model Session {
@@ -22,4 +23,27 @@ model Session {
   expiresAt DateTime
 
   @@index([userId])
+}
+
+// Spec 002, plan §4.2 (D-1).
+enum TaskStatus {
+  backlog
+  todo
+  in_progress
+  done
+}
+
+model Task {
+  id                 String     @id @default(uuid())
+  userId             String
+  user               User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title              String     @db.VarChar(200) // RF-015; Postgres cuenta caracteres, no bytes
+  description        String     @default("") @db.VarChar(5000) // RF-016; "" = sin descripción
+  status             TaskStatus @default(backlog)
+  estimatedStartDate DateTime?  @db.Date // C-11
+  estimatedEndDate   DateTime?  @db.Date
+  actualEndDate      DateTime?  @db.Date // solo con status = done (RF-041)
+  createdAt          DateTime   @default(now()) // RF-002: orden; no se expone
+
+  @@index([userId, createdAt])
 }

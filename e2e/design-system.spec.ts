@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   emailField,
+  expectNoAxeViolations,
   logoutButton,
   PASSWORD,
   passwordField,
@@ -23,7 +23,8 @@ const submitButton = (page: Page) => page.locator('form').getByRole('button');
 const banner = (page: Page) => page.getByRole('banner');
 const accountButton = (page: Page) => page.getByRole('button', { name: /^Cuenta de / });
 const logoutMenuItem = (page: Page) => page.getByRole('menuitem', { name: 'Cerrar sesión' });
-const viewTitle = (page: Page) => page.getByRole('heading', { level: 1, name: 'Mis tareas' });
+// Spec 002 RF-037, D-23: el título de la vista es «Tablero»; «Mis tareas» sigue en la cabecera.
+const viewTitle = (page: Page) => page.getByRole('heading', { level: 1, name: 'Tablero' });
 // Los textos de la cabecera pueden estar también en el menú cerrado o en el tooltip: solo cuenta lo
 // que se ve.
 const visible = (locator: Locator) => locator.filter({ visible: true });
@@ -627,21 +628,6 @@ async function expectOpaqueWithContrastBorder(
     borderStyle: 'solid',
     color: INK_600,
   });
-}
-
-// RNF-001: WCAG 2.2 AA más el contraste AAA del texto (C-26). `color-contrast-enhanced` no lleva
-// ninguna de esas etiquetas, así que va en una pasada aparte. La barra de Astro no es de la app.
-async function expectNoAxeViolations(page: Page) {
-  const run = (builder: AxeBuilder) => builder.exclude('astro-dev-toolbar').analyze();
-  // Una pasada detrás de otra: axe no admite dos a la vez en la misma página.
-  const aa = await run(
-    new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']),
-  );
-  const aaa = await run(new AxeBuilder({ page }).withRules(['color-contrast-enhanced']));
-  const violations = [...aa.violations, ...aaa.violations].map(
-    ({ id, nodes }) => `${id}: ${nodes.map((node) => node.target.join(' ')).join(', ')}`,
-  );
-  expect(violations).toEqual([]);
 }
 
 test.describe('preferencias del sistema, peticiones y accesibilidad', () => {

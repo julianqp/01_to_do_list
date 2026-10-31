@@ -1,9 +1,10 @@
-import type { MouseEvent } from 'react';
+import type { MouseEvent, Ref } from 'react';
 import { Spinner } from './Icon';
 
 // DESIGN.md §14 Button. Píldora de 44 (md) o 52 (lg); X-10: sin tamaño sm.
 export type ButtonProps = {
-  variant: 'primary' | 'glass';
+  // Spec 002: `destructive` para «Borrar tarea», siempre confirmado (§14).
+  variant: 'primary' | 'glass' | 'destructive';
   size?: 'md' | 'lg';
   fullWidth?: boolean;
   type?: 'button' | 'submit';
@@ -13,12 +14,18 @@ export type ButtonProps = {
   loadingLabel?: string;
   // Las dos etiquetas se apilan en la misma celda: el ancho no cambia (D-9).
   children: string;
+  // Spec 002 D-12, D-14: la opción segura de una confirmación recibe el foco; el tablero devuelve el
+  // foco a «Crear tarea».
+  autoFocus?: boolean;
+  ref?: Ref<HTMLButtonElement>;
 };
 
 const VARIANTS = {
   primary: 'bg-(image:--grad-primary) text-on-accent shadow-(--shadow-accent)',
   glass:
     'border border-contrast bg-glass backdrop-glass text-1 shadow-(--shadow-pill) hover:bg-raised',
+  // Spec 002 D-9: 7.71:1 en la parada más oscura (R-1).
+  destructive: 'bg-(image:--pill-rose) text-on-pill shadow-(--shadow-pill)',
 };
 
 const SIZES = { md: 'h-11 px-5', lg: 'h-13 px-6.5' };
@@ -34,6 +41,8 @@ export function Button({
   loading = false,
   loadingLabel,
   children,
+  autoFocus,
+  ref,
 }: ButtonProps) {
   // D-9: con `disabled` el botón perdería el foco. preventDefault también cancela el envío
   // implícito de Enter en un campo, que el navegador hace como un clic en este botón.
@@ -57,7 +66,9 @@ export function Button({
 
   return (
     <button
+      ref={ref}
       type={type}
+      autoFocus={autoFocus}
       aria-disabled={loading || undefined}
       onClick={handleClick}
       className={className}

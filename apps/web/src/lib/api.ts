@@ -35,12 +35,12 @@ async function readApiError(response: Response): Promise<ApiErrorBody['error'] |
 // con la API caída, el proxy de Vite responde 5xx en vez de rechazar.
 export async function apiFetch<T>(
   path: `/api/${string}`,
-  init: { method?: 'GET' | 'POST'; body?: unknown } = {},
+  init: { method?: 'GET' | 'POST' | 'PUT' | 'DELETE'; body?: unknown } = {},
 ): Promise<T> {
   const method = init.method ?? 'GET';
-  // D-13: todo POST va como JSON, con `{}` si no hay datos.
+  // D-13: toda petición que modifica va como JSON, con `{}` si no hay datos (spec 002 D-21).
   const request: RequestInit =
-    method === 'POST'
+    method !== 'GET'
       ? {
           method,
           headers: { 'Content-Type': 'application/json' },

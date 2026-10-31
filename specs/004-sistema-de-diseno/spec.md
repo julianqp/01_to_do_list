@@ -225,3 +225,4 @@ Historial de preguntas resueltas durante `/sdd-clarificar`.
 | 0.4     | 2026-10-29 | Vuelve a `borrador` para revisión. Referencias a otras specs con el formato `NNN/ID` (001/RF-011, 001/RF-015, 001/E-8). HU-6, CA-6.1, CA-6.2, RF-017 y RF-018 eliminados y sustituidos por RNF-006; fuera el actor «Persona que desarrolla la app» | Revisión del usuario antes de aprobar |
 | 1.0     | 2026-10-29 | Spec aprobada (versión 0.4 sin cambios) | Revisión con el checklist de spec superada |
 | 1.1     | 2026-10-29 | E-12: si falla el cierre de sesión desde el menú, el foco vuelve al botón de cuenta | Aclaración surgida en `/sdd-planificar`, aprobada por el usuario (`/sdd-cambiar-spec`) |
+| —       | 2026-10-30 | Modificada por la spec 002 (002/RF-037): el título grande de la zona privada pasa de «Mis tareas» a «Tablero»; «Mis tareas» sigue en la cabecera y la pestaña (RF-024) | Spec 002, aclaración del 2026-10-30 |

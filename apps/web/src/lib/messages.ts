@@ -26,6 +26,8 @@ const MESSAGES: Record<ErrorCode | 'NETWORK_ERROR', FormMessage> = {
   UNSUPPORTED_MEDIA_TYPE: UNEXPECTED,
   UNAUTHENTICATED: UNEXPECTED,
   NOT_FOUND: UNEXPECTED,
+  // Spec 002 D-19: no puede darse en los formularios de acceso; el tablero tiene sus textos.
+  TASK_NOT_FOUND: UNEXPECTED,
   INTERNAL_ERROR: UNEXPECTED,
 };
 

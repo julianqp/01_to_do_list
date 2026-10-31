@@ -87,3 +87,54 @@ describe('apiFetch', () => {
     await expect(apiFetch('/api/auth/logout', { method: 'POST' })).resolves.toBeUndefined();
   });
 });
+
+// Spec 002 D-21: PUT y DELETE van como POST (base de RF-013 y RF-027).
+describe('apiFetch · PUT y DELETE', () => {
+  it('D-21 RF-013 un PUT envía Content-Type: application/json y el cuerpo en JSON', async () => {
+    const task = { id: 't1', title: 'Preparar la demo' };
+    fetchMock.mockResolvedValue(json(200, { task }));
+
+    await expect(
+      apiFetch('/api/tasks/t1', { method: 'PUT', body: { title: 'Preparar la demo' } }),
+    ).resolves.toEqual({ task });
+
+    const init = fetchMock.mock.calls[0]?.[1];
+    expect(init?.method).toBe('PUT');
+    expect(new Headers(init?.headers).get('Content-Type')).toBe('application/json');
+    expect(init?.body).toBe(JSON.stringify({ title: 'Preparar la demo' }));
+  });
+
+  it('D-21 RF-027 un DELETE sin datos envía {} como JSON y un 204 se resuelve sin cuerpo', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+
+    await expect(apiFetch('/api/tasks/t1', { method: 'DELETE' })).resolves.toBeUndefined();
+
+    const init = fetchMock.mock.calls[0]?.[1];
+    expect(init?.method).toBe('DELETE');
+    expect(new Headers(init?.headers).get('Content-Type')).toBe('application/json');
+    expect(init?.body).toBe('{}');
+  });
+
+  it.each(['PUT', 'DELETE'] as const)(
+    'D-21 C-9 un %s con un 4xx con { error } → ApiError, como un POST',
+    async (method) => {
+      fetchMock.mockResolvedValue(json(404, { error: { code: 'TASK_NOT_FOUND', message: 'x' } }));
+
+      const error = await apiFetch('/api/tasks/t1', { method }).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error).toMatchObject({ code: 'TASK_NOT_FOUND', status: 404 });
+    },
+  );
+
+  it.each(['PUT', 'DELETE'] as const)(
+    'D-21 RF-028 un %s con la red caída o un 500 → NetworkError',
+    async (method) => {
+      fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      fetchMock.mockResolvedValueOnce(json(500, { error: { code: 'INTERNAL_ERROR' } }));
+
+      await expect(apiFetch('/api/tasks/t1', { method })).rejects.toBeInstanceOf(NetworkError);
+      await expect(apiFetch('/api/tasks/t1', { method })).rejects.toBeInstanceOf(NetworkError);
+    },
+  );
+});

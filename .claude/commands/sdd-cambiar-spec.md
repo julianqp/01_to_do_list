@@ -31,3 +31,5 @@ Cambio solicitado: $ARGUMENTS
 ## Al terminar
 
 Resume los cambios en cada artefacto y la siguiente tarea a implementar.
+
+**Commit:** termina con el bloque «Commit sugerido» de `CLAUDE.md` para lo que ha cambiado en esta fase. **No hagas el commit.**

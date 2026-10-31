@@ -54,3 +54,5 @@ Muestra el resultado y los problemas bloqueantes. Si es APTO y el usuario lo con
 2. En `specs/roadmap.md`, pon la spec como `hecha`, añade a "Ideas sin priorizar" lo que quedó en "Fuera de alcance" y no esté ya, y añade una fila al historial.
 3. Indica cuál es la siguiente spec del roadmap disponible.
 4. Propón la descripción de la PR.
+
+**Commit:** termina con el bloque «Commit sugerido» de `CLAUDE.md` para lo que ha cambiado en esta fase. **No hagas el commit.**

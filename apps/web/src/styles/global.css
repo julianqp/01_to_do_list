@@ -30,10 +30,34 @@
     caret-color: var(--text-1);
     transition: background-color 0s 86400s;
   }
+
+  /* Spec 002 D-22: velo de §6.3 detrás del diálogo modal. */
+  dialog::backdrop {
+    background: var(--surface-veil);
+    -webkit-backdrop-filter: var(--veil-filter);
+    backdrop-filter: var(--veil-filter);
+  }
 }
 
 /* §6.3: vidrio. El color de la superficie lo pone cada componente. */
 @utility backdrop-glass {
   -webkit-backdrop-filter: var(--glass-filter);
   backdrop-filter: var(--glass-filter);
+}
+
+/* Spec 002 D-16: columnas del tablero sin corchetes (ADR-0003). Con 4 × 280 px que no caben, el
+   tablero hace scroll horizontal por dentro (RNF-002). */
+@utility board-columns {
+  grid-template-columns: repeat(4, minmax(var(--board-column-min), 1fr));
+}
+
+/* De 768 a 1023 px se ven dos columnas; el resto, con scroll horizontal dentro del tablero. El hueco
+   entre columnas es gap-4 (--space-4). */
+@utility board-columns-two {
+  grid-template-columns: repeat(4, max(var(--board-column-min), calc((100% - var(--space-4)) / 2)));
+}
+
+/* Spec 002 D-16: el panel inferior en móvil ocupa como mucho el 92 % del alto (RF-035). */
+@utility sheet-max-height {
+  max-height: 92dvh;
 }
