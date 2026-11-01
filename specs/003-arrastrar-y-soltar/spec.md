@@ -2,10 +2,10 @@
 id: 003
 titulo: Arrastrar y soltar
 estado: en-implementacion # borrador | aprobada | en-implementacion | implementada | obsoleta
-version: 3.0
+version: 3.1
 autor: Julian Querol Polo
 creada: 2026-10-31
-aprobada: 2026-11-01 (v3.0), Julian Querol Polo   # AAAA-MM-DD, por quién; v1.0 el 2026-10-31
+aprobada: 2026-11-01 (v3.1), Julian Querol Polo   # AAAA-MM-DD, por quién; v1.0 el 2026-10-31
 ticket:
 ---
 
@@ -140,7 +140,7 @@ Por debajo de 768 px solo se ve una columna (002/RF-034): allí el arrastre solo
 
 - **RF-018** CUANDO el usuario mantenga el dedo sobre una tarjeta y lo desplace sin levantarlo, el sistema DEBE empezar a arrastrarla; un deslizamiento sin mantener antes el dedo DEBE hacer scroll y no arrastrar. *(HU-4)*
 - **RF-019** MIENTRAS la ventana mida menos de 768 px, el arrastre (con el dedo o con el ratón) DEBE limitarse a ordenar las tarjetas de la columna visible; soltar la tarjeta fuera de esa columna, incluido el selector de estados, cuenta como soltarla fuera de cualquier columna (RF-005). *(HU-4)*
-- **RF-023** *(v0.2)* MIENTRAS la ventana mida menos de 768 px y haya una tarjeta cogida con teclado, CUANDO Flecha izquierda o Flecha derecha la pasen a otra columna, el sistema DEBE mostrar esa columna y marcarla en el selector de estados; SI el movimiento se cancela (RF-017) o falla al guardarse (RF-021) *(v2.0)*, ENTONCES DEBE volver a mostrar la columna de partida y, al fallar, mantener el foco en su asa. *(HU-3, HU-4)*
+- **RF-023** *(v0.2)* MIENTRAS la ventana mida menos de 768 px y haya una tarjeta cogida con teclado, CUANDO Flecha izquierda o Flecha derecha la pasen a otra columna, el sistema DEBE mostrar esa columna y marcarla en el selector de estados; SI el movimiento se cancela (RF-017), ENTONCES DEBE volver a mostrar la columna de partida. SI falla al guardarse (RF-021) y el foco seguía en su asa *(v3.1)*, ENTONCES DEBE volver a mostrar la columna de partida y mantener el foco en su asa; si el foco ya salió, no cambia ni la columna visible ni el foco. *(HU-3, HU-4)*
 
 **Guardar y errores**
 
@@ -241,6 +241,7 @@ Historial de preguntas resueltas durante `/sdd-clarificar`.
 | 2026-11-01 | Con teclado, al soltar una tarea que ya no existe, ¿adónde va el foco? | A «Crear tarea», como en el detalle de la 002 | CA-3.12, RF-022 |
 | 2026-11-01 | A 375 px con teclado, si falla el guardado, ¿qué columna se muestra? | La de origen, con el foco en el asa, igual que al cancelar | CA-3.13, RF-023 |
 | 2026-11-01 | Con el servidor caído del todo, ¿cuándo sale el aviso de mover y qué pasa con el tablero? | El aviso y la vuelta de la tarjeta, al momento, y el tablero sigue a la vista: el error de carga solo sale si no hay nada que enseñar. Si solo falla un refresco en segundo plano, no hay aviso | RF-021, RF-025, CA-1.12, E-22 |
+| 2026-11-01 | A 375 px con teclado, si falla el guardado cuando el foco ya salió del asa, ¿se vuelve a la columna de origen? | No: no cambia ni la columna visible ni el foco, porque el usuario ya sigue con otra cosa. Al cancelar se vuelve siempre | RF-023 |
 
 ## 12. Registro de cambios
 
@@ -251,3 +252,4 @@ Historial de preguntas resueltas durante `/sdd-clarificar`.
 | 1.0     | 2026-10-31 | Spec aprobada | Aprobación del usuario tras `/sdd-clarificar` |
 | 2.0     | 2026-11-01 | Nuevos RF-024, CA-1.11, CA-3.11, CA-3.12, CA-3.13, CA-4.6 y E-21. Cambian RF-006 (un clic o un toque en el asa abre el detalle), RF-022 (foco a «Crear tarea») y RF-023 (volver a la columna de partida si falla el guardado), además del glosario y §10 | `/sdd-verificar` NO APTO (`verificacion.md`: B-1, I-1, M-1, M-2); decisiones del usuario con `/sdd-cambiar-spec` |
 | 3.0     | 2026-11-01 | Nuevos RF-025, CA-1.12 y E-22. Cambia RF-021 (sin esperar a otra respuesta del servidor), además de §10 | Hallazgo de T-031: con la API caída no se cumplían RF-021, RF-023, CA-1.9, CA-2.6 ni CA-3.13; decisión del usuario con `/sdd-cambiar-spec` |
+| 3.1     | 2026-11-01 | RF-023: al fallar el guardado, vuelve a la columna de partida solo si el foco seguía en su asa; al cancelar, siempre. Sin cambio de comportamiento: recoge lo que ya hacía D-26 | Observación M-4 de `/sdd-verificar` (`verificacion.md`, segunda); decisión del usuario con `/sdd-cambiar-spec` |

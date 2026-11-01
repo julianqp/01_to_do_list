@@ -1,6 +1,6 @@
 ---
 spec: 003
-spec_version: 3.0        # versión de la spec sobre la que se planifica
+spec_version: 3.1        # versión de la spec sobre la que se planifica
 estado: aprobado         # borrador | aprobado
 creado: 2026-10-31
 aprobado: 2026-10-31, Julian Querol Polo
@@ -470,7 +470,7 @@ El resto sigue `DESIGN.md` tal cual:
   - con `TASK_NOT_FOUND`, vacía `focusedHandle` y llama a `onTaskGone(id)`. `Board` reutiliza `focusTarget = { kind: 'create', removedId: id }` (002/D-14), que espera a que la tarjeta ya no esté y también sirve con el «Crear tarea» del estado vacío;
   - con cualquier otro error, llama a `onMobileColumn(from.status)`, y el efecto de D-7 devuelve el foco al asa cuando ya se ve. Desde 768 px no tiene efecto visible (D-13).
 
-  Si el foco ya salió del asa (el usuario sigue con otra cosa), no se toca ni el foco ni la columna.
+  Si el foco ya salió del asa (el usuario sigue con otra cosa), no se toca ni el foco ni la columna. Desde la spec v3.1, RF-023 recoge esta condición (verificación M-4).
   - *Alternativas descartadas:* la tarjeta o columna vecina (una regla nueva, con más casos, para un solo uso).
 - **D-27 (añadida en la spec v2.0)** RNF-005, §8: el asa gana `transition duration-(--dur-fast) ease-out`, `hover:bg-raised-hover` y `motion-safe:active:scale-94` (verificación M-3). `tokens.test` añade la pareja del icono (`--text-2`) sobre `--surface-raised-hover` ≥ 3:1 en N, SB y C+, en claro y oscuro.
   - X-2 de la 002 no se aplica: limita el hover de la tarjeta porque su texto necesita 7:1, y aquí solo hay un icono, que necesita 3:1. Solo cambia el fondo del asa.
@@ -512,7 +512,7 @@ El resto sigue `DESIGN.md` tal cual:
 | RF-020 | `onMutate` con `setQueryData` (D-12) | unit `task-queries.test` (la tarjeta está en su sitio nuevo antes de que responda el `fetch`, que queda pendiente) |
 | RF-021 | `onError` deshace solo esa tarjeta; aviso `offline` (D-12, D-14) | unit `task-queries.test` y `Board.test` (`NetworkError` y 500: posición y recuentos de antes y el aviso, CA-1.9, CA-2.6); sin esperar a la lista (D-29): unit `task-queries.test` y e2e con toda la API caída (CA-1.12) |
 | RF-022 | 404 → se quita de la caché; aviso `info` (D-12); foco a «Crear tarea» (D-26) | api (mover una tarea borrada, ajena o con id mal formado → 404); unit `Board.test` (CA-1.10, CA-3.12); e2e con la tarea borrada de verdad (CA-3.12) |
-| RF-023 | `onMobileColumn` en cada paso, al cancelar (D-13) y al fallar (D-26) | unit `Board.test` (el selector marca la columna nueva y vuelve a la de partida al cancelar, CA-3.9, CA-3.10, y al fallar, CA-3.13); e2e a 375 px, con `page.route` abortando `…/move` en CA-3.13 (jsdom no aplica `display: none`) |
+| RF-023 | `onMobileColumn` en cada paso, al cancelar (D-13) y al fallar si el foco seguía en el asa (D-26) | unit `Board.test` (el selector marca la columna nueva y vuelve a la de partida al cancelar, CA-3.9, CA-3.10, y al fallar, CA-3.13; si el foco ya salió, la columna visible no cambia, `003 RF-023 D-26`); e2e a 375 px, con `page.route` abortando `…/move` en CA-3.13 (jsdom no aplica `display: none`) |
 | RF-024 | `scrollIntoView` sobre la tarjeta tras cada paso; `scroll-padding` de `main` (D-23) | e2e con columna con scroll, a 1280 y 375 px: en cada flecha, la tarjeta dentro de la lista o de la ventana y el asa sin tapar (CA-3.11) |
 | RF-025 | `PrivateArea` pinta el tablero si hay datos (D-30) | unit `PrivateArea.test` (falla el refresco de `tasks` o de `me` con datos: sigue el tablero; sin datos, el error de carga de 002/CA-1.6); e2e con toda la API caída, pasados los reintentos (CA-1.12) |
 | RNF-001 | Asa con nombre, foco global y 44/32 px (D-11); región viva (D-7); anillo del hueco (X-1); `motion-safe:` en la escala (X-2); foco siempre a la vista (D-23) y nunca perdido (D-26) | `tokens.test` (`--ring-drop` sobre la columna ≥ 3:1 y el icono del asa sobre la tarjeta ≥ 3:1, en N, SB y C+, claro y oscuro); axe en el tablero con una tarjeta cogida con teclado y en pleno arrastre con puntero, en los dos temas; e2e (tamaño del asa a 375 y 1280; con `reducedMotion: 'reduce'`, la capa no tiene `scale`); checklist §21 |
