@@ -1,7 +1,9 @@
 import {
+  actualEndDateAfterMove,
   isActualEndDateAllowed,
   type CreateTaskInput,
   type IsoDate,
+  type MoveTaskInput,
   type Task,
   type UpdateTaskInput,
 } from '@todo/shared';
@@ -40,7 +42,35 @@ export async function updateTask(
   ) {
     throw new AppError('VALIDATION_ERROR', 400);
   }
-  const task = await taskRepository.updateTaskOfUser(userId, id, input);
+  // Spec 003, D-5: se lee antes para saber si cambia de estado (RF-010).
+  const current = await taskRepository.findTaskOfUser(userId, id);
+  if (!current) throw taskNotFound();
+  const task = await taskRepository.updateTaskOfUser(userId, id, input, {
+    toTop: current.status !== input.status,
+  });
+  if (!task) throw taskNotFound();
+  return task;
+}
+
+// Spec 003, D-4, D-5. Lanza AppError TASK_NOT_FOUND | VALIDATION_ERROR (`today` posterior a «hoy UTC + 1»
+// cuando la fecha real de fin entra nueva, RF-003).
+export async function moveTask(
+  userId: string,
+  id: string,
+  { status, index, today }: MoveTaskInput,
+  now: Date = new Date(),
+): Promise<Task> {
+  const current = await taskRepository.findTaskOfUser(userId, id);
+  if (!current) throw taskNotFound();
+  const entersDone = status === 'done' && current.status !== 'done';
+  if (entersDone && !isActualEndDateAllowed(today, latestActualEndDate(now))) {
+    throw new AppError('VALIDATION_ERROR', 400);
+  }
+  const task = await taskRepository.moveTaskOfUser(userId, id, {
+    status,
+    index,
+    actualEndDate: actualEndDateAfterMove(current, status, today),
+  });
   if (!task) throw taskNotFound();
   return task;
 }
