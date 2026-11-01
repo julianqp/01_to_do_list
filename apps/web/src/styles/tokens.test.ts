@@ -351,6 +351,8 @@ function catalog(theme: Theme, variant: Variant) {
     // Spec 002, research R-1. La columna es la tarjeta de la 004 y la tarjeta de tarea, su campo.
     column: card,
     taskCard: field,
+    // Spec 003 D-27: el asa con hover, encima de la tarjeta.
+    taskHandleHover: over(field, color('--surface-raised-hover')),
     emptySlot: stack(underGlass, '--surface-glass', '--surface-sunken'),
     badgeLate: over(field, color('--amber-soft')),
     dialog,
@@ -760,6 +762,14 @@ describe('tokens.css · variantes y contraste', () => {
         expect(ring, `--ring-drop sobre la columna (${variant})`).toBeGreaterThanOrEqual(3);
         const grip = ratio(color('--text-2'), surfaces.taskCard);
         expect(grip, `icono del asa sobre la tarjeta (${variant})`).toBeGreaterThanOrEqual(3);
+      }
+    });
+
+    it(`003 RNF-001 D-27 ${theme}: el icono del asa con hover ≥ 3:1 en N, SB y C+`, () => {
+      for (const variant of VARIANTS) {
+        const { color, surfaces } = catalog(theme, variant);
+        const grip = ratio(color('--text-2'), surfaces.taskHandleHover);
+        expect(grip, `icono del asa con hover (${variant})`).toBeGreaterThanOrEqual(3);
       }
     });
 

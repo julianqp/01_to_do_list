@@ -109,12 +109,13 @@ export const TaskCard = memo(function TaskCard({
           </span>
         )}
       </button>
-      {/* RF-012, RNF-001: 44 px por debajo de 1024 y 32 desde ahí; el orden de tabulación es el visual. */}
+      {/* RF-012, RNF-001: 44 px por debajo de 1024 y 32 desde ahí; el orden de tabulación es el visual.
+          D-27, §8: hover y press de botón de icono. */}
       <button
         type="button"
         data-task-handle={overlay ? undefined : task.id}
         aria-label={`Mover «${task.title}»`}
-        className={`absolute end-0 top-0 flex size-11 cursor-grab items-center justify-center rounded-pill text-2 lg:end-1 lg:top-1 lg:size-8 ${content}`}
+        className={`absolute end-0 top-0 flex size-11 cursor-grab items-center justify-center rounded-pill text-2 transition duration-(--dur-fast) ease-out hover:bg-raised-hover motion-safe:active:scale-94 lg:end-1 lg:top-1 lg:size-8 ${content}`}
         {...handleProps}
         // D-24: `detail` 0 es teclado o tecnología de asistencia, que coge o suelta (D-7). Con puntero
         // (1 o más) abre el detalle, como el resto de la tarjeta (RF-006).

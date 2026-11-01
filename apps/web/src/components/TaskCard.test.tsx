@@ -94,6 +94,20 @@ describe('TaskCard', () => {
     expect(document.activeElement).toBe(handle);
   });
 
+  it('003 RNF-005 D-27 el asa tiene estados de hover y de press, con transición y la escala solo con motion-safe', () => {
+    const { handle } = renderCard();
+
+    for (const name of [
+      'transition',
+      'duration-(--dur-fast)',
+      'ease-out',
+      'hover:bg-raised-hover',
+      'motion-safe:active:scale-94',
+    ]) {
+      expect(handle.classList).toContain(name);
+    }
+  });
+
   it('003 RF-002 D-6 la tarjeta no deja seleccionar el texto (mantener el dedo)', () => {
     const { card } = renderCard();
 
