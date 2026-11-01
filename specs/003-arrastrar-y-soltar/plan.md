@@ -288,6 +288,7 @@ Button       + inactive?: boolean // D-34: aria-disabled e ignora la activación
 | Columna | `apps/web/src/components/BoardColumn.tsx` | Droppable de la columna y de cada tarjeta | Modificado |
 | Tarjeta | `apps/web/src/components/TaskCard.tsx` | Contenedor, botón de abrir, asa y variantes | Modificado |
 | Detalle | `apps/web/src/components/TaskDialog.tsx`, `Button.tsx` | «Subir», «Bajar» y posición (D-34); estado inactivo del botón | Modificado |
+| Área privada | `apps/web/src/components/PrivateArea.tsx` | Tablero si hay datos (D-30); `scroll-padding` de `main` (D-23) | Modificado |
 | Estilos | `apps/web/src/styles/tokens.css` | `--ring-drop` (X-1) | Modificado |
 | Tests de diseño | `apps/web/src/styles/tokens.test.ts` | Valor esperado y pareja no textual del anillo | Modificado |
 | Dependencia | `apps/web/package.json`, `pnpm-lock.yaml` | `@dnd-kit/core` 6.3.1 | Modificado |
@@ -305,7 +306,7 @@ Button       + inactive?: boolean // D-34: aria-disabled e ignora la activación
 El resto sigue `DESIGN.md` tal cual:
 
 - **Tarjeta levantada:** `--shadow-float` y escala 1.02 (§6.1, §8), en la capa `--z-popover` (§7).
-- **Asa:** icono `grip-vertical` de 16 px (§9) en un botón de icono de 44 px por debajo de 1024 px y de 32 px desde 1024 px (§4, §14).
+- **Asa:** icono `grip-vertical` de 16 px (§11.3, que manda sobre el 40 % del diámetro de §9 para los botones de icono: serían 17,6 y 12,8 px) en un botón de icono de 44 px por debajo de 1024 px y de 32 px desde 1024 px (§4, §14).
 
 ### 4.6 Cambios en `DESIGN.md` (§19, MINOR → `1.4.0-todo.1`)
 
@@ -383,7 +384,7 @@ El resto sigue `DESIGN.md` tal cual:
     - en otra columna, antes o después de la tarjeta de debajo, según si el centro de la tarjeta arrastrada queda por encima o por debajo de su centro;
     - sobre una columna sin tarjetas, al final.
   - **Fuera de toda columna** (`over === null`, también entre dos columnas o sobre el selector de móvil): `current` vuelve al origen y, al soltar, no se guarda (RF-005, CA-1.7, CA-4.5).
-  - **Medidas:** `measuring.droppable.strategy = MeasuringStrategy.Always` no basta: no vuelve a medir cuando las mismas tarjetas cambian de orden (T-035). Ver D-32.
+  - **Medidas:** las de D-32; `measuring` se queda con los valores por defecto de dnd-kit (T-041).
   - *Por qué:* sin `@dnd-kit/sortable` ni transformaciones en línea (ADR-0003): la vista previa reordena la lista de verdad.
 - **D-10** Aspecto mientras se mueve:
   - **Con el puntero:**
@@ -402,6 +403,7 @@ El resto sigue `DESIGN.md` tal cual:
   - **Asa:**
     - Un `<button type="button">` arriba a la derecha, con `data-task-handle`, `aria-label` «Mover «<título>»» e `Icon` `GripVertical` de 16 en `--text-2`.
     - `size-11 lg:size-8` (44 px por debajo de 1024 px y 32 desde 1024 px, RNF-001), `rounded-pill` y `cursor-grab`.
+    - Desde 768 px, `md:end-1 md:top-1`: 4 px hacia dentro, porque la lista recorta y el anillo de foco necesita 4 px (C-20; ajustado en T-042). El botón de abrir pasa a `md:pe-12` para que no tape el título. Desde 1024 px no cambia nada.
     - El orden de tabulación es el visual: primero la tarjeta y después el asa.
   - *Por qué:* RF-012 y CA-3.8 piden dos elementos con foco distintos.
 - **D-12** Guardar con actualización optimista (`useMoveTask`, R-7), con `mutationKey: ['moveTask']`:
@@ -446,6 +448,7 @@ El resto sigue `DESIGN.md` tal cual:
 - **D-20 (añadida en T-018; cambiada en la spec v4.0, T-044)** Completa D-9: además de `onDragOver`, un `onDragMove` recoloca la tarjeta cuando su centro cruza el de la tarjeta de debajo, dentro de la columna donde ya está.
   - *Por qué:* `onDragOver` solo se dispara cuando cambia la tarjeta de debajo. Al entrar en una columna por debajo del centro de su primera tarjeta, la tarjeta queda detrás; si el puntero sigue subiendo, la de debajo no cambia y se quedaría segunda, y CA-1.1 pide que quede la primera.
   - *Desde la spec v4.0:* `onDragOver` y `onDragMove` usan la misma regla, `placementFromOver` con `below` también en la misma columna (D-9). Su contrato no cambia. Al cruzar, la de debajo se desplaza la altura de la tarjeta más el hueco, y ese margen es lo que evita la oscilación con un temblor de ±1 px. Si la prueba de T-044 lo desmiente, se para y se avisa.
+  - *Ajustada en T-044:* el centro de la de debajo se lee de la medida de ahora, `collisions[…].data.droppableContainer.rect.current`, no de `over.rect`. `over.rect` es una foto de cuando cambió la tarjeta de debajo, y la vista previa la mueve sin que cambie: con la foto, la regla nueva seguía oscilando (`003 RF-007 D-9`: 16 cambios en `chromium`, 2 en `webkit`; una sonda vio `over.rect.top` fijo en 349 con el DOM alternando entre 273 y 349), porque el margen de arriba nunca llegaba a contar. La regla no cambia; es la forma de leerla.
   - *Corrige:* este punto decía «sin oscilación» y no era cierto con alturas distintas: `onDragOver` llevaba la tarjeta al índice de la de debajo sin mirar el centro y `onDragMove` la devolvía (T-041; verificación B-1).
   - *Alternativas descartadas:* añadir `@dnd-kit/sortable` (R-1); aceptar la oscilación y quitar el test (decisión del usuario, tercera verificación).
 - **D-21 (añadida en T-022)** `memo` en `TaskCard` y en la tarjeta arrastrable de `BoardColumn`, con todas sus props estables (plan §8). Cambia un contrato de §4.3: `handleProps` pasa de ser una función por tarea a **un solo objeto estable** para todas las tarjetas; cada manejador saca la tarea de `data-task-handle` y el estado, del último render.
@@ -501,10 +504,10 @@ El resto sigue `DESIGN.md` tal cual:
   - El tablero se localiza como el padre de la columna: no hace falta ningún atributo nuevo.
   - *Alternativas descartadas:* comprobarlo solo en `onDragEnd` (el hueco seguiría enseñando una columna donde no se va a guardar); desactivar el scroll automático con el puntero en el margen (E-5 lleva al usuario justo a ese borde).
 - **D-32 (añadida en la spec v4.0; código desde T-041)** RF-007, RF-011, CA-2.5: `RemeasureOnPreview`, un componente sin nada que pintar dentro de `DndContext`, llama a `measureDroppableContainers([])` en un efecto de layout cuando cambia `drag.current` con el puntero. Es el arreglo de «caer una posición más abajo» (verificación I-2 de la segunda). Completa D-9.
-  - *Por qué:* `MeasuringStrategy.Always` no vuelve a medir cuando las mismas tarjetas cambian de orden, así que la detección trabajaba con rectángulos viejos (T-035). Medido en CA-2.5, `webkit`: de 3 fallos de 100 y 5 de 200 a 0 reales de 300 (T-041) y 0 de 200 (tercera verificación).
+  - *Por qué:* dnd-kit no vuelve a medir cuando las mismas tarjetas cambian de orden, ni con `MeasuringStrategy.Always`, así que la detección trabajaba con rectángulos viejos (T-035). Medido en CA-2.5, `webkit`: de 3 fallos de 100 y 5 de 200 a 0 reales de 300 (T-041) y 0 de 200 (tercera verificación).
   - *Sin romper D-21:* no pasa nada a las tarjetas, así que su `memo` sigue sirviendo.
   - *Coste:* mide todas las tarjetas en cada cambio de vista previa. Con 200 en la columna, un cambio tarda 41–43 ms, por 33 ms antes, y RNF-002 sigue por debajo de 100 ms. Si dejara de cumplirse, se mediría solo lo de las columnas afectadas.
-  - T-041 decide si `Always` sigue haciendo falta y lo anota aquí.
+  - *Decidido en T-041:* `MeasuringStrategy.Always` se quita y queda el valor por defecto, `WhileDragging`. Durante el arrastre las dos miden igual; `Always` solo añade medir también fuera del arrastre. Sin él, CA-2.5 en `webkit` da 0 fallos reales de 300, y RNF-002 baja de unos 40 ms a unos 19 ms, porque al soltar ya no se miden las 500 tarjetas.
   - *Alternativas descartadas:* aceptarlo como riesgo conocido (opción 2 de esa verificación; el usuario eligió corregirlo).
 - **D-33 (añadida en la spec v4.0, T-045)** RF-005, E-21: con el dedo, `releasedAt` se guarda con un oyente de `touchend` en el elemento donde empezó el toque (`active.activatorEvent.target`), además del de `mouseup` en `window`. Corrige D-25.
   - *Por qué:* al pasar la vista previa a otra columna, React quita la tarjeta original. Los eventos táctiles siguen yendo a ese elemento, ya fuera del documento, y no llegan a `window`. `releasedAt` quedaba en `null`, que se trata como «soltó en una columna»: 12 de 12 guardados al soltar en el mismo instante, y 0 `touchend` en `window` (verificación I-1). El sensor táctil de dnd-kit ya escucha en ese elemento por este motivo.
