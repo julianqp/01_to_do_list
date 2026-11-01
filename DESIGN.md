@@ -1,4 +1,4 @@
-# DESIGN.md — Tinta & Niebla · adaptación To do list · v1.4.0-todo.1
+# DESIGN.md — Tinta & Niebla · adaptación To do list · v1.5.0-todo.1
 
 Reglas de diseño de la **app de tareas con tablero kanban** (`01_to_do_list`). Es la fuente de verdad de **lo visual**: color, tipografía, espaciado, forma, superficies, movimiento, iconos, componentes y tono de los textos.
 
@@ -379,10 +379,11 @@ Usa siempre el token. Si algo no encaja, el problema es de estructura, no de nú
 - Campos agrupados en dos carpetas: **Datos** (título, descripción y, al editar, el estado) y **Fechas** (inicio estimado, fin estimado y, solo en Done, fin real). Etiquetas en `--text-2`; «(opcional)» y la ayuda («Ejemplo: 14/11/2026») en `--text-3`, que dentro de la carpeta opaca sí llega a 7:1.
 - Las fechas se escriben a mano como «14/11/2026»; no hay selector de calendario.
 - Al crear no se elige estado: la tarea entra en Backlog. Al editar, el estado se cambia con el control segmentado de §14 (radios nativos, con flechas), con opciones de 44px como mínimo (X-4: no 38); la elegida lleva el tono de §1.3. Al elegir Done, la fecha real de fin se rellena con hoy, y el usuario la puede cambiar (nunca a un día futuro).
+- Al editar, debajo del estado y en la misma carpeta, la posición en la columna («To do, posición 2 de 3.», etiqueta en `--text-2`) y los botones glass «Subir» y «Bajar», de 44px de alto. Sin sitio al que ir, o con el estado cambiado sin guardar, quedan inactivos: el «Deshabilitado» del Button de §14, a opacidad .45, sin reaccionar al puntero y sin perder el foco. Con el estado cambiado sin guardar, debajo, en `--text-3` como la ayuda: «Guarda el cambio de estado para poder subirla o bajarla.».
 - Si la tarea va retrasada, un aviso en `--amber-soft` con `clock-alert`: «Esta tarea tenía que terminar el 28 oct.».
 - Acciones al pie, a la derecha: secundario «Cancelar» y primario «Crear tarea» / «Guardar cambios». «Borrar tarea» va aparte, a la izquierda, en glass: el único acento del detalle es la opción elegida del estado (un solo acento fuerte por vista, §21); `destructive` solo aparece en la confirmación.
 - **Confirmaciones en el mismo diálogo** (X-7: solo un diálogo abierto a la vez, §7): «¿Descartar los cambios?» con «Descartar cambios» (glass) y «Seguir editando» (primario, con el foco), y «¿Borrar «<título>»? No se puede deshacer.» con «Cancelar» (glass, con el foco) y «Borrar tarea» (`destructive`).
-- Los errores al guardar o borrar salen como Alert amber dentro del diálogo, encima de las carpetas.
+- Los errores al guardar, borrar o mover con «Subir» y «Bajar» salen como Alert amber dentro del diálogo, encima de las carpetas.
 
 ---
 
@@ -576,6 +577,7 @@ Alturas de control: **32 (sm, solo escritorio) · 44 (md) · 52–56 (inputs, lg
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| 1.5.0-todo.1 | 2026-11-01 | Spec 003 v4.0 (T-048): §11.4 añade, en la carpeta Datos y debajo del estado, la posición y los botones glass «Subir» y «Bajar», con su estado inactivo y el texto cuando el estado está cambiado sin guardar. Los errores de mover salen en la misma Alert del diálogo. |
 | 1.4.0-todo.1 | 2026-11-01 | Spec 003: token nuevo `--ring-drop` (§1.4, §6.2). §8 «Arrastrar» recoge el anillo del hueco (X-1) y que las tarjetas no se desplazan al soltar (X-2). §11.3: el orden es el que deja el usuario, la tarjeta es un contenedor con botón de abrir y asa, y se añaden el movimiento y el aviso de mover |
 | 1.3.1-todo.1 | 2026-10-31 | Spec 002 (T-031, verificación M-4): en el detalle, «Borrar tarea» pasa a glass; `destructive` queda solo en la confirmación de borrado, para cumplir «un solo acento fuerte por vista» (§21) |
 | 1.3.0-todo.1 | 2026-10-30 | Spec 002: tokens nuevos `--surface-veil`, `--veil-filter` y `--board-column-min` (§1.4, §3.2, §6.3). §1.3: mapa de estados confirmado y dónde se usa el tono (sale de «Pendiente de decidir»). §11.2–§11.4 dejan de ser orientativos y recogen el tablero y el detalle de la spec 002, con sus desviaciones X-1, X-2, X-4, X-6, X-7 y X-8 |

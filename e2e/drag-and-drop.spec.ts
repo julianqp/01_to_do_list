@@ -2028,3 +2028,152 @@ test.describe('rendimiento y scroll automático', () => {
     await page.mouse.up();
   });
 });
+
+test.describe('«Subir» y «Bajar» en el detalle', () => {
+  const dialogButton = (page: Page, name: 'Subir' | 'Bajar') =>
+    taskDialog(page).getByRole('button', { name, exact: true });
+  const position = (page: Page) => taskDialog(page).locator('p[aria-live="polite"]');
+  const NEEDS_SAVE = 'Guarda el cambio de estado para poder subirla o bajarla.';
+
+  async function openDemoDetail(page: Page) {
+    await taskCard(page, 'Preparar la demo').click();
+    await expect(taskDialog(page)).toBeVisible();
+    await expect(position(page)).toHaveText('To do, posición 2 de 3.');
+  }
+
+  test('003 CA-5.2 RF-027 con clic: el texto cambia, sigue abierto y el orden se mantiene al volver a cargar', async ({
+    page,
+  }) => {
+    await openBoard(page);
+    await seedBoard(page);
+    await openDemoDetail(page);
+
+    const saved = page.waitForResponse((response) => response.url().endsWith('/move'));
+    await dialogButton(page, 'Subir').click();
+
+    expect((await saved).status()).toBe(200);
+    await expect(position(page)).toHaveText('To do, posición 1 de 3.');
+    await expect(taskDialog(page)).toBeVisible();
+
+    await taskDialog(page).getByRole('button', { name: 'Cancelar' }).click();
+    await expect(taskDialog(page)).toHaveCount(0);
+    const order = ['Preparar la demo', 'Comprar pan', 'Llamar al banco'];
+    await expectOrder(page, 'To do', order);
+    await reloadBoard(page);
+    await expectOrder(page, 'To do', order);
+  });
+
+  test('003 CA-5.3 RF-027 con toque a 375 px, en el panel inferior', async ({
+    browser,
+  }, testInfo) => {
+    const context = await browser.newContext({
+      ...testInfo.project.use,
+      hasTouch: true,
+      viewport: MOBILE,
+    });
+    const page = await context.newPage();
+    await openBoard(page, MOBILE);
+    await seedBoard(page);
+    await columnPicker(page, 'To do').check({ force: true });
+    await taskCard(page, 'Preparar la demo').tap();
+    await expect(position(page)).toHaveText('To do, posición 2 de 3.');
+    const panel = await taskDialog(page).boundingBox();
+    expect(panel?.width).toBe(MOBILE.width);
+
+    await dialogButton(page, 'Bajar').tap();
+
+    await expect(position(page)).toHaveText('To do, posición 3 de 3.');
+    await taskDialog(page).getByRole('button', { name: 'Cancelar' }).tap();
+    await expectOrder(page, 'To do', ['Comprar pan', 'Llamar al banco', 'Preparar la demo']);
+    await context.close();
+  });
+
+  for (const [name, key] of [
+    ['Enter', 'Enter'],
+    ['Espacio', 'Space'],
+  ] as const) {
+    test(`003 CA-5.4 RF-026 solo con teclado, con ${name}: el foco sigue en «Subir» y cambia la región viva`, async ({
+      page,
+    }) => {
+      await openBoard(page);
+      await seedBoard(page);
+      await tabTo(page, taskCard(page, 'Preparar la demo'));
+      await page.keyboard.press('Enter');
+      await expect(position(page)).toHaveText('To do, posición 2 de 3.');
+      await tabTo(page, dialogButton(page, 'Subir'));
+
+      await page.keyboard.press(key);
+
+      await expect(position(page)).toHaveText('To do, posición 1 de 3.');
+      await expect(dialogButton(page, 'Subir')).toBeFocused();
+      await expect(dialogButton(page, 'Subir')).toHaveAttribute('aria-disabled', 'true');
+    });
+  }
+
+  test('003 CA-5.9 RF-029 con `…/move` abortado: vuelve el texto, aviso en el diálogo y sigue abierto', async ({
+    page,
+  }) => {
+    await openBoard(page);
+    await seedBoard(page);
+    await openDemoDetail(page);
+    await page.route('**/api/tasks/*/move', (route) => route.abort());
+
+    await dialogButton(page, 'Subir').click();
+
+    await expect(taskDialog(page).getByText(MOVE_ERROR)).toBeVisible();
+    await expect(position(page)).toHaveText('To do, posición 2 de 3.');
+    await expect(taskDialog(page)).toBeVisible();
+    await taskDialog(page).getByRole('button', { name: 'Cancelar' }).click();
+    await expectOrder(page, 'To do', TODO);
+  });
+
+  test('003 CA-5.10 RF-029 con la tarea borrada de verdad: se cierra, avisa el tablero y el foco en «Crear tarea»', async ({
+    page,
+  }) => {
+    await openBoard(page);
+    await seedBoard(page);
+    await openDemoDetail(page);
+    await deleteTaskViaApi(page, 'Preparar la demo');
+
+    await dialogButton(page, 'Subir').click();
+
+    await expect(taskDialog(page)).toHaveCount(0);
+    await expect(page.getByText('Esta tarea ya no existe.')).toBeVisible();
+    await expectOrder(page, 'To do', ['Comprar pan', 'Llamar al banco']);
+    await expect(createTaskButton(page)).toBeFocused();
+  });
+
+  for (const colorScheme of ['light', 'dark'] as const) {
+    test(`003 RNF-001 axe con el detalle abierto, un botón inactivo y el texto de RF-028 (${colorScheme})`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme });
+      await openBoard(page);
+      await seedBoard(page, { todo: TODO.slice(0, 2) });
+      await taskCard(page, 'Comprar pan').click();
+      await expect(dialogButton(page, 'Subir')).toHaveAttribute('aria-disabled', 'true');
+      await expectNoAxeViolations(page);
+
+      await taskDialog(page).getByRole('radio', { name: 'In progress' }).check({ force: true });
+      await expect(taskDialog(page).getByText(NEEDS_SAVE)).toBeVisible();
+      await expect(dialogButton(page, 'Bajar')).toHaveAttribute('aria-disabled', 'true');
+      await expectNoAxeViolations(page);
+    });
+  }
+
+  for (const width of [375, 1280]) {
+    test(`003 RNF-001 RF-026 «Subir» y «Bajar» miden 44 px de alto a ${width}`, async ({
+      page,
+    }) => {
+      await openBoard(page, { width, height: 900 });
+      await seedBoard(page);
+      if (width === 375) await columnPicker(page, 'To do').check({ force: true });
+      await openDemoDetail(page);
+
+      for (const name of ['Subir', 'Bajar'] as const) {
+        const box = await dialogButton(page, name).boundingBox();
+        expect(box?.height).toBe(44);
+      }
+    });
+  }
+});
