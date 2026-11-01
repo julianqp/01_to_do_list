@@ -9,10 +9,12 @@ import { Icon } from './Icon';
 export type TaskCardVariant = 'rest' | 'placeholder' | 'lifted' | 'overlay';
 
 // Spec 003, D-7: coger y soltar con `onClick` (Espacio y Enter en un botón), flechas y Esc con
-// `onKeyDown`, y cancelar si el foco sale del asa con `onBlur`.
+// `onKeyDown`, y cancelar si el foco sale del asa con `onBlur`. D-24: `onMouseDown` conserva el foco
+// de la tarjeta cogida.
 export type HandleProps = {
   onClick: (event: MouseEvent<HTMLButtonElement>) => void;
   onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
+  onMouseDown: (event: MouseEvent<HTMLButtonElement>) => void;
   onBlur: (event: FocusEvent<HTMLButtonElement>) => void;
 };
 
@@ -114,6 +116,9 @@ export const TaskCard = memo(function TaskCard({
         aria-label={`Mover «${task.title}»`}
         className={`absolute end-0 top-0 flex size-11 cursor-grab items-center justify-center rounded-pill text-2 lg:end-1 lg:top-1 lg:size-8 ${content}`}
         {...handleProps}
+        // D-24: `detail` 0 es teclado o tecnología de asistencia, que coge o suelta (D-7). Con puntero
+        // (1 o más) abre el detalle, como el resto de la tarjeta (RF-006).
+        onClick={(event) => (event.detail === 0 ? handleProps?.onClick(event) : onOpen())}
       >
         <Icon icon={GripVertical} size={16} className="shrink-0" />
       </button>

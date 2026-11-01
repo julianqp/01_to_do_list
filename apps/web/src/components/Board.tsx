@@ -1,7 +1,7 @@
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import { TASK_STATUSES, type Task, type TaskStatus } from '@todo/shared';
 import { ListTodo } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { groupByStatus } from '../lib/board-order';
 import { tasksCount, todayLocal } from '../lib/dates';
 import type { TaskFormMode } from '../lib/task-form';
@@ -92,7 +92,19 @@ export function Board({ tasks }: BoardProps) {
     setNotice(undefined);
     setDialog(mode);
   }, []);
-  const openTask = useCallback((task: Task) => openDialog({ kind: 'edit', task }), [openDialog]);
+  // Spec 003, D-24: desde el asa de una tarjeta cogida llega la vista previa, con el estado de la
+  // columna a la que se ha pasado; el detalle abre la tarea real.
+  const latestTasks = useRef(tasks);
+  useLayoutEffect(() => {
+    latestTasks.current = tasks;
+  });
+  const openTask = useCallback(
+    (shown: Task) => {
+      const task = latestTasks.current.find(({ id }) => id === shown.id) ?? shown;
+      openDialog({ kind: 'edit', task });
+    },
+    [openDialog],
+  );
 
   // D-14: adónde va el foco según cómo se cerró el diálogo.
   function handleClose(result: DialogResult) {

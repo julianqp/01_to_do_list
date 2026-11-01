@@ -13,7 +13,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import type { Task, TaskStatus } from '@todo/shared';
-import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import type { AlertTone } from '../components/Alert';
 import type { HandleProps } from '../components/TaskCard';
 import {
@@ -211,6 +211,13 @@ export function useTaskMove({
     }
   }
 
+  // D-24: WebKit quita el foco de un botón al pulsarlo: se cancelaría antes de soltar, la tarjeta
+  // volvería a su sitio y no habría `click` en el asa. Solo con esa tarjeta cogida, porque dnd-kit no
+  // arranca si el `mousedown` llega con `preventDefault`.
+  function pressHandle(id: string, event: MouseEvent<HTMLButtonElement>) {
+    if (drag?.mode === 'keyboard' && drag.taskId === id) event.preventDefault();
+  }
+
   // RF-017, R-4: se comprueba en diferido porque, al cambiar de columna, el asa pierde el foco un
   // instante.
   function leaveHandle(id: string) {
@@ -220,9 +227,9 @@ export function useTaskMove({
     if (drag?.mode === 'keyboard' && drag.taskId === id) cancel(drag);
   }
 
-  const latest = useRef({ clickHandle, keyDownOnHandle, leaveHandle });
+  const latest = useRef({ clickHandle, keyDownOnHandle, pressHandle, leaveHandle });
   useLayoutEffect(() => {
-    latest.current = { clickHandle, keyDownOnHandle, leaveHandle };
+    latest.current = { clickHandle, keyDownOnHandle, pressHandle, leaveHandle };
   });
   // D-21: el mismo objeto para todas las tarjetas y en todos los renders, para que `memo` las deje
   // en paz (RNF-002). La tarjeta sale del propio botón, y el estado, del último render.
@@ -230,6 +237,8 @@ export function useTaskMove({
     onClick: ({ currentTarget }) => latest.current.clickHandle(currentTarget.dataset.taskHandle!),
     onKeyDown: (event) =>
       latest.current.keyDownOnHandle(event.currentTarget.dataset.taskHandle!, event),
+    onMouseDown: (event) =>
+      latest.current.pressHandle(event.currentTarget.dataset.taskHandle!, event),
     onBlur: ({ currentTarget }) => {
       const id = currentTarget.dataset.taskHandle!;
       setTimeout(() => latest.current.leaveHandle(id));

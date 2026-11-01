@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TaskCard, type TaskCardProps } from './TaskCard';
@@ -43,10 +43,10 @@ describe('TaskCard', () => {
     expect(handle.querySelector('svg.lucide-grip-vertical')).not.toBeNull();
   });
 
-  it('003 CA-1.8 CA-3.8 RF-006 clic y Enter en el botón de abrir llaman a onOpen; clic en el asa, no', async () => {
+  it('003 CA-1.8 CA-3.8 RF-006 clic y Enter en el botón de abrir llaman a onOpen, no al asa', async () => {
     const onClick = vi.fn();
-    const { card, handle, onOpen } = renderCard({}, vi.fn(), {
-      handleProps: { onClick, onKeyDown: vi.fn(), onBlur: vi.fn() },
+    const { card, onOpen } = renderCard({}, vi.fn(), {
+      handleProps: { onClick, onKeyDown: vi.fn(), onMouseDown: vi.fn(), onBlur: vi.fn() },
     });
     const user = userEvent.setup();
 
@@ -55,10 +55,30 @@ describe('TaskCard', () => {
     await user.keyboard('{Enter}');
     expect(onOpen).toHaveBeenCalledTimes(2);
     expect(onClick).not.toHaveBeenCalled();
+  });
 
-    await user.click(handle);
-    expect(onOpen).toHaveBeenCalledTimes(2);
+  it('003 CA-1.11 RF-006 D-24 un clic de puntero en el asa (`detail` 1) abre el detalle y no la coge', () => {
+    const onClick = vi.fn();
+    const { handle, onOpen } = renderCard({}, vi.fn(), {
+      handleProps: { onClick, onKeyDown: vi.fn(), onMouseDown: vi.fn(), onBlur: vi.fn() },
+    });
+
+    fireEvent.click(handle, { detail: 1 });
+
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('003 RF-013 D-24 un clic sin puntero en el asa (`detail` 0: teclado o lector) la coge y no abre el detalle', () => {
+    const onClick = vi.fn();
+    const { handle, onOpen } = renderCard({}, vi.fn(), {
+      handleProps: { onClick, onKeyDown: vi.fn(), onMouseDown: vi.fn(), onBlur: vi.fn() },
+    });
+
+    fireEvent.click(handle, { detail: 0 });
+
     expect(onClick).toHaveBeenCalledTimes(1);
+    expect(onOpen).not.toHaveBeenCalled();
   });
 
   it('003 RNF-001 D-11 el asa mide 44 por debajo de 1024 y 32 desde ahí; el orden de tabulación es abrir → asa', async () => {

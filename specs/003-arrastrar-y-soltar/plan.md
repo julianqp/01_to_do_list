@@ -241,7 +241,7 @@ export function useTaskMove(options: {
   announcement: string;                          // texto de la región viva
   dndProps: Pick<DndContextProps, 'sensors' | 'collisionDetection' | 'measuring' | 'accessibility'
     | 'onDragStart' | 'onDragOver' | 'onDragMove' | 'onDragEnd' | 'onDragCancel'>; // onDragMove: D-20
-  handleProps: HandleProps;                      // D-21: un solo objeto estable, con onClick, onKeyDown y onBlur
+  handleProps: HandleProps;                      // D-21: un solo objeto estable, con onClick, onKeyDown, onMouseDown (D-24) y onBlur
 };
 type DragState = { taskId: string; origin: Placement; current: Placement; mode: 'pointer' | 'keyboard' }; // D-8
 type Landing = { taskId: string; to: Placement; before: Placement };                                      // D-18
@@ -451,6 +451,11 @@ El resto sigue `DESIGN.md` tal cual:
   - *Alternativas descartadas:* `behavior: 'smooth'` (se queda atrás con flechas seguidas); `block: 'center'` (mueve la columna aunque la tarjeta ya se vea); dejar de hacer `preventDefault` (la página se movería con cada flecha).
 - **D-24 (añadida en la spec v2.0)** RF-006, CA-1.11, CA-4.6: `TaskCard` decide qué hace el `click` del asa por `event.detail`. Con `0` (teclado o tecnología de asistencia) llama a `handleProps.onClick`, como en D-7; con `1` o más (puntero) llama a `onOpen`. Cambia D-7.
   - Con la tarjeta cogida con teclado, un clic de puntero en su asa abre el detalle. El diálogo se lleva el foco y el movimiento se cancela por RF-017, sin guardar.
+  - *Ajustada en T-028, con el usuario:* este caso tenía dos fallos con la tarjeta ya pasada a otra columna.
+    - **Estado falso:** la tarjeta pintada es la de la vista previa, así que el detalle abría con el estado de la columna nueva y, al guardar, lo cambiaba. `Board.openTask` busca la tarea real en `tasks`, con una referencia para que siga siendo estable (D-21).
+    - **WebKit:** al pulsar el ratón, el asa pierde el foco, se cancela antes de soltar, la tarjeta vuelve a su sitio y no hay `click` en el asa. `handleProps.onMouseDown` hace `preventDefault` solo mientras esa tarjeta esté cogida con teclado.
+    - *Consecuencia aceptada:* dnd-kit no arranca si el `mousedown` llega con `preventDefault`, así que, mientras esté cogida con teclado, no se puede arrastrar con el ratón desde su propia asa. El resto de arrastres no cambia.
+    - *Alternativas descartadas:* `preventDefault` en todo `mousedown` del asa (rompe arrastrar desde el asa); aceptar que en WebKit el primer clic solo cancele (se aparta de este D-24 según el navegador).
   - Arrastrar desde el asa no cambia: dnd-kit suprime el `click` al soltar (R-1).
   - *Por qué:* un clic o un toque dejaban la tarjeta levantada sin ninguna indicación visible y, con el dedo, sin forma de moverla (verificación I-1).
   - *Riesgo aceptado:* si un lector envía su activación como un clic de puntero (`detail >= 1`), abriría el detalle en lugar de coger la tarjeta. Según D-22 no se prueba con un lector real. Los E2E de teclado de D-15 siguen comprobando que Espacio y Enter cogen la tarjeta en `chromium` y `webkit`.

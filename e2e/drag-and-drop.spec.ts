@@ -334,6 +334,84 @@ test.describe('ratón: entre columnas', () => {
     await expect(taskDialog(page)).toBeHidden();
   });
 
+  test('003 CA-1.11 RF-006 un clic en el asa abre el detalle: la tarjeta no se coge y la región viva sigue vacía', async ({
+    page,
+  }) => {
+    await openBoard(page);
+    await seedBoard(page);
+
+    await moveHandle(page, 'Preparar la demo').click();
+
+    await expect(taskDialog(page).getByLabel('Título')).toHaveValue('Preparar la demo');
+    await expect(liveRegion(page)).toHaveText('');
+    await page.keyboard.press('Escape');
+    await expect(taskDialog(page)).toBeHidden();
+    await expect(liveRegion(page)).toHaveText('');
+    await expectOrder(page, 'To do', TODO);
+  });
+
+  test('003 RF-006 arrastrar desde el asa mueve la tarjeta y no abre el detalle', async ({
+    page,
+  }) => {
+    await openBoard(page);
+    await seedBoard(page);
+
+    await dragCard(
+      page,
+      moveHandle(page, 'Preparar la demo'),
+      taskCard(boardColumn(page, 'In progress'), IN_PROGRESS[0]!),
+    );
+
+    await expectOrder(page, 'In progress', ['Preparar la demo', ...IN_PROGRESS]);
+    await expect(taskDialog(page)).toBeHidden();
+    await expect(liveRegion(page)).toHaveText('');
+  });
+
+  test('003 RF-017 D-24 con la tarjeta cogida con teclado, un clic en su asa abre el detalle, sin guardar, y el movimiento se cancela', async ({
+    page,
+  }) => {
+    await openBoard(page);
+    await seedBoard(page);
+    const moves = trackMoves(page);
+    const cancelled = 'Movimiento cancelado. «Preparar la demo» sigue en To do, posición 2 de 3.';
+    const handle = moveHandle(page, 'Preparar la demo');
+
+    await test.step('sin haberla movido', async () => {
+      await tabTo(page, handle);
+      await page.keyboard.press('Space');
+      await expect(liveRegion(page)).toContainText('Has cogido');
+
+      await handle.click();
+
+      await expect(taskDialog(page).getByLabel('Título')).toHaveValue('Preparar la demo');
+      await expect(taskDialog(page).getByRole('radio', { name: 'To do' })).toBeChecked();
+      await expect(liveRegion(page)).toHaveText(cancelled);
+      await page.keyboard.press('Escape');
+      await expect(taskDialog(page)).toBeHidden();
+    });
+
+    await test.step('después de pasarla a otra columna', async () => {
+      await tabTo(page, handle);
+      await page.keyboard.press('Space');
+      await page.keyboard.press('ArrowRight');
+      await expect(liveRegion(page)).toHaveText('In progress, posición 1 de 4.');
+
+      await handle.click();
+
+      // Con el estado real, no el de la vista previa.
+      await expect(taskDialog(page).getByLabel('Título')).toHaveValue('Preparar la demo');
+      await expect(taskDialog(page).getByRole('radio', { name: 'To do' })).toBeChecked();
+      await expect(liveRegion(page)).toHaveText(cancelled);
+      await page.keyboard.press('Escape');
+      await expect(taskDialog(page)).toBeHidden();
+    });
+
+    await expectOrder(page, 'To do', TODO);
+    await expectOrder(page, 'In progress', IN_PROGRESS);
+    await expect(taskCard(page, 'Preparar la demo')).toBeFocused();
+    expect(moves).toHaveLength(0);
+  });
+
   test('003 CA-1.9 E-7 RF-021 sin conexión al soltar: vuelve a To do, a su posición, con los recuentos de antes y el aviso', async ({
     page,
   }) => {
@@ -562,6 +640,23 @@ test.describe('dedo', () => {
     expect(panel!.y + panel!.height).toBeCloseTo(MOBILE.height, 0);
   });
 
+  test('003 CA-4.6 RF-006 a 375, tocar el asa sin mantener el dedo abre el detalle como panel inferior y no coge la tarjeta', async ({
+    page,
+  }) => {
+    await openBoard(page, MOBILE);
+    await seedBoard(page);
+    await columnPicker(page, 'To do').check();
+
+    await moveHandle(page, 'Preparar la demo').tap();
+
+    const dialog = taskDialog(page);
+    await expect(dialog.getByLabel('Título')).toHaveValue('Preparar la demo');
+    const panel = await dialog.boundingBox();
+    expect(panel!.width).toBeCloseTo(MOBILE.width, 0);
+    expect(panel!.y + panel!.height).toBeCloseTo(MOBILE.height, 0);
+    await expect(liveRegion(page)).toHaveText('');
+  });
+
   test('003 CA-4.5 RF-005 RF-019 a 375, soltar con el dedo sobre el selector de estados o fuera de la columna: vuelve, sin guardar ni avisar', async ({
     page,
   }) => {
@@ -625,6 +720,112 @@ test.describe('móvil con teclado', () => {
     await expect(boardColumn(page, 'To do')).toBeVisible();
     await expect(boardColumn(page, 'In progress')).toBeHidden();
     await expectOrder(page, 'To do', TODO);
+  });
+});
+
+test.describe('teclado: la tarjeta cogida sigue a la vista', () => {
+  test.skip(({ channel }) => channel === 'chrome', 'T-027: chromium y webkit');
+
+  const TWELVE = Array.from({ length: 12 }, (_, i) => `Tarea ${String(i + 1).padStart(2, '0')}`);
+
+  // RF-024: entera dentro de lo que hace scroll (la lista o `main`), con el foco en el asa y sin nada
+  // encima. Sin esperas: `instant` ya ha acabado cuando se anuncia el paso.
+  async function expectInView(page: Page, title: string, scroller: 'ul' | 'main', step: string) {
+    const handle = moveHandle(page, title);
+    await expect(handle, step).toBeFocused();
+    const seen = await handle.evaluate((element, scrollerSelector) => {
+      const card = element.parentElement!.getBoundingClientRect();
+      const box = element.closest(scrollerSelector)!.getBoundingClientRect();
+      const rect = element.getBoundingClientRect();
+      const onTop = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+      return {
+        above: box.top - card.top,
+        below: card.bottom - Math.min(box.bottom, window.innerHeight),
+        left: box.left - card.left,
+        right: card.right - Math.min(box.right, window.innerWidth),
+        handleOnTop: onTop?.closest('[data-task-handle]') === element,
+      };
+    }, scroller);
+    expect(seen.above, `${step}: por arriba`).toBeLessThanOrEqual(1);
+    expect(seen.below, `${step}: por abajo`).toBeLessThanOrEqual(1);
+    expect(seen.left, `${step}: por la izquierda`).toBeLessThanOrEqual(1);
+    expect(seen.right, `${step}: por la derecha`).toBeLessThanOrEqual(1);
+    expect(seen.handleOnTop, `${step}: el asa no está tapada`).toBe(true);
+  }
+
+  async function walkColumn(page: Page, scroller: 'ul' | 'main') {
+    const title = TWELVE[0]!;
+    await tabTo(page, moveHandle(page, title));
+    await page.keyboard.press('Space');
+    await expect(liveRegion(page)).toContainText(`Has cogido «${title}»`);
+    await expectInView(page, title, scroller, 'al cogerla');
+
+    for (const [key, positions] of [
+      ['ArrowDown', [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]],
+      ['ArrowUp', [11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]],
+    ] as const) {
+      for (const [i, position] of positions.entries()) {
+        await page.keyboard.press(key);
+        await expect(liveRegion(page)).toHaveText(`To do, posición ${position} de 12.`);
+        await expectInView(page, title, scroller, `${key} ${i + 1}, posición ${position}`);
+      }
+    }
+    await page.keyboard.press('Escape');
+  }
+
+  for (const height of [900, 720]) {
+    test(`003 CA-3.11 RF-024 a 1280 × ${height}, con 12 tarjetas: en cada flecha, la tarjeta dentro de la lista y el foco en el asa`, async ({
+      page,
+    }) => {
+      await openBoard(page, { width: 1280, height });
+      await seedBoard(page, { todo: TWELVE });
+
+      await walkColumn(page, 'ul');
+    });
+  }
+
+  test('003 CA-3.11 RF-024 a 375 × 812, con 12 tarjetas: en cada flecha, la tarjeta dentro de la ventana y «Crear tarea» no tapa el asa', async ({
+    page,
+  }) => {
+    await openBoard(page, MOBILE);
+    await seedBoard(page, { todo: TWELVE });
+    await columnPicker(page, 'To do').check();
+
+    await walkColumn(page, 'main');
+  });
+
+  test('003 CA-3.11 RF-024 al pasar a otra columna, la tarjeta también queda a la vista', async ({
+    page,
+  }) => {
+    await test.step('a una lista con scroll', async () => {
+      await openBoard(page, { width: 1280, height: 720 });
+      const inProgress = Array.from({ length: 12 }, (_, i) => `Curso ${i + 1}`);
+      await seedBoard(page, { todo: ['Preparar la demo'], in_progress: inProgress });
+      await boardColumn(page, 'In progress')
+        .getByRole('list')
+        .evaluate((list) => list.scrollTo({ top: list.scrollHeight, behavior: 'instant' }));
+
+      await tabTo(page, moveHandle(page, 'Preparar la demo'));
+      await page.keyboard.press('Space');
+      await page.keyboard.press('ArrowRight');
+
+      await expect(liveRegion(page)).toHaveText('In progress, posición 1 de 13.');
+      await expectInView(page, 'Preparar la demo', 'ul', 'Flecha derecha');
+      await page.keyboard.press('Escape');
+    });
+
+    await test.step('a una columna fuera del tablero visible', async () => {
+      await page.setViewportSize({ width: 768, height: 900 });
+      const handle = moveHandle(page, 'Preparar la demo');
+      await tabTo(page, handle);
+      await page.keyboard.press('Space');
+      await page.keyboard.press('ArrowRight');
+      await page.keyboard.press('ArrowRight');
+
+      await expect(liveRegion(page)).toHaveText('Done, posición 1 de 1.');
+      await expectInView(page, 'Preparar la demo', 'ul', 'dos veces Flecha derecha');
+      await page.keyboard.press('Escape');
+    });
   });
 });
 

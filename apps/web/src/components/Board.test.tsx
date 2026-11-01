@@ -343,6 +343,34 @@ describe('Board · mover con teclado', () => {
     expect(movesOf(tasks)).toEqual([]);
   });
 
+  it('003 RF-017 D-24 con la tarjeta cogida, un clic de puntero en su asa abre el detalle con la tarea real, sin guardar, y cancela', async () => {
+    const { tasks, user } = await renderLive();
+
+    await user.keyboard(' {ArrowRight}');
+    expect(titles('In progress')[0]).toBe('Preparar la demo');
+    fireEvent.click(handleOf('Preparar la demo'), { detail: 1 });
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole<HTMLInputElement>('radio', { name: 'To do' }).checked).toBe(
+      true,
+    );
+    await waitFor(() => expect(live()).toBe(CANCELLED));
+    expect(titles('To do')).toEqual(['Comprar pan', 'Preparar la demo', 'Llamar al banco']);
+    expect(movesOf(tasks)).toHaveLength(0);
+  });
+
+  // fireEvent devuelve false si se llamó a preventDefault.
+  it('003 RF-017 D-24 pulsar el ratón en el asa solo se impide con esa tarjeta cogida con teclado: WebKit le quitaría el foco y dnd-kit no arrancaría con las demás', async () => {
+    const { handle, user } = await renderLive();
+
+    expect(fireEvent.mouseDown(handle)).toBe(true);
+    await user.keyboard(' ');
+    expect(fireEvent.mouseDown(handle)).toBe(false);
+    expect(fireEvent.mouseDown(handleOf('Comprar pan'))).toBe(true);
+    await user.keyboard('{Escape}');
+    expect(fireEvent.mouseDown(handle)).toBe(true);
+  });
+
   it('003 RF-017 que el foco salga del asa también cancela', async () => {
     const { tasks, user } = await renderLive();
 
