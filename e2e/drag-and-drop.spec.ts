@@ -92,18 +92,35 @@ async function expectNoNotice(page: Page) {
   await expect(page.locator('[data-tone]')).toHaveCount(0);
 }
 
+// La tarea tal como la guarda la API: fuera de Done, la tarjeta no enseña la fecha real de fin.
+async function taskViaApi(page: Page, title: string) {
+  const listed = await page.request.get('/api/tasks');
+  const { tasks } = (await listed.json()) as {
+    tasks: { id: string; title: string; actualEndDate: string | null }[];
+  };
+  return tasks.find((task) => task.title === title)!;
+}
+
 // CA-1.10, CA-3.12: «borrada en otra pestaña», de verdad, por la API y sin que esta pestaña se entere.
 async function deleteTaskViaApi(page: Page, title: string) {
-  const listed = await page.request.get('/api/tasks');
-  const { tasks } = (await listed.json()) as { tasks: { id: string; title: string }[] };
-  const id = tasks.find((task) => task.title === title)!.id;
+  const { id } = await taskViaApi(page, title);
   const deleted = await page.request.delete(`/api/tasks/${id}`, { data: {} });
   expect(deleted.ok()).toBe(true);
 }
 
+// La fecha corta de la tarjeta, como `formatShortDate` para una fecha de este año.
+const shortDate = (iso: string) =>
+  new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
+    new Date(`${iso}T00:00:00.000Z`),
+  );
+
 const isMove = (request: Request) =>
   request.method() === 'POST' &&
   /^\/api\/tasks\/[^/]+\/move$/.test(new URL(request.url()).pathname);
+
+// La tarjeta cambia de sitio antes de que llegue la respuesta (RF-020): hay que esperarla antes de
+// mirar lo guardado o de volver a cargar. Se pide antes de soltar.
+const moveResponse = (page: Page) => page.waitForResponse((response) => isMove(response.request()));
 
 // Las peticiones a `…/move` que haga la página desde ahora.
 function trackMoves(page: Page) {
@@ -476,6 +493,75 @@ test.describe('ratón: entre columnas', () => {
     await expectCount(page, 'In progress', 3);
   });
 
+  test('003 CA-1.4 RF-003 con ratón, una retrasada soltada en Done pierde «Retrasada» y muestra la fecha de hoy, sin abrir el detalle', async ({
+    page,
+  }) => {
+    await openBoard(page);
+    await createTaskViaApi(
+      page,
+      { title: 'Preparar la demo', estimatedEndDate: isoDaysFromToday(-3) },
+      'in_progress',
+    );
+    await reloadBoard(page);
+    const today = isoDaysFromToday(0);
+    await expect(taskCard(page, 'Preparar la demo')).toContainText('Retrasada');
+    const saved = moveResponse(page);
+
+    await dragCard(page, taskCard(page, 'Preparar la demo'), boardColumn(page, 'Done'), {
+      fractionY: 0.5,
+    });
+
+    expect((await saved).status()).toBe(200);
+    const inDone = taskCard(boardColumn(page, 'Done'), 'Preparar la demo');
+    await expect(inDone).toContainText(`Fecha real de fin: ${shortDate(today)}`);
+    await expect(inDone).not.toContainText('Retrasada');
+    await expect(taskDialog(page)).toBeHidden();
+    expect((await taskViaApi(page, 'Preparar la demo')).actualEndDate).toBe(today);
+  });
+
+  test('003 CA-1.5 RF-004 con ratón, de Done a To do se queda sin fecha real de fin', async ({
+    page,
+  }) => {
+    await openBoard(page);
+    await createTaskViaApi(page, { title: 'Preparar la demo' }, 'done');
+    await seedBoard(page, { todo: ['Comprar pan'] });
+    const inDone = taskCard(boardColumn(page, 'Done'), 'Preparar la demo');
+    await expect(inDone).toContainText('Fecha real de fin');
+    const saved = moveResponse(page);
+
+    await dragCard(page, inDone, taskCard(boardColumn(page, 'To do'), 'Comprar pan'));
+
+    expect((await saved).status()).toBe(200);
+    await expectOrder(page, 'To do', ['Preparar la demo', 'Comprar pan']);
+    await expect(taskCard(boardColumn(page, 'To do'), 'Preparar la demo')).not.toContainText(
+      'Fecha real de fin',
+    );
+    expect((await taskViaApi(page, 'Preparar la demo')).actualEndDate).toBeNull();
+  });
+
+  test('003 CA-1.10 RF-022 borrada en otra pestaña: al arrastrarla con ratón, aviso y la tarjeta desaparece', async ({
+    page,
+  }) => {
+    await openBoard(page);
+    await seedBoard(page);
+    await deleteTaskViaApi(page, 'Preparar la demo');
+    const answered = moveResponse(page);
+
+    await dragCard(
+      page,
+      taskCard(page, 'Preparar la demo'),
+      taskCard(boardColumn(page, 'In progress'), IN_PROGRESS[0]!),
+    );
+
+    expect((await answered).status()).toBe(404);
+    await expect(page.getByText('Esta tarea ya no existe.')).toBeVisible();
+    await expect(taskCard(page, 'Preparar la demo')).toHaveCount(0);
+    await expectOrder(page, 'To do', ['Comprar pan', 'Llamar al banco']);
+    await expectOrder(page, 'In progress', IN_PROGRESS);
+    await expectCount(page, 'To do', 2);
+    await expectCount(page, 'In progress', 3);
+  });
+
   test('003 E-17 cambiar el tamaño de la ventana a mitad de arrastre lo cancela, sin guardar', async ({
     page,
   }) => {
@@ -604,6 +690,67 @@ test.describe('ratón: dentro de una columna', () => {
 
     await expectNoNotice(page);
     expect(moves).toHaveLength(0);
+  });
+
+  test('003 CA-2.6 RF-021 sin conexión al reordenar con ratón: la columna vuelve al orden de antes, con el aviso', async ({
+    page,
+  }) => {
+    await openBoard(page);
+    await seedBoard(page);
+    await page.route('**/api/tasks/*/move', (route) => route.abort('internetdisconnected'));
+    const moves = trackMoves(page);
+
+    await dragCard(page, taskCard(page, 'Preparar la demo'), taskCard(page, 'Comprar pan'));
+
+    await expect(page.getByText(MOVE_ERROR)).toBeVisible();
+    await expectOrder(page, 'To do', TODO);
+    await expectCount(page, 'To do', 3);
+    expect(moves).toHaveLength(1);
+  });
+});
+
+test.describe('ratón a 375', () => {
+  test('003 RF-019 con ratón, reordena la columna visible, y soltar sobre el selector de estados no guarda', async ({
+    page,
+  }) => {
+    await openBoard(page, MOBILE);
+    await seedBoard(page);
+    await columnPicker(page, 'To do').check();
+    const moves = trackMoves(page);
+
+    await test.step('soltar sobre el selector de estados', async () => {
+      await dragCard(page, taskCard(page, 'Preparar la demo'), columnPicker(page, 'In progress'), {
+        drop: false,
+        fractionY: 0.5,
+      });
+      await expect(dragOverlay(page, 'Preparar la demo')).toBeVisible();
+      await page.mouse.up();
+
+      await expect(dragOverlay(page, 'Preparar la demo')).toHaveCount(0);
+      await expectOrder(page, 'To do', TODO);
+      await expect(columnPicker(page, 'To do')).toBeChecked();
+      await expect(columnPicker(page, 'In progress')).toHaveAccessibleName('In progress · 3');
+      await expectNoNotice(page);
+      expect(moves).toHaveLength(0);
+    });
+
+    await test.step('reordenar la columna visible', async () => {
+      const saved = moveResponse(page);
+
+      await dragCard(page, taskCard(page, 'Llamar al banco'), taskCard(page, 'Comprar pan'));
+
+      const response = await saved;
+      expect(response.status()).toBe(200);
+      expect(response.request().postDataJSON()).toEqual({
+        status: 'todo',
+        index: 0,
+        today: isoDaysFromToday(0),
+      });
+      await expectOrder(page, 'To do', ['Llamar al banco', 'Comprar pan', 'Preparar la demo']);
+      await reloadBoard(page);
+      await columnPicker(page, 'To do').check();
+      await expectOrder(page, 'To do', ['Llamar al banco', 'Comprar pan', 'Preparar la demo']);
+    });
   });
 });
 
@@ -1021,6 +1168,32 @@ test.describe('accesibilidad y aspecto', () => {
       await expect(liveRegion(page)).toContainText('Has cogido «Preparar la demo»');
 
       await expectNoAxeViolations(page);
+    });
+
+    test(`003 RNF-001 axe sin infracciones en pleno arrastre con puntero, con la capa y el hueco a la vista (${colorScheme})`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme });
+      await openBoard(page);
+      await seedBoard(page);
+      const inProgress = boardColumn(page, 'In progress');
+
+      await dragCard(
+        page,
+        taskCard(page, 'Preparar la demo'),
+        taskCard(inProgress, IN_PROGRESS[0]!),
+        { drop: false },
+      );
+      await expect(dragOverlay(page, 'Preparar la demo')).toBeVisible();
+      await expect(inProgress.locator('li').first()).toContainText('Preparar la demo');
+      await expect(inProgress.getByText('Preparar la demo', { exact: true })).toBeHidden();
+
+      await expectNoAxeViolations(page);
+
+      // Sigue en el aire: axe ha mirado la capa y el hueco, no el tablero en reposo.
+      await expect(dragOverlay(page, 'Preparar la demo')).toBeVisible();
+      await page.keyboard.press('Escape');
+      await page.mouse.up();
     });
   }
 
