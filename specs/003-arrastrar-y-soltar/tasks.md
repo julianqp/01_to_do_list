@@ -1,7 +1,7 @@
 ---
 spec: 003
 plan_aprobado: 2026-10-31
-progreso: 39/39
+progreso: 38/43
 ---
 
 # Tareas · Spec 003 · Arrastrar y soltar
@@ -442,11 +442,80 @@ Resuelven `verificacion.md` (T-025, NO APTO), con las decisiones del usuario del
   - Cubre: C-17, C-19, RF-024, RF-025, CA-1.11, CA-1.12, CA-3.11, CA-3.12, CA-3.13, CA-4.6, E-21, E-22
   - Hecho cuando: hay un test cuyo título empieza por `003 ` para cada ID nuevo, con el criterio de T-024 (88 IDs en total, sin contar E-19); `pnpm test`, `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` en verde en los tres proyectos; el Registro tiene el recuento
 
-- [x] **T-037** Volver a ejecutar `/sdd-verificar`
-  - Depende de: T-036
+- [ ] **T-037** Volver a ejecutar `/sdd-verificar` (tercera verificación)
+  - Depende de: T-036 y T-040 a T-043
   - Ficheros: `specs/003-arrastrar-y-soltar/verificacion.md`
   - Cubre: todos (spec v3.0)
   - Hecho cuando: el informe está escrito, en una sesión nueva si es posible; si sale APTO, la spec pasa a `implementada` con la confirmación del usuario
+
+## Fase 7 · Correcciones de la segunda verificación
+
+Resuelven `verificacion.md` (segunda, APTO CON OBSERVACIONES), con las decisiones del usuario del 2026-11-01: I-1, I-2, el anillo de foco de M-1 y lo que M-5 dice de `plan.md`. La spec no cambia: RF-005, RF-011 y RNF-001 ya piden este comportamiento. Van en orden, porque comparten `e2e/drag-and-drop.spec.ts` y `plan.md`, y T-037 va después de todas. Cada una termina con `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde. Los fallos de `/signup` sin hidratar (M-7 de la 004) se anotan aparte y no cuentan como fallos de estas tareas.
+
+- [ ] **T-040** No guardar si se suelta en el margen del tablero
+  - Ficheros: `apps/web/src/lib/task-move.ts` (`collisionDetection`, `inVisibleColumn`), `apps/web/src/components/Board.tsx` (solo si hace falta un atributo para localizar el contenedor con scroll), `e2e/drag-and-drop.spec.ts`, `specs/003-arrastrar-y-soltar/plan.md` (**D-31**)
+  - Cubre: RF-005, CA-1.7, E-5, E-21, D-9, D-25 (verificación I-1)
+  - Pasos:
+    - una sola comprobación para los dos sitios: el punto tiene que caer en el rectángulo de la columna **recortado con el del tablero visible**;
+    - fuera de ese recorte, `collisionDetection` no devuelve ningún destino, así que la vista previa vuelve al origen antes de soltar (D-9), y no solo deja de guardarse;
+    - la decisión va al plan como `D-31 (añadida en T-040)`.
+  - Casos (E2E primero, porque jsdom no calcula posiciones), en `chromium` y `webkit`:
+    - `003 CA-1.7 RF-005 D-31` a 768 y 1024, soltar en el margen derecho con el tablero aún recortado, sin esperar y a los 100 ms: ninguna petición a `…/move`, la tarjeta en su sitio y sin aviso;
+    - `003 RF-005 D-31` lo mismo en el margen izquierdo, con el tablero ya desplazado;
+    - `003 RF-005 D-31` con el puntero en el margen, la vista previa vuelve al origen;
+    - `003 E-5 D-31` con el puntero en el margen, el tablero sigue haciendo scroll solo;
+    - `003 RF-001 D-31` soltar en la parte visible de una columna recortada, dentro del tablero: se guarda en esa columna.
+  - Hecho cuando:
+    - el primer caso falla primero (la verificación midió que, a 768 sin esperar, guarda en `chromium` y `webkit`), y se anota en el Registro;
+    - después pasan todos, también con `--repeat-each=5 --retries=0`;
+    - `003 CA-1.7`, `003 CA-4.5`, `003 RF-019`, `003 E-5` y `003 E-21` siguen en verde sin cambiarlos.
+
+- [ ] **T-041** Volver a medir las tarjetas al cambiar la vista previa
+  - Depende de: T-040
+  - Ficheros: `apps/web/src/components/Board.tsx` (un componente pequeño dentro de `DndContext`), `apps/web/src/lib/task-move.ts` (comentario de `MEASURING`), `e2e/helpers.ts` (comentario de `dragCard`), `e2e/drag-and-drop.spec.ts`, `specs/003-arrastrar-y-soltar/plan.md` (D-9)
+  - Cubre: RF-007, RF-011, CA-2.5, RNF-002, RNF-004, E-4, D-9, D-20, D-21 (verificación I-2)
+  - Pasos:
+    - `measureDroppableContainers` sale de `useDndContext`, que solo funciona dentro de `DndContext`, y `useTaskMove` está por encima. Por eso hace falta un componente pequeño dentro del contexto, que lo llame en un efecto de layout cuando cambie `drag.current` con el puntero. Sin ids vuelve a medir todas; si RNF-002 lo pide, solo las de las columnas afectadas;
+    - sin romper el `memo` de D-21: ese componente no pinta nada y no pasa nada a las tarjetas;
+    - `plan.md`, D-9 «Medidas»: corregir la idea antigua, porque `MeasuringStrategy.Always` no vuelve a medir cuando las mismas tarjetas cambian de orden (T-035), y escribir cómo se hace ahora y si `Always` sigue haciendo falta;
+    - corregir los comentarios que repiten esa idea: `task-move.ts:78` y `e2e/helpers.ts:182`.
+  - Casos:
+    - **Antes de cambiar nada**, sin un caso que falle siempre: `pnpm test:e2e e2e/drag-and-drop.spec.ts --project=webkit -g "003 CA-2.5" --repeat-each=200 --retries=0`, con el número de fallos reales en el Registro (la verificación midió 3 de 100);
+    - `003 RF-007 D-9` con un título de 200 caracteres entre tarjetas cortas y el puntero casi quieto sobre otra tarjeta, durante 500 ms: la vista previa no oscila, en `chromium` y `webkit`. Los rectángulos viejos podían estar tapando este riesgo (D-9, D-20). **Si oscila, parar y avisar**;
+    - `003 RNF-002 D-9` en `chromium`, reordenar dentro de la columna de 200 tarjetas: ≤ 100 ms desde que se suelta. El test actual saca la tarjeta de esa columna.
+  - Hecho cuando:
+    - `-g "003 CA-2.5"` en `webkit`, con `--repeat-each=300 --retries=0`, da **0 fallos reales**. Si no, **parar y avisar**: queda la opción 2 de I-2;
+    - RNF-002, los dos tests, ≤ 100 ms en tres ejecuciones seguidas en `chromium`, con los tiempos en el Registro (antes de esta tarea, 38,5 / 40,7 / 39 ms);
+    - se anota lo que tarda un cambio de vista previa con 200 tarjetas: la spec no pone límite, pero si pasa de 100 ms, **avisar**;
+    - `003 E-4` y `003 E-5` siguen en verde;
+    - `pnpm test:e2e` en verde en los tres proyectos, con los «flaky» identificados en el Registro.
+
+- [ ] **T-042** Dar sitio al anillo de foco del asa de 768 a 1023 px
+  - Depende de: T-041
+  - Ficheros: `apps/web/src/components/TaskCard.tsx` y `BoardColumn.tsx` (el que haga falta), `TaskCard.test.tsx`, `e2e/drag-and-drop.spec.ts`, `specs/003-arrastrar-y-soltar/plan.md` (D-11, si cambia lo que dice del asa)
+  - Cubre: RNF-001, C-20, CA-3.1, CA-3.11, D-11 (verificación M-1, solo el anillo)
+  - Pasos: el anillo necesita 4 px alrededor del asa (`outline` 2 + `offset` 2). Se le da sitio llevando el asa hacia dentro, como ya hace desde 1024 px, ajustando el relleno del botón de abrir para que no tape el título, o con más relleno en la lista. La opción elegida y el motivo van al Registro. Solo valores del catálogo, sin `style=` (ADR-0003).
+  - Casos (E2E primero), en `chromium` y `webkit`:
+    - `003 RNF-001 C-20` a 768 y 1023, con la tarjeta cogida con teclado, primera y última de la columna: al menos 4 px desde el asa hasta cada borde de la lista (la verificación midió 2,04 a la derecha);
+    - `003 CA-3.11 RNF-001` a 768, con 12 tarjetas: lo mismo en cada Flecha abajo hasta el final y Flecha arriba hasta el principio, porque `scrollIntoView` deja la tarjeta pegada al borde de la lista (D-23);
+    - `003 RNF-001` el asa sigue midiendo 44 × 44 a 768 y 1023;
+    - `003 E-6 RNF-001` con un título de 200 caracteres, el asa no tapa el texto a 768.
+  - Hecho cuando:
+    - el primer caso falla primero; después pasan todos;
+    - en una captura a 768, en claro y en oscuro, el anillo se ve entero, anotado en el Registro;
+    - `design-rules.test.ts` en verde sin cambiarlo;
+    - `pnpm test:e2e e2e/drag-and-drop.spec.ts e2e/design-system.spec.ts` en verde en `chromium` y `webkit`;
+    - si dar sitio al anillo cambia algo desde 1024 px, **parar y avisar**.
+  - Fuera de esta tarea: la sombra recortada de la tarjeta cogida, la otra parte de M-1.
+
+- [ ] **T-043** Limpiar `plan.md`, §4.4 y §4.5
+  - Depende de: T-042 (mismo fichero)
+  - Ficheros: `specs/003-arrastrar-y-soltar/plan.md`
+  - Cubre: C-26 (verificación M-5, solo `plan.md`). Sin cambio de comportamiento
+  - Pasos:
+    - §4.4: añadir la fila de `apps/web/src/components/PrivateArea.tsx`: tablero si hay datos (D-30) y `scroll-padding` de `main` (D-23), «Modificado»;
+    - §4.5, «Asa»: el icono de 16 px se apoya en `DESIGN.md` §11.3, no en §9, que pide el 40 % del diámetro en los botones de icono (17,6 y 12,8 px).
+  - Hecho cuando: `git diff` de esta tarea solo cambia esas dos partes; `pnpm lint` en verde.
 
 ## Registro
 
@@ -493,4 +562,5 @@ Resuelven `verificacion.md` (T-025, NO APTO), con las decisiones del usuario del
 | T-034 | 149e3c9 | M-7: 7 tests nuevos (RF-019 con ratón a 375; axe en pleno arrastre, en claro y oscuro; CA-1.4, CA-1.5, CA-1.10 y CA-2.6 con ratón). **Los 6 casos pasan en `chromium`, `chrome` y `webkit` (21 de 21), sin cambios en `apps/web`: ningún fallo real.** No se han visto fallar, porque la tarea no lo pide y el comportamiento ya existía; para que no pasen sin probar nada, comprueban su precondición (la insignia, la fecha, la capa en el aire), la respuesta o el número de peticiones a `…/move` y, en CA-1.4 y CA-1.5, la fecha guardada por la API, porque fuera de Done la tarjeta no la enseña. CA-1.5 usa la fecha de hoy y no la del ejemplo (27/10): `createTaskViaApi` no deja otra, y no cambia lo que se comprueba. Sin cambios en `helpers.ts`; `taskViaApi` sale de `deleteTaskViaApi`, sin cambio de comportamiento. Estabilidad, sin reintentos: ×5 de los 7 tests en los tres proyectos (103 de 105), y solo en `webkit`, ×30 de CA-1.5 (28 de 30) y ×15 de los 7 (103 de 105). Los 6 fallos son de `webkit`; 5 están confirmados como `/signup` sin hidratar (M-7), en `openBoard` y antes de llegar al tablero. **El sexto, de CA-1.5 en la tanda ×5, queda sin confirmar:** su error se perdió al borrarse `test-results`; después CA-1.5 pasó 43 de 45, y esos 2 fallos son `/signup`. **Para T-035:** el fichero completo en los tres proyectos dio 124 pasan, 19 saltados y 1 fallo: `003 CA-2.5` en `webkit`, también al reintentar (hasta ahora siempre había pasado al reintentar). No se guardó el mensaje y no se ha investigado, porque es de T-035. `pnpm test` (897), `pnpm lint` y `pnpm typecheck` en verde |
 | T-035 | 9566a81 | **Se reproduce y es un fallo real de `apps/web`, sin corregir: pendiente de la decisión del usuario.** Sin reintentos, en `webkit`: `-g "003 CA-2.5" --repeat-each=100`, 97 pasan, 2 fallos reales y 1 de `/signup` (M-7); fichero completo 5 veces, 1 pasada con fallo de CA-2.5 (no depende de la carga: también falla aislado). Falla en el segundo paso, al salir a In progress y volver: la tarjeta acaba en la posición 3 y **se guarda** (`POST …/move` con `index: 2`). No es solo la vista previa ni un fallo del test. **Causa, medida con una sonda temporal ya borrada** (reescribía `task-move.ts` en la respuesta del servidor de desarrollo, sin tocar el fichero), 12 fallos de 138: (1) al entrar en To do, `over` es «Comprar pan», `below`, índice 1: correcto; (2) se pinta el hueco, «Llamar al banco» baja a 455,5, pero su rectángulo en dnd-kit sigue en 381; con el puntero en 348, `closestCenter` da «Llamar al banco»; (3) en la misma columna, `placementFromOver` da el índice de esa tarjeta sin mirar `below` (D-9): índice 2; (4) el rectángulo de la tarjeta arrastrada también queda en 381 y su hueco en 455,5, así que `over` es ella misma y `onDragMove` (D-20) sale sin corregir, durante los movimientos que siguen y hasta soltar. **D-9 da por hecho algo que no ocurre:** `MeasuringStrategy.Always` solo evita que la medición se desactive; en `core.esm.js`, `useDroppableMeasuring` remide si cambian los `containers` o se llama a `measureDroppableContainers`, no porque las mismas tarjetas cambien de orden (`@dnd-kit/sortable`, que aquí no se usa, sí lo pide). **Alcance:** a velocidad de test, solo `webkit` (12 de 138, 8 de 247 con la primera sonda); `chromium` 0 de 150, `chrome` 0 de 100. Con un movimiento cada 16 ms, 0 de 142 en `webkit` y 0 de 100 en `chromium`: no se ha visto a velocidad de ratón real, lo que no lo descarta. El hueco enseña dónde va a caer antes de soltar. **Sin confirmar:** que sea la causa del fallo de `003 RF-006` en `webkit` (T-038) y que la explicación del «empate de medio píxel» de T-021 estuviera incompleta; el ajuste de 8 px de T-021 no lo evita. Sin cambios en `apps/web` ni en los E2E. `pnpm test` (897), `pnpm lint` y `pnpm typecheck` en verde. T-036 pide `pnpm test:e2e` en verde: con este fallo, puede salir en rojo al azar |
 | T-036 | 17af22e | **Trazabilidad: 88 de 88 IDs**, con el criterio de T-024 y sin contar E-19: RF-001…RF-025 (25), CA-1.1…CA-1.12, CA-2.1…CA-2.6, CA-3.1…CA-3.13 y CA-4.1…CA-4.6 (37), E-1…E-22 salvo E-19 (21) y RNF-001…RNF-005 (5). Los 10 IDs nuevos ya tenían test: no se añade ninguno. El `grep` tiene que aceptar comillas invertidas dentro del título, como en el de E-11 de `tasks.move.test.ts`; con el primer patrón, E-11 salía como falta sin serlo. **Suite, una pasada:** `pnpm test` (897), `pnpm lint` y `pnpm typecheck` en verde. `pnpm test:e2e` (cuatro ficheros, tres proyectos) termina con código 0: 304 pasan, 21 saltados según lo previsto (`chrome` 16, `webkit` 5) y 2 «flaky» en `webkit`, que pasan al reintentar: `board.spec.ts` RNF-002 (`/signup` sin hidratar, M-7) y `design-system.spec.ts` CA-5.4 (sin `h1` tras el `goto`, compatible con M-7, sin confirmar). **Este verde no resuelve lo pendiente:** CA-2.5 pasó a la primera en esta pasada, pero el fallo real de T-035 sigue sin corregir (2 de 100 en `webkit`), y el cuelgue de `003 RF-009 D-2` (T-039) sigue sin causa conocida. Ambos, pendientes de la decisión del usuario antes de T-037 |
-| T-037 | | `verificacion.md`: **APTO CON OBSERVACIONES**, en una sesión nueva, sin bloqueantes. Dos importantes: **I-1**, nuevo, soltar en el margen del tablero de 768 a 1279 px guarda el movimiento (RF-005), en `chromium` y `webkit`; **I-2**, el fallo de T-035, reproducido 3 de 100 en `webkit`. Menores: M-1 (anillo de foco y sombra recortados de 768 a 1023 px), M-2 (el cuelgue de T-039: 0 de 26 pasadas solo, 1 de 8 con los E2E a la vez, en otro test con el mismo patrón; causa sin confirmar), M-3 (contraste de la capa en Safari, sin comprobar), M-4 (RF-023 frente a D-26) y M-5 (documentos). `pnpm test` (897), `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` en verde (305 pasan, 21 saltados, 1 «flaky» en `webkit`); RNF-002: 38,5 / 40,7 / 39 ms. Se usaron tres sondas temporales, ya borradas. La spec sigue en `en-implementacion`, pendiente de la decisión del usuario |
+| T-037 | 406a678 | **Segunda verificación; T-037 sigue pendiente hasta la tercera.** `verificacion.md`: **APTO CON OBSERVACIONES**, en una sesión nueva, sin bloqueantes. Dos importantes: **I-1**, nuevo, soltar en el margen del tablero de 768 a 1279 px guarda el movimiento (RF-005), en `chromium` y `webkit`; **I-2**, el fallo de T-035, reproducido 3 de 100 en `webkit`. Menores: M-1 (anillo de foco y sombra recortados de 768 a 1023 px), M-2 (el cuelgue de T-039: 0 de 26 pasadas solo, 1 de 8 con los E2E a la vez, en otro test con el mismo patrón; causa sin confirmar), M-3 (contraste de la capa en Safari, sin comprobar), M-4 (RF-023 frente a D-26) y M-5 (documentos). `pnpm test` (897), `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` en verde (305 pasan, 21 saltados, 1 «flaky» en `webkit`); RNF-002: 38,5 / 40,7 / 39 ms. Se usaron tres sondas temporales, ya borradas. La spec sigue en `en-implementacion`, pendiente de la decisión del usuario |
+| — | | 2026-11-01, decisiones del usuario sobre la segunda verificación: corregir I-1 (T-040), I-2 con la opción 1 (T-041), el anillo de foco de M-1 (T-042) y lo que M-5 dice de `plan.md` (T-043). T-037 vuelve a pendiente hasta la tercera verificación. **Sin tarea:** M-2 (cuelgue de T-039), M-3 (contraste de la capa en Safari), M-4 (RF-023 frente a D-26), la sombra recortada de M-1 y las filas del roadmap de M-5. Las filas del roadmap se añaden al cerrar la spec; lo demás volverá a salir en la tercera verificación si no se decide antes |

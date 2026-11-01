@@ -285,7 +285,7 @@ Ninguno.
 
 | Punto | Estado | Nota |
 |---|---|---|
-| Todas las tareas `[x]` | ✅ | T-001 a T-036, T-038 y T-039 comprobadas por su resultado y su Registro; T-037 se marca con este informe |
+| Todas las tareas `[x]` | ✅ | T-001 a T-036, T-038 y T-039 comprobadas por su resultado y su Registro; T-037 sigue pendiente hasta la tercera verificación (T-040 a T-043) |
 | Cada RF y CA con test que pasa | ⚠️ | 62/62 con test; CA-2.5 falla 3 de 100 en `webkit` (I-2) |
 | Cada caso límite implementado y probado | ✅ | E-19, manual |
 | Sin código que no se trace | ✅ | |
