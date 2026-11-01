@@ -1,7 +1,7 @@
 ---
 spec: 003
 plan_aprobado: 2026-10-31
-progreso: 23/25
+progreso: 24/25
 ---
 
 # Tareas · Spec 003 · Arrastrar y soltar
@@ -287,7 +287,7 @@ Todas tocan `Board.tsx`, `BoardColumn.tsx`, `TaskCard.tsx` o `task-move.ts`: van
   - Cubre: RNF-002, E-4, E-5
   - Hecho cuando: en `chromium`, el test de RNF-002 da ≤ 100 ms en tres ejecuciones seguidas (los tiempos se anotan en el Registro); los de E-4 y E-5 pasan; `grep -rn "console.log" e2e/` no encuentra nada
 
-- [ ] **T-023** [P] Actualizar `DESIGN.md` a 1.4.0-todo.1 y repasar la checklist §21 y el lector de pantalla
+- [x] **T-023** [P] Actualizar `DESIGN.md` a 1.4.0-todo.1 y repasar la checklist §21
   - Depende de: T-019
   - Ficheros: `DESIGN.md`
   - Cubre: RNF-001, RNF-005, X-1, X-2, C-26 (plan §4.6, §7 «Manual»)
@@ -296,7 +296,7 @@ Todas tocan `Board.tsx`, `BoardColumn.tsx`, `TaskCard.tsx` o `task-move.ts`: van
     - §11.3 tiene la frase nueva del orden (plan §4.6) y describe el asa, la tarjeta levantada, el hueco con anillo y el aviso «No hemos podido mover la tarea…» en la misma zona de alerta;
     - §8 «Arrastrar» recoge X-1 y X-2;
     - la versión es 1.4.0-todo.1, con su fila en el «Historial»;
-    - la checklist §21 repasada sobre la tarjeta levantada, el hueco y el asa a 375, 768 y 1280, en los dos temas y con «aumentar contraste», y VoiceOver en Safari (coger, mover, soltar y cancelar escuchando los anuncios), con el resultado en el Registro
+    - la checklist §21 repasada sobre la tarjeta levantada, el hueco y el asa a 375, 768 y 1280, en los dos temas y con «aumentar contraste», con el resultado en el Registro (sin prueba con lector de pantalla, plan D-22)
 
 - [x] **T-024** Comprobar la trazabilidad de requisitos, criterios y casos límite en los tests
   - Depende de: T-021, T-022
@@ -343,5 +343,5 @@ Todas tocan `Board.tsx`, `BoardColumn.tsx`, `TaskCard.tsx` o `task-move.ts`: van
 | T-020 | | Sin cambios en `apps/web`: D-13 (columnas ocultas sin medidas) y D-6 (`TouchSensor` con retardo) ya cumplen RF-018 y RF-019. Solo se corrige una expectativa de mi E2E (CA-4.5: In progress tiene 3 tarjetas, no 0). Los E2E de dedo pasan: CA-4.1, CA-4.3, CA-4.4 y CA-4.5 en `chromium`, `chrome` y `webkit`, y CA-4.2 en `chromium` y `chrome`. `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde |
 | T-021 | | `pnpm test:e2e` (cuatro ficheros) en los tres proyectos: 251 pasan, 11 saltados (según lo previsto: solo `chromium` o sin `chrome`), 1 «flaky» en `webkit` (hidratación, M-7, pasa al reintentar) y solo falla RNF-002, que es de T-022. axe sin infracciones con una tarjeta cogida, en los dos temas; el asa mide 44 px a 375 y 32 px a 1280. Ajuste de E2E: CA-2.5 vuelve a probar soltar dentro de su propio hueco, y aparte salir a otra columna y volver, 8 px por encima del centro: justo en el centro hay un empate de medio píxel con la tarjeta que ocupó el hueco y `webkit` a veces resolvía «después». Sin correcciones de comportamiento en `apps/web` |
 | T-022 | | RNF-002 con 500 tareas (200 en To do): **antes 176,7 / 180,2 / 175,5 ms** (no cumplía); **después 40,2 / 38,4 / 39,5 ms** en tres ejecuciones seguidas en `chromium`. Cambios (plan **D-21, añadida**): `memo` en `TaskCard` y `DraggableCard`, opciones de los sensores constantes, y `handleProps` como un solo objeto estable, lo que cambia el contrato de plan §4.3 (actualizado). E-4 y E-5 pasan. `grep -rn "console.log" e2e/` no encuentra nada. `pnpm test` (880), `pnpm lint` y `pnpm typecheck` en verde |
-| T-023 | | **Abierta: falta VoiceOver.** Hecho: `DESIGN.md` a 1.4.0-todo.1 (`--ring-drop` en §1.4 y §6.2, con el mismo valor que `tokens.css`, revisado con `grep`; §8 con X-1 y X-2; §11.3 con el orden, el asa, el movimiento y el aviso; fila en el Historial). Checklist §21 repasada con 36 capturas de la tarjeta levantada, el hueco y el asa a 375, 768 y 1280, en los dos temas y con «aumentar contraste». **Hallazgo y corrección:** la tarjeta levantada era translúcida y el texto de debajo se transparentaba a través del suyo (se veía a 375 en oscuro); lleva `backdrop-glass` (§6.3), con su test. En `specs/roadmap.md`, «Ideas sin priorizar»: animar las tarjetas (X-2) y quitar el aviso de mover tras un movimiento correcto. **Pendiente (manual, del usuario):** VoiceOver en Safari: coger, mover, soltar y cancelar escuchando los anuncios |
+| T-023 | | `DESIGN.md` a 1.4.0-todo.1 (`--ring-drop` en §1.4 y §6.2, con el mismo valor que `tokens.css`, revisado con `grep`; §8 con X-1 y X-2; §11.3 con el orden, el asa, el movimiento y el aviso; fila en el Historial). Checklist §21 repasada con 36 capturas de la tarjeta levantada, el hueco y el asa a 375, 768 y 1280, en los dos temas y con «aumentar contraste». **Hallazgo y corrección:** la tarjeta levantada era translúcida y el texto de debajo se transparentaba a través del suyo (se veía a 375 en oscuro); lleva `backdrop-glass` (§6.3), con su test. En `specs/roadmap.md`, «Ideas sin priorizar»: animar las tarjetas (X-2) y quitar el aviso de mover tras un movimiento correcto. **Sin prueba con VoiceOver** (plan D-22): el usuario ya lo decidió en 001/RNF-001 y este plan lo había vuelto a incluir sin tenerlo en cuenta. Los anuncios solo se comprueban con tests automáticos: riesgo aceptado, como 001/I-2 |
 | T-024 | | El `grep` de los tests que empiezan por `003 ` encuentra los **78 IDs** pedidos: RF-001…RF-023 (23), CA-1.1…CA-1.10, CA-2.1…CA-2.6, CA-3.1…CA-3.10 y CA-4.1…CA-4.5 (31), E-1…E-20 salvo E-19 (19; E-19 se comprueba con la nota de T-002) y RNF-001…RNF-005 (5). La tarea decía 79, pero la suma de su propia lista es 78. Faltaba RNF-004, añadido al nombre del E2E de CA-4.1, que corre con el dedo en los tres proyectos. El `grep` también tiene que mirar los títulos que Prettier parte en otra línea, tras `it.each(…)(`. Pasada final: `pnpm test` (880), `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` en verde (252 pasan, 11 saltados según lo previsto, 1 «flaky» en `webkit` por hidratación, M-7). Un fallo de `toHaveText` en CA-2.5 en `webkit` se vio una vez y pasó al reintentar; no se ha reproducido en 42 repeticiones ni en 3 pasadas del fichero: queda sin explicar |

@@ -432,6 +432,9 @@ El resto sigue `DESIGN.md` tal cual:
 - **D-21 (añadida en T-022)** `memo` en `TaskCard` y en la tarjeta arrastrable de `BoardColumn`, con todas sus props estables (plan §8). Cambia un contrato de §4.3: `handleProps` pasa de ser una función por tarea a **un solo objeto estable** para todas las tarjetas; cada manejador saca la tarea de `data-task-handle` y el estado, del último render.
   - *Por qué:* RNF-002 daba unos 178 ms con 500 tareas, porque al soltar se volvían a pintar todas. Con `memo`, unos 40 ms. Las opciones de los sensores pasan a ser constantes: escritas en línea, rehacían los sensores y el contexto de dnd-kit en cada render.
   - *Alternativas descartadas:* un comparador a medida en `memo` que ignorara los manejadores (dejaría manejadores viejos, con un `drag` antiguo); virtualizar la lista (más código y el arrastre necesita medir las tarjetas).
+- **D-22 (añadida en T-023)** No se hace prueba manual con VoiceOver ni con otro lector de pantalla; los anuncios se comprueban solo con los tests automáticos.
+  - *Por qué:* lo decidió el usuario en la spec 001 v1.2 (2026-10-29, aclaración de RNF-001) y este plan lo volvió a incluir sin tenerlo en cuenta. RNF-001 de esta spec ya dice que se comprueba con pruebas automáticas y con la checklist de §21, así que la spec no cambia. Los requisitos RF-012 a RF-017 y C-20 tampoco cambian.
+  - *Riesgo aceptado:* como en 001/I-2, los tests comprueban el texto de la región viva, no lo que dice el lector.
 
 ## 6. Trazabilidad
 
@@ -538,7 +541,7 @@ El resto sigue `DESIGN.md` tal cual:
 - **Manual:**
   - E-19 (§6).
   - La checklist de `DESIGN.md` §21 sobre la tarjeta levantada, el hueco y el asa, en los dos temas y con «aumentar contraste».
-  - Lector de pantalla real (VoiceOver en Safari): coger, mover y soltar escuchando los anuncios. La región viva se prueba en unitarias, pero cómo la lee cada lector no se automatiza.
+  - Sin prueba con un lector de pantalla real (D-22). La región viva se prueba en unitarias y en E2E; cómo la lee cada lector no se comprueba.
 
 ## 8. Riesgos y mitigaciones
 
