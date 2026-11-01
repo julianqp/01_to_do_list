@@ -79,26 +79,37 @@ const MEASURING: DndContextProps['measuring'] = {
   droppable: { strategy: MeasuringStrategy.Always },
 };
 
+type Point = { clientX: number; clientY: number };
+
+// D-25, D-31: como `pointerWithin`, pero con el rectángulo recortado con el del tablero, porque una
+// columna recortada sigue midiendo también lo que queda fuera. D-13: en móvil, las columnas ocultas
+// miden 0 × 0 y no contienen nada.
+const inVisibleColumn = ({ clientX, clientY }: Point) =>
+  [...document.querySelectorAll('[data-board-column]')].some((column) => {
+    const { left, right, top, bottom } = column.getBoundingClientRect();
+    const board = column.parentElement!.getBoundingClientRect();
+    return (
+      clientX >= Math.max(left, board.left) &&
+      clientX < Math.min(right, board.right) &&
+      clientY >= top &&
+      clientY < bottom
+    );
+  });
+
 // D-9: `pointerWithin` da la columna bajo el puntero y, dentro de ella, `closestCenter` la tarjeta.
-// Fuera de toda columna (también entre dos, o sobre el selector de móvil), ningún destino: RF-005.
+// Fuera de toda columna (también entre dos, sobre el selector de móvil o en el margen del tablero,
+// D-31), ningún destino: RF-005.
 const collisionDetection: CollisionDetection = (args) => {
   const column = pointerWithin(args).find(({ id }) => columnDropStatus(id));
-  if (!column) return [];
+  const pointer = args.pointerCoordinates;
+  if (!column || !pointer || !inVisibleColumn({ clientX: pointer.x, clientY: pointer.y }))
+    return [];
   const status = columnDropStatus(column.id);
   const cards = args.droppableContainers.filter(({ data }) => data.current?.status === status);
   return cards.length > 0 ? closestCenter({ ...args, droppableContainers: cards }) : [column];
 };
 
 const handleOf = (id: string) => document.querySelector<HTMLElement>(`[data-task-handle="${id}"]`);
-
-type Point = { clientX: number; clientY: number };
-
-// D-25: como `pointerWithin`. D-13: en móvil, las columnas ocultas miden 0 × 0 y no contienen nada.
-const inVisibleColumn = ({ clientX, clientY }: Point) =>
-  [...document.querySelectorAll('[data-board-column]')].some((column) => {
-    const { left, right, top, bottom } = column.getBoundingClientRect();
-    return clientX >= left && clientX < right && clientY >= top && clientY < bottom;
-  });
 
 export function useTaskMove({
   tasks,

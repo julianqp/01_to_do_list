@@ -1,8 +1,8 @@
-import { DndContext, DragOverlay } from '@dnd-kit/core';
+import { DndContext, DragOverlay, useDndContext } from '@dnd-kit/core';
 import { TASK_STATUSES, type Task, type TaskStatus } from '@todo/shared';
 import { ListTodo } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { groupByStatus } from '../lib/board-order';
+import { groupByStatus, type Placement } from '../lib/board-order';
 import { tasksCount, todayLocal } from '../lib/dates';
 import type { TaskFormMode } from '../lib/task-form';
 import { STATUS_NAMES } from '../lib/task-messages';
@@ -24,6 +24,21 @@ type FocusTarget =
 
 // D-10: la capa no abre nada: es `inert`.
 const noop = () => undefined;
+
+// Spec 003, D-9: dnd-kit no vuelve a medir cuando las mismas tarjetas cambian de orden, así que sin esto
+// la detección trabaja con rectángulos viejos. `measureDroppableContainers` sale de un contexto que solo
+// existe dentro de DndContext, y `useTaskMove` está por encima. D-21: no pinta nada ni pasa nada a las
+// tarjetas, así que su `memo` sigue sirviendo.
+function RemeasureOnPreview({ preview }: { preview?: Placement }) {
+  const { measureDroppableContainers } = useDndContext();
+  const status = preview?.status;
+  const index = preview?.index;
+  useLayoutEffect(() => {
+    // Sin ids, todas.
+    if (status) measureDroppableContainers([]);
+  }, [measureDroppableContainers, status, index]);
+  return null;
+}
 
 // §12 «Vacío (primera vez)»: círculo glass de 72 px con icono 26, el mensaje y un primario.
 function EmptyBoard({ createButton }: { createButton: ReactNode }) {
@@ -190,6 +205,7 @@ export function Board({ tasks }: BoardProps) {
           {/* D-16: dos columnas visibles de 768 a 1023 px y cuatro desde 1024; si no caben, el scroll
               horizontal es del tablero, no de la página (RNF-002). */}
           <DndContext {...dndProps}>
+            <RemeasureOnPreview preview={drag?.mode === 'pointer' ? drag.current : undefined} />
             <div className="grid gap-4 md:min-h-0 md:flex-1 md:grid-rows-1 md:overflow-x-auto md:board-columns-two lg:board-columns">
               {TASK_STATUSES.map((status) => (
                 <BoardColumn

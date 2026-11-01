@@ -692,6 +692,66 @@ test.describe('ratón: dentro de una columna', () => {
     expect(moves).toHaveLength(0);
   });
 
+  test('003 RF-007 D-9 con un título de 200 caracteres entre tarjetas cortas y el puntero casi quieto sobre otra tarjeta: la vista previa no oscila', async ({
+    page,
+    channel,
+  }) => {
+    test.skip(channel === 'chrome', 'T-041: chromium y webkit');
+    const long = 'Revisar '.repeat(25).trim().padEnd(200, 'x');
+    await openBoard(page);
+    await seedBoard(page, { todo: ['Corta uno', long, 'Corta dos'] });
+
+    // Cada fotograma, el orden de To do. Un cambio puede ser cruzar el centro una vez; dos ya son ir y
+    // volver.
+    const orderChanges = (ms: number) =>
+      page.evaluate(
+        (ms) =>
+          new Promise<number>((resolve) => {
+            const start = performance.now();
+            const orderNow = () =>
+              [...document.querySelectorAll('section[aria-label^="To do,"] li [data-task-id]')]
+                .map((card) => card.textContent?.slice(0, 9))
+                .join('|');
+            let last = orderNow();
+            let changes = 0;
+            const sample = () => {
+              const now = orderNow();
+              if (now !== last) changes += 1;
+              last = now;
+              if (performance.now() - start < ms) requestAnimationFrame(sample);
+              else resolve(changes);
+            };
+            requestAnimationFrame(sample);
+          }),
+        ms,
+      );
+
+    async function holdOver(moving: string, over: string) {
+      const rect = (await taskCard(page, over).boundingBox())!;
+      await dragCard(page, taskCard(page, moving), taskCard(page, over), { drop: false });
+      await expect(dragOverlay(page, moving)).toBeVisible();
+      for (const fraction of [0.1, 0.3, 0.5, 0.7, 0.9]) {
+        await test.step(`${moving.slice(0, 9)}, a ${fraction} de ${over.slice(0, 9)}`, async () => {
+          const x = rect.x + rect.width / 2;
+          const y = rect.y + rect.height * fraction;
+          await page.mouse.move(x, y, { steps: 5 });
+          await page.waitForTimeout(100);
+          const changes = orderChanges(500);
+          for (let i = 0; i < 30; i++) {
+            await page.mouse.move(x + (i % 2 ? 1 : -1), y + (i % 3) - 1);
+          }
+          expect(await changes).toBeLessThanOrEqual(1);
+        });
+      }
+      await page.keyboard.press('Escape');
+      await page.mouse.up();
+      await expect(dragOverlay(page, moving)).toHaveCount(0);
+    }
+
+    await holdOver('Corta uno', long);
+    await holdOver(long, 'Corta dos');
+  });
+
   test('003 CA-2.6 RF-021 sin conexión al reordenar con ratón: la columna vuelve al orden de antes, con el aviso', async ({
     page,
   }) => {
@@ -1270,6 +1330,192 @@ test.describe('accesibilidad y aspecto', () => {
   });
 });
 
+test.describe('margen del tablero', () => {
+  test.skip(({ channel }) => channel === 'chrome', 'T-040: chromium y webkit');
+
+  // El tablero es el contenedor con scroll horizontal de las columnas.
+  const scrollingBoard = (page: Page) => boardColumn(page, 'Backlog').locator('xpath=..');
+
+  // D-31: un punto del margen de la página, a la altura de las columnas, con `main` debajo: ninguna
+  // columna, aunque el rectángulo de una recortada siga llegando hasta ahí.
+  async function pointInMargin(page: Page, side: 'left' | 'right') {
+    const rect = (await scrollingBoard(page).boundingBox())!;
+    const x = side === 'right' ? page.viewportSize()!.width - 8 : 8;
+    const y = rect.y + rect.height / 2;
+    const under = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.tagName, {
+      x,
+      y,
+    });
+    expect(under).toBe('MAIN');
+    return { x, y };
+  }
+
+  const scrollLeftOf = (page: Page) =>
+    scrollingBoard(page).evaluate((element) => element.scrollLeft);
+  const clippedOnTheRight = (page: Page) =>
+    scrollingBoard(page).evaluate(
+      (element) => element.scrollLeft + element.clientWidth < element.scrollWidth - 1,
+    );
+
+  for (const width of [768, 1024]) {
+    for (const wait of [0, 100]) {
+      test(`003 CA-1.7 RF-005 D-31 a ${width}, soltar en el margen derecho con el tablero aún recortado, a los ${wait} ms: vuelve a su sitio, sin guardar ni avisar`, async ({
+        page,
+      }) => {
+        await openBoard(page, { width, height: 900 });
+        await seedBoard(page);
+        const moves = trackMoves(page);
+        const margin = await pointInMargin(page, 'right');
+
+        await dragCard(page, taskCard(page, 'Preparar la demo'), margin, { drop: false });
+        if (wait) await page.waitForTimeout(wait);
+        // A 1024 solo sobran unos 200 px: a los 100 ms, `chromium` ya puede haber llegado al final.
+        if (width === 768 || wait === 0) expect(await clippedOnTheRight(page)).toBe(true);
+        await page.mouse.up();
+
+        await expect(dragOverlay(page, 'Preparar la demo')).toHaveCount(0);
+        await expectOrder(page, 'To do', TODO);
+        await expectOrder(page, 'In progress', IN_PROGRESS);
+        await expectCount(page, 'Done', 0);
+        // Por si el guardado aún no ha salido.
+        await page.waitForTimeout(200);
+        expect(moves).toHaveLength(0);
+        await expectNoNotice(page);
+      });
+    }
+  }
+
+  test('003 RF-005 D-31 a 768, soltar en el margen izquierdo con el tablero ya desplazado: vuelve a su sitio, sin guardar ni avisar', async ({
+    page,
+  }) => {
+    await openBoard(page, { width: 768, height: 900 });
+    await seedBoard(page);
+    await createTaskViaApi(page, { title: 'Ordenar el trastero' });
+    await reloadBoard(page);
+    const moves = trackMoves(page);
+    await scrollingBoard(page).evaluate((element) =>
+      element.scrollTo({ left: element.scrollWidth, behavior: 'instant' }),
+    );
+    const margin = await pointInMargin(page, 'left');
+
+    for (const wait of [0, 100]) {
+      await test.step(`a los ${wait} ms`, async () => {
+        await dragCard(page, taskCard(page, IN_PROGRESS[0]!), margin, { drop: false });
+        if (wait) await page.waitForTimeout(wait);
+        expect(await scrollLeftOf(page)).toBeGreaterThan(0);
+        await page.mouse.up();
+
+        await expect(dragOverlay(page, IN_PROGRESS[0]!)).toHaveCount(0);
+        await expectOrder(page, 'In progress', IN_PROGRESS);
+        await expectOrder(page, 'To do', TODO);
+        await page.waitForTimeout(200);
+        expect(moves).toHaveLength(0);
+        await expectNoNotice(page);
+
+        // El scroll automático ha podido dejarlo en otro sitio: la siguiente vuelta, otra vez al final.
+        await scrollingBoard(page).evaluate((element) =>
+          element.scrollTo({ left: element.scrollWidth, behavior: 'instant' }),
+        );
+      });
+    }
+  });
+
+  test('003 RF-005 D-31 a 768, con el puntero en el margen, la vista previa vuelve al origen', async ({
+    page,
+  }) => {
+    await openBoard(page, { width: 768, height: 900 });
+    await seedBoard(page);
+    await createTaskViaApi(page, { title: 'Ordenar el trastero' });
+    await reloadBoard(page);
+    const margin = await pointInMargin(page, 'right');
+
+    await dragCard(
+      page,
+      taskCard(page, 'Preparar la demo'),
+      taskCard(boardColumn(page, 'Backlog'), 'Ordenar el trastero'),
+      { drop: false },
+    );
+    await expect(boardColumn(page, 'Backlog').locator('li').first()).toContainText(
+      'Preparar la demo',
+    );
+
+    // Cada fotograma, en qué columna está el hueco: no vale que acabe volviendo cuando termine el
+    // scroll automático, porque hasta entonces lo enseñaría en una columna donde no se va a soltar.
+    const seen = page.evaluate(
+      (title) =>
+        new Promise<string[]>((resolve) => {
+          const columns = new Set<string>();
+          const start = performance.now();
+          const sample = () => {
+            const hole = [...document.querySelectorAll('[data-board-column] li')].find((item) =>
+              item.textContent?.startsWith(title),
+            );
+            const name = hole?.closest('[data-board-column]')?.getAttribute('aria-label');
+            if (name) columns.add(name.split(',')[0]!);
+            if (performance.now() - start < 600) requestAnimationFrame(sample);
+            else resolve([...columns]);
+          };
+          sample();
+        }),
+      'Preparar la demo',
+    );
+    await page.mouse.move(margin.x, margin.y, { steps: 5 });
+    const columns = await seen;
+
+    await expectOrder(page, 'To do', TODO);
+    expect(columns.filter((name) => name === 'In progress' || name === 'Done')).toEqual([]);
+    await page.keyboard.press('Escape');
+    await page.mouse.up();
+  });
+
+  for (const width of [768, 1024]) {
+    test(`003 E-5 D-31 a ${width}, con el puntero en el margen, el tablero sigue haciendo scroll solo`, async ({
+      page,
+    }) => {
+      await openBoard(page, { width, height: 900 });
+      await seedBoard(page);
+      const margin = await pointInMargin(page, 'right');
+      expect(await scrollLeftOf(page)).toBe(0);
+
+      await dragCard(page, taskCard(page, 'Preparar la demo'), margin, { drop: false });
+
+      await expect(dragOverlay(page, 'Preparar la demo')).toBeVisible();
+      await expect.poll(() => scrollLeftOf(page)).toBeGreaterThan(0);
+      await page.keyboard.press('Escape');
+      await page.mouse.up();
+    });
+  }
+
+  test('003 RF-001 D-31 a 768, soltar en la parte visible de una columna recortada, dentro del tablero: se guarda en esa columna', async ({
+    page,
+  }) => {
+    await openBoard(page, { width: 768, height: 900 });
+    await seedBoard(page);
+    const inProgress = boardColumn(page, 'In progress');
+    // Media columna de scroll: To do se ve entera, e In progress, recortada por la derecha.
+    await scrollingBoard(page).evaluate((element) =>
+      element.scrollTo({ left: element.clientWidth / 4, behavior: 'instant' }),
+    );
+    const board = (await scrollingBoard(page).boundingBox())!;
+    const column = (await inProgress.boundingBox())!;
+    expect(column.x).toBeLessThan(board.x + board.width);
+    expect(column.x + column.width).toBeGreaterThan(board.x + board.width);
+
+    const saved = moveResponse(page);
+    await dragCard(page, taskCard(page, 'Preparar la demo'), {
+      x: column.x + 20,
+      y: board.y + board.height / 2,
+    });
+
+    const response = await saved;
+    expect(response.status()).toBe(200);
+    expect(response.request().postDataJSON()).toMatchObject({ status: 'in_progress' });
+    await expect(inProgress.locator('li').filter({ hasText: 'Preparar la demo' })).toHaveCount(1);
+    await expectCount(page, 'To do', 2);
+    await expectCount(page, 'In progress', 4);
+  });
+});
+
 test.describe('rendimiento y scroll automático', () => {
   // Plan §7: solo en chromium, el navegador de desarrollo. Las tareas se crean por la API: 500, 200 de
   // ellas en To do, con «Preparar la demo» la primera de To do.
@@ -1296,6 +1542,49 @@ test.describe('rendimiento y scroll automático', () => {
     await expect(boardColumn(page, 'To do')).toHaveAccessibleName('To do, 200 tareas');
   }
 
+  // Suelta y mide desde el `pointerup` hasta el primer frame con la tarjeta en `index` de la columna,
+  // visible (sin hueco) y sin la capa.
+  async function dropTime(page: Page, title: string, column: ColumnName, index: number) {
+    await page.evaluate(
+      ({ title, column, index }) => {
+        const state = window as Window & { e2eDropTime?: Promise<number> };
+        state.e2eDropTime = new Promise<number>((resolve) => {
+          let upAt = 0;
+          const inPlace = () => {
+            const section = document.querySelector(`section[aria-label^="${column},"]`);
+            const card = section?.querySelectorAll('li [data-task-id]')[index];
+            return (
+              card?.textContent?.startsWith(title) === true &&
+              card.checkVisibility({ visibilityProperty: true }) &&
+              document.querySelector('[inert]') === null
+            );
+          };
+          const check = () =>
+            requestAnimationFrame(() => {
+              if (!upAt || !inPlace()) return;
+              observer.disconnect();
+              resolve(performance.now() - upAt);
+            });
+          const observer = new MutationObserver(check);
+          observer.observe(document.body, { subtree: true, childList: true, attributes: true });
+          window.addEventListener(
+            'pointerup',
+            () => {
+              upAt = performance.now();
+              check();
+              // Si no llega a estar en su sitio, el test falla con un tiempo en vez de esperar sin fin.
+              setTimeout(() => resolve(Number.POSITIVE_INFINITY), 2000);
+            },
+            { capture: true, once: true },
+          );
+        });
+      },
+      { title, column, index },
+    );
+    await page.mouse.up();
+    return page.evaluate(() => (window as Window & { e2eDropTime?: Promise<number> }).e2eDropTime);
+  }
+
   test('003 RNF-002 con 500 tareas, la tarjeta está en su sitio nuevo y sin hueco ≤ 100 ms después de soltarla', async ({
     page,
   }) => {
@@ -1307,48 +1596,76 @@ test.describe('rendimiento y scroll automático', () => {
       drop: false,
     });
     await expect(dragOverlay(page, 'Preparar la demo')).toBeVisible();
-    // Desde el `pointerup` hasta el primer frame con la tarjeta la primera de In progress, visible
-    // (sin hueco) y sin la capa.
-    await page.evaluate((title) => {
-      const state = window as Window & { e2eDropTime?: Promise<number> };
-      state.e2eDropTime = new Promise<number>((resolve) => {
-        let upAt = 0;
-        const inPlace = () => {
-          const column = document.querySelector('section[aria-label^="In progress,"]');
-          const first = column?.querySelector('li [data-task-id]');
-          return (
-            first?.textContent?.startsWith(title) === true &&
-            first.checkVisibility({ visibilityProperty: true }) &&
-            document.querySelector('[inert]') === null
-          );
-        };
-        const check = () =>
-          requestAnimationFrame(() => {
-            if (!upAt || !inPlace()) return;
-            observer.disconnect();
-            resolve(performance.now() - upAt);
-          });
-        const observer = new MutationObserver(check);
-        observer.observe(document.body, { subtree: true, childList: true, attributes: true });
-        window.addEventListener(
-          'pointerup',
-          () => {
-            upAt = performance.now();
-            check();
-            // Si no llega a estar en su sitio, el test falla con un tiempo en vez de esperar sin fin.
-            setTimeout(() => resolve(Number.POSITIVE_INFINITY), 2000);
-          },
-          { capture: true, once: true },
-        );
-      });
-    }, 'Preparar la demo');
-    await page.mouse.up();
 
-    const elapsed = await page.evaluate(
-      () => (window as Window & { e2eDropTime?: Promise<number> }).e2eDropTime,
-    );
+    const elapsed = await dropTime(page, 'Preparar la demo', 'In progress', 0);
     test.info().annotations.push({ type: 'RNF-002', description: `en su sitio en ${elapsed} ms` });
     expect(elapsed).toBeLessThanOrEqual(100);
+  });
+
+  test('003 RNF-002 D-9 con 500 tareas, reordenar dentro de la columna de 200: en su sitio y sin hueco ≤ 100 ms después de soltarla', async ({
+    page,
+  }) => {
+    await openBoard(page);
+    await seedFiveHundred(page);
+    const title = 'Preparar la demo';
+    const list = boardColumn(page, 'To do').locator('li');
+    const indexOfHole = () =>
+      page.evaluate(
+        (title) =>
+          [
+            ...document.querySelectorAll('section[aria-label^="To do,"] li [data-task-id]'),
+          ].findIndex((card) => card.textContent?.startsWith(title)),
+        title,
+      );
+
+    await dragCard(page, taskCard(page, title), list.nth(2), { drop: false });
+    await expect(dragOverlay(page, title)).toBeVisible();
+    await expect.poll(indexOfHole).toBeGreaterThan(0);
+
+    // La spec no pone límite a un cambio de vista previa; se anota (T-041).
+    const before = await indexOfHole();
+    const to = await pointIn(list.nth(before + 2));
+    await page.evaluate(
+      ({ title, before }) => {
+        const state = window as Window & { e2ePreviewTime?: Promise<number> };
+        state.e2ePreviewTime = new Promise<number>((resolve) => {
+          let movedAt = 0;
+          const check = () =>
+            requestAnimationFrame(() => {
+              const index = [
+                ...document.querySelectorAll('section[aria-label^="To do,"] li [data-task-id]'),
+              ].findIndex((card) => card.textContent?.startsWith(title));
+              if (!movedAt || index === before) return;
+              observer.disconnect();
+              resolve(performance.now() - movedAt);
+            });
+          const observer = new MutationObserver(check);
+          observer.observe(document.body, { subtree: true, childList: true });
+          window.addEventListener(
+            'mousemove',
+            () => {
+              movedAt = performance.now();
+              setTimeout(() => resolve(Number.POSITIVE_INFINITY), 2000);
+            },
+            { capture: true, once: true },
+          );
+        });
+      },
+      { title, before },
+    );
+    await page.mouse.move(to.x, to.y);
+    const preview = await page.evaluate(
+      () => (window as Window & { e2ePreviewTime?: Promise<number> }).e2ePreviewTime,
+    );
+    test.info().annotations.push({ type: 'D-9', description: `vista previa en ${preview} ms` });
+
+    const index = await indexOfHole();
+    expect(index).not.toBe(before);
+    const saved = moveResponse(page);
+    const elapsed = await dropTime(page, title, 'To do', index);
+    test.info().annotations.push({ type: 'RNF-002', description: `en su sitio en ${elapsed} ms` });
+    expect(elapsed).toBeLessThanOrEqual(100);
+    expect((await saved).request().postDataJSON()).toMatchObject({ status: 'todo', index });
   });
 
   test('003 E-4 con la tarjeta en el borde inferior de la columna de 200, la lista hace scroll sola', async ({

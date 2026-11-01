@@ -485,6 +485,11 @@ El resto sigue `DESIGN.md` tal cual:
   - *Por qué:* en TanStack, una consulta que falla al volver a pedirse pasa a `status: 'error'` aunque conserve `data`, así que `isSuccess` quitaba un tablero válido, y con él el aviso de mover (sonda de T-031).
   - *Consecuencia aceptada, decidida con el usuario:* si solo falla un refresco en segundo plano, no hay aviso y la lista puede quedar desactualizada hasta que se vuelva a pedir (E-22).
   - *Alternativas descartadas:* un aviso propio al fallar el refresco (más alcance y un texto nuevo); dejar el error de carga, con el aviso de D-29 unos segundos (el tablero seguiría desapareciendo con los datos ya cargados).
+- **D-31 (añadida en T-040)** RF-005, CA-1.7, E-5: un punto solo cae en una columna si está en su rectángulo **recortado con el del tablero visible**. Es la misma comprobación (`inVisibleColumn`) para `collisionDetection` y para `onDragEnd` (D-25). Completa D-9 y D-25.
+  - *Por qué:* de 768 a 1279 px las columnas no caben y el tablero hace scroll horizontal. Una columna recortada sigue midiendo su rectángulo entero, también por fuera del tablero, así que el margen de la página contaba como columna mientras durara el scroll automático: la tarea se guardaba en una columna donde no se había soltado (verificación I-1).
+  - Fuera de ese recorte, `collisionDetection` no devuelve ningún destino, así que la vista previa vuelve al origen antes de soltar (D-9), y no solo deja de guardarse. El scroll automático no depende de las colisiones, así que sigue funcionando con el puntero en el margen (E-5).
+  - El tablero se localiza como el padre de la columna: no hace falta ningún atributo nuevo.
+  - *Alternativas descartadas:* comprobarlo solo en `onDragEnd` (el hueco seguiría enseñando una columna donde no se va a guardar); desactivar el scroll automático con el puntero en el margen (E-5 lleva al usuario justo a ese borde).
 
 ## 6. Trazabilidad
 
