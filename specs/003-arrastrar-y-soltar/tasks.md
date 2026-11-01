@@ -1,7 +1,7 @@
 ---
 spec: 003
 plan_aprobado: 2026-10-31
-progreso: 24/25
+progreso: 25/25
 ---
 
 # Tareas · Spec 003 · Arrastrar y soltar
@@ -310,7 +310,7 @@ Todas tocan `Board.tsx`, `BoardColumn.tsx`, `TaskCard.tsx` o `task-move.ts`: van
 
     Por ejemplo: `grep -rhoE "(it|test)(\.each\([^)]*\))?\('003 [^']*" … | grep -oE "(RF|CA|E|RNF)-[0-9]+(\.[0-9]+)?" | sort -u`. La lista de lo encontrado (79 IDs) se anota en el Registro.
 
-- [ ] **T-025** Ejecutar `/sdd-verificar`
+- [x] **T-025** Ejecutar `/sdd-verificar`
   - Depende de: T-021, T-022, T-023, T-024
   - Ficheros: `specs/003-arrastrar-y-soltar/verificacion.md`
   - Cubre: todos
@@ -345,3 +345,4 @@ Todas tocan `Board.tsx`, `BoardColumn.tsx`, `TaskCard.tsx` o `task-move.ts`: van
 | T-022 | | RNF-002 con 500 tareas (200 en To do): **antes 176,7 / 180,2 / 175,5 ms** (no cumplía); **después 40,2 / 38,4 / 39,5 ms** en tres ejecuciones seguidas en `chromium`. Cambios (plan **D-21, añadida**): `memo` en `TaskCard` y `DraggableCard`, opciones de los sensores constantes, y `handleProps` como un solo objeto estable, lo que cambia el contrato de plan §4.3 (actualizado). E-4 y E-5 pasan. `grep -rn "console.log" e2e/` no encuentra nada. `pnpm test` (880), `pnpm lint` y `pnpm typecheck` en verde |
 | T-023 | | `DESIGN.md` a 1.4.0-todo.1 (`--ring-drop` en §1.4 y §6.2, con el mismo valor que `tokens.css`, revisado con `grep`; §8 con X-1 y X-2; §11.3 con el orden, el asa, el movimiento y el aviso; fila en el Historial). Checklist §21 repasada con 36 capturas de la tarjeta levantada, el hueco y el asa a 375, 768 y 1280, en los dos temas y con «aumentar contraste». **Hallazgo y corrección:** la tarjeta levantada era translúcida y el texto de debajo se transparentaba a través del suyo (se veía a 375 en oscuro); lleva `backdrop-glass` (§6.3), con su test. En `specs/roadmap.md`, «Ideas sin priorizar»: animar las tarjetas (X-2) y quitar el aviso de mover tras un movimiento correcto. **Sin prueba con VoiceOver** (plan D-22): el usuario ya lo decidió en 001/RNF-001 y este plan lo había vuelto a incluir sin tenerlo en cuenta. Los anuncios solo se comprueban con tests automáticos: riesgo aceptado, como 001/I-2 |
 | T-024 | | El `grep` de los tests que empiezan por `003 ` encuentra los **78 IDs** pedidos: RF-001…RF-023 (23), CA-1.1…CA-1.10, CA-2.1…CA-2.6, CA-3.1…CA-3.10 y CA-4.1…CA-4.5 (31), E-1…E-20 salvo E-19 (19; E-19 se comprueba con la nota de T-002) y RNF-001…RNF-005 (5). La tarea decía 79, pero la suma de su propia lista es 78. Faltaba RNF-004, añadido al nombre del E2E de CA-4.1, que corre con el dedo en los tres proyectos. El `grep` también tiene que mirar los títulos que Prettier parte en otra línea, tras `it.each(…)(`. Pasada final: `pnpm test` (880), `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` en verde (252 pasan, 11 saltados según lo previsto, 1 «flaky» en `webkit` por hidratación, M-7). Un fallo de `toHaveText` en CA-2.5 en `webkit` se vio una vez y pasó al reintentar; no se ha reproducido en 42 repeticiones ni en 3 pasadas del fichero: queda sin explicar |
+| T-025 | | `verificacion.md`: **NO APTO**, por un bloqueante (B-1: al bajar una tarjeta con teclado en una columna con scroll, sale de la vista). Además, I-1 (clic o toque en el asa frente a RF-006, pendiente de decidir) y ocho menores. La spec sigue en `en-implementacion`. Hechos en una sesión nueva: `pnpm test` (880), `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` (252 pasan, 11 saltados, 1 «flaky» en `webkit`). Se usó una sonda E2E temporal, ya borrada |
