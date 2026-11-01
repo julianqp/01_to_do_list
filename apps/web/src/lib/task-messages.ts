@@ -1,6 +1,14 @@
-import { STATUS_NAMES } from '../components/BoardColumn';
+import type { TaskStatus } from '@todo/shared';
 import { ApiError } from './api';
 import type { Placement } from './board-order';
+
+// Glosario de la spec: los nombres de los estados no se traducen.
+export const STATUS_NAMES: Record<TaskStatus, string> = {
+  backlog: 'Backlog',
+  todo: 'To do',
+  in_progress: 'In progress',
+  done: 'Done',
+};
 
 // D-19: textos del tablero. El `code` decide el texto (C-9); cualquier ApiError que no sea de sesión
 // ni TASK_NOT_FOUND (p. ej. VALIDATION_ERROR si el servidor discrepa) es un error inesperado, como la

@@ -5,9 +5,10 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 import { groupByStatus } from '../lib/board-order';
 import { tasksCount, todayLocal } from '../lib/dates';
 import type { TaskFormMode } from '../lib/task-form';
+import { STATUS_NAMES } from '../lib/task-messages';
 import { useTaskMove, type BoardNotice } from '../lib/task-move';
 import { Alert } from './Alert';
-import { BoardColumn, STATUS_NAMES } from './BoardColumn';
+import { BoardColumn } from './BoardColumn';
 import { Button } from './Button';
 import { Icon } from './Icon';
 import { SegmentedControl } from './SegmentedControl';

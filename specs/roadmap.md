@@ -74,9 +74,8 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 - Arrastrar tarjetas fuera del tablero o soltar ficheros en él — *origen: spec 003, fuera de alcance*
 - Pasar una tarjeta a otra columna arrastrándola en móvil (por ejemplo, soltándola sobre el selector de estados) — *origen: spec 003, aclaración*
 - Acciones «Subir» y «Bajar» en el detalle de la tarea — *origen: spec 003, aclaración*
-- Animar las tarjetas al soltar y al reordenar (hoy pasan a su sitio sin desplazarse) — *origen: spec 003, plan X-2*
+- Animar las tarjetas al soltar y al reordenar (hoy pasan a su sitio sin desplazarse; `DESIGN.md` §8, `--dur`) — *origen: spec 003, plan X-2; plan 003, X-2*
 - Quitar el aviso «No hemos podido mover la tarea…» cuando el siguiente movimiento sale bien (hoy sigue hasta abrir un diálogo, como marca 002/D-20) — *origen: spec 003, T-016*
-- Animar el desplazamiento de las tarjetas al reordenar o al soltar (`DESIGN.md` §8, `--dur`) — *origen: plan 003, X-2*
 
 ## Historial
 

@@ -4,16 +4,9 @@ import { Circle, CircleCheck, CircleDashed, CircleDot, type LucideIcon } from 'l
 import { memo, useCallback } from 'react';
 import { columnDropId } from '../lib/board-order';
 import { tasksCount } from '../lib/dates';
+import { STATUS_NAMES } from '../lib/task-messages';
 import { Icon } from './Icon';
 import { TaskCard, type HandleProps, type TaskCardVariant } from './TaskCard';
-
-// Glosario de la spec: los nombres de los estados no se traducen.
-export const STATUS_NAMES: Record<TaskStatus, string> = {
-  backlog: 'Backlog',
-  todo: 'To do',
-  in_progress: 'In progress',
-  done: 'Done',
-};
 
 // DESIGN.md §1.3: cada estado con su icono. X-3: en --text-2, no en el color del acento.
 export const STATUS_ICONS: Record<TaskStatus, LucideIcon> = {
