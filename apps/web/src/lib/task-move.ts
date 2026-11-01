@@ -137,6 +137,15 @@ export function useTaskMove({
     if (!id) return;
     const handle = handleOf(id);
     if (handle !== document.activeElement) handle?.focus();
+    // D-23, RF-024: las flechas llevan `preventDefault` y el asa conserva el foco, así que nadie más
+    // la haría scroll. La tarjeta entera, no solo el asa. Con el puntero, el scroll es de dnd-kit.
+    if (drag?.mode === 'keyboard' && drag.taskId === id) {
+      handle?.parentElement?.scrollIntoView({
+        block: 'nearest',
+        inline: 'nearest',
+        behavior: 'instant',
+      });
+    }
   });
 
   function commit({ taskId, origin, current }: DragState) {

@@ -73,8 +73,9 @@ function PrivateAreaContent() {
       {(tasks.isSuccess || loadFailed) && (
         <AppHeader email={me.data?.email} loggingOut={logout.isPending} onLogout={onLogout} />
       )}
-      {/* RF-036: en móvil, el relleno de abajo deja sitio a «Crear tarea», fijo abajo. */}
-      <main className="mx-auto flex min-h-0 w-full max-w-420 flex-1 flex-col gap-6 overflow-y-auto px-4 py-8 max-md:pb-24 md:px-7">
+      {/* RF-036: en móvil, el relleno de abajo deja sitio a «Crear tarea», fijo abajo. Spec 003, D-23: el
+          `scroll-padding`, con la misma medida, para que tampoco tape la tarjeta cogida con teclado. */}
+      <main className="mx-auto flex min-h-0 w-full max-w-420 flex-1 flex-col gap-6 overflow-y-auto px-4 py-8 max-md:scroll-pb-24 max-md:pb-24 md:px-7">
         {/* D-11: si no se ha podido cerrar la sesión, se avisa y se sigue dentro. Spec 004 RF-008:
             debajo de la cabecera. RNF-001: la zona de alerta está siempre y solo cambia su contenido
             (ver LoginForm). Spec 002 D-8: también lleva el error de carga. */}

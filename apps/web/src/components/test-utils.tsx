@@ -47,6 +47,9 @@ function installDialogDouble() {
 }
 installDialogDouble();
 
+// Spec 003, D-23: jsdom no calcula posiciones ni tiene scrollIntoView; se prueba en E2E.
+Element.prototype.scrollIntoView ??= () => undefined;
+
 let fixtureCount = 0;
 
 // Spec 002: una tarea de ejemplo con un id distinto en cada llamada.
