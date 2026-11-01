@@ -1,6 +1,6 @@
 ---
 proyecto: to-do-list
-actualizado: 2026-10-31
+actualizado: 2026-11-01
 ---
 
 # Roadmap
@@ -105,3 +105,8 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 | 2026-10-31 | 003 aclarada (v0.2); ideas nuevas desde su «Fuera de alcance» (arrastrar entre columnas en móvil, «Subir»/«Bajar» en el detalle) | `/sdd-clarificar` de la spec 003 |
 | 2026-10-31 | 003 aprobada (spec v1.0) | Aprobación del usuario tras `/sdd-clarificar` |
 | 2026-10-31 | 003: plan aprobado (sin ADR nuevo; una dependencia nueva, `@dnd-kit/core`); `DESIGN.md` pasará a 1.4.0-todo.1 en su rama (plan §4.6); idea nueva desde X-2 (animar el reordenado) | `/sdd-planificar` de la spec 003 |
+| 2026-11-01 | 003: primera verificación NO APTO; pasa a spec v2.0 (RF-024, CA-1.11, CA-3.11 a CA-3.13, CA-4.6, E-21; cambian RF-006, RF-022 y RF-023) | `/sdd-verificar` y `/sdd-cambiar-spec` de la spec 003 |
+| 2026-11-01 | 003 pasa a spec v3.0 (RF-025, CA-1.12, E-22; cambia RF-021): con la API caída, el aviso y la vuelta de la tarjeta no esperan a la lista | Hallazgo de T-031, `/sdd-cambiar-spec` de la spec 003 |
+| 2026-11-01 | 003: segunda verificación APTO CON OBSERVACIONES; pasa a spec v3.1 (RF-023 recoge la condición de D-26) | `/sdd-verificar` y `/sdd-cambiar-spec` de la spec 003 |
+| 2026-11-01 | 003: tercera verificación NO APTO; pasa a spec v4.0 (HU-5, RF-026 a RF-029: «Subir» y «Bajar» en el detalle, que salen de las ideas; CA-4.7, E-23, E-24; cambian RF-019 y RNF-001) | `/sdd-verificar` y `/sdd-cambiar-spec` de la spec 003 |
+| 2026-11-01 | 003: cuarta verificación APTO CON OBSERVACIONES; pasa a spec v5.0 (CA-5.12 a CA-5.14, E-25, E-26; cambian RF-028 y RF-029) | `/sdd-verificar` y `/sdd-cambiar-spec` de la spec 003 |

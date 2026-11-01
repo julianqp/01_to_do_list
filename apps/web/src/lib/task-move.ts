@@ -145,8 +145,8 @@ export function useTaskMove({
   const landingTask = landing ? tasks.find(({ id }) => id === landing.taskId) : undefined;
   const landingAt = landing && placementOf(tasks, landing.taskId);
   const stillBefore = landing && landingAt ? samePlacement(landingAt, landing.before) : false;
-  // D-18: ya se ha movido. Si se esperara al final de la mutación, que espera a volver a pedir la
-  // lista, al fallar reaparecería en su sitio nuevo durante ese tiempo.
+  // D-18: ya se ha movido. Se vacía aquí, y no al final de la mutación, para no depender de cuánto tarde
+  // esta (D-29): al fallar, reaparecería en su sitio nuevo durante ese tiempo.
   if (landing && landingAt && !stillBefore) setLanding(null);
 
   const preview =
