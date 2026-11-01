@@ -101,6 +101,7 @@
   --color-on-pill: var(--text-on-pill);
   --color-on-tooltip: var(--text-on-tooltip);
   --color-ring-error: var(--ring-error);
+  --color-ring-drop: var(--ring-drop);
   --color-contrast: var(--border-contrast);
   --color-sage-soft: var(--sage-soft);
   --color-rose-soft: var(--rose-soft);
@@ -173,6 +174,8 @@
   --ring-error: oklch(0.55 0.11 15);
   /* D-15, D-19: grosor del anillo de error (§6.2), con nombre porque D-3 no admite corchetes. */
   --ring-error-width: 1.5px;
+  /* Spec 003, X-1: anillo del hueco de destino; el hueco solo da 1.04–1.16:1 contra la columna. */
+  --ring-drop: var(--ink-500);
   /* §17: transparente salvo con «aumentar contraste». */
   --border-contrast: transparent;
 
@@ -244,6 +247,7 @@
   --text-on-pill: var(--ink-950);
   /* X-5: mismo tono que --rose; en oscuro ya llega a 3:1. */
   --ring-error: var(--rose);
+  --ring-drop: var(--ink-400);
 
   --dot-color: rgba(238, 240, 240, 0.1);
 
