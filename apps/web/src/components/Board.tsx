@@ -5,7 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 import { groupByStatus, type Placement } from '../lib/board-order';
 import { tasksCount, todayLocal } from '../lib/dates';
 import type { TaskFormMode } from '../lib/task-form';
-import { STATUS_NAMES } from '../lib/task-messages';
+import { isTaskNotFound, moveErrorText, STATUS_NAMES } from '../lib/task-messages';
 import { useTaskMove, type BoardNotice } from '../lib/task-move';
 import { Alert } from './Alert';
 import { BoardColumn } from './BoardColumn';
@@ -25,7 +25,7 @@ type FocusTarget =
 // D-10: la capa no abre nada: es `inert`.
 const noop = () => undefined;
 
-// Spec 003, D-9: dnd-kit no vuelve a medir cuando las mismas tarjetas cambian de orden, así que sin esto
+// Spec 003, D-32: dnd-kit no vuelve a medir cuando las mismas tarjetas cambian de orden, así que sin esto
 // la detección trabaja con rectángulos viejos. `measureDroppableContainers` sale de un contexto que solo
 // existe dentro de DndContext, y `useTaskMove` está por encima. D-21: no pinta nada ni pasa nada a las
 // tarjetas, así que su `memo` sigue sirviendo.
@@ -155,6 +155,25 @@ export function Board({ tasks }: BoardProps) {
     setDialog(null);
   }
 
+  // Spec 003, D-36, RF-029: como en `commit`. El foco solo se mueve si seguía en la tarjeta (el botón de
+  // abrir o el asa) o se ha perdido, también si aún no había llegado a ella. Con otro diálogo abierto, el
+  // foco está dentro de él (E-25). Solo usa setNotice y focusTarget, estables: la que llega aquí es la
+  // del render en que se pulsó.
+  function handleMoveFailedAfterClose(id: string, error: unknown) {
+    const gone = isTaskNotFound(error);
+    setNotice({ tone: gone ? 'info' : 'offline', text: moveErrorText(error) });
+    if (!gone) return;
+    const active = document.activeElement;
+    const target = focusTarget.current;
+    if (
+      active === document.body ||
+      active?.closest(`[data-task-id="${id}"], [data-task-handle="${id}"]`) ||
+      (target?.kind === 'card' && target.id === id)
+    ) {
+      focusTarget.current = { kind: 'create', removedId: id };
+    }
+  }
+
   // X-8: un solo primario por vista; sin tareas, va dentro del estado vacío.
   // RF-036, D-16: por debajo de 768 px, fijo abajo y a todo el ancho (en la rejilla, el botón se estira).
   const createButton = (
@@ -239,6 +258,7 @@ export function Board({ tasks }: BoardProps) {
           mode={dialog}
           tasks={tasks}
           onClose={handleClose}
+          onMoveFailedAfterClose={handleMoveFailedAfterClose}
         />
       )}
     </div>

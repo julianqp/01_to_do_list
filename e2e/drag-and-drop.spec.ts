@@ -2123,6 +2123,7 @@ test.describe('«Subir» y «Bajar» en el detalle', () => {
     await expect(taskDialog(page).getByText(MOVE_ERROR)).toBeVisible();
     await expect(position(page)).toHaveText('To do, posición 2 de 3.');
     await expect(taskDialog(page)).toBeVisible();
+    await expect(dialogButton(page, 'Subir')).toBeFocused();
     await taskDialog(page).getByRole('button', { name: 'Cancelar' }).click();
     await expectOrder(page, 'To do', TODO);
   });
@@ -2141,6 +2142,261 @@ test.describe('«Subir» y «Bajar» en el detalle', () => {
     await expect(page.getByText('Esta tarea ya no existe.')).toBeVisible();
     await expectOrder(page, 'To do', ['Comprar pan', 'Llamar al banco']);
     await expect(createTaskButton(page)).toBeFocused();
+  });
+
+  test('003 RF-027 D-38 clic en «Bajar»: el foco en el botón y Tab va al campo siguiente, no al primero del formulario', async ({
+    page,
+    channel,
+  }) => {
+    test.skip(channel === 'chrome', 'T-052: chromium y webkit');
+    await openBoard(page);
+    await seedBoard(page);
+    await openDemoDetail(page);
+
+    await dialogButton(page, 'Bajar').click();
+
+    await expect(position(page)).toHaveText('To do, posición 3 de 3.');
+    await expect(dialogButton(page, 'Bajar')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(taskDialog(page).getByLabel('Fecha estimada de inicio')).toBeFocused();
+  });
+
+  test('003 RF-028 D-38 clic hasta llegar al borde y otro clic ya inactivo: el foco sigue en él', async ({
+    page,
+    channel,
+  }) => {
+    test.skip(channel === 'chrome', 'T-052: chromium y webkit');
+    await openBoard(page);
+    await seedBoard(page);
+    await openDemoDetail(page);
+
+    await dialogButton(page, 'Subir').click();
+    await expect(position(page)).toHaveText('To do, posición 1 de 3.');
+    await expect(dialogButton(page, 'Subir')).toHaveAttribute('aria-disabled', 'true');
+    await expect(dialogButton(page, 'Subir')).toBeFocused();
+
+    // Sin `force`, Playwright esperaría a que dejara de estar inactivo.
+    await dialogButton(page, 'Subir').click({ force: true });
+
+    await expect(position(page)).toHaveText('To do, posición 1 de 3.');
+    await expect(dialogButton(page, 'Subir')).toBeFocused();
+  });
+
+  test.describe('con «Guardar cambios» en camino', () => {
+    // El `PUT` retenido con «Guardando…» a la vista, y «Subir», que no hace nada.
+    async function upWhileSaving(page: Page, action: 'continue' | 'abort') {
+      await openBoard(page);
+      await seedBoard(page);
+      await openDemoDetail(page);
+      const moves = trackMoves(page);
+      let release!: () => void;
+      const released = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      await page.route('**/api/tasks/*', async (route) => {
+        if (route.request().method() !== 'PUT') return route.fallback();
+        await released;
+        return action === 'abort' ? route.abort() : route.continue();
+      });
+      await taskDialog(page).getByLabel('Título').fill('Preparar la demo final');
+      await taskDialog(page).getByRole('button', { name: 'Guardar cambios' }).click();
+      await expect(taskDialog(page).getByRole('button', { name: 'Guardando…' })).toBeVisible();
+
+      await expect(dialogButton(page, 'Subir')).toHaveAttribute('aria-disabled', 'true');
+      await expect(dialogButton(page, 'Bajar')).toHaveAttribute('aria-disabled', 'true');
+      // Sin `force`, Playwright esperaría a que dejara de estar inactivo.
+      await dialogButton(page, 'Subir').click({ force: true });
+
+      expect(moves).toHaveLength(0);
+      await expect(position(page)).toHaveText('To do, posición 2 de 3.');
+      release();
+    }
+
+    test('003 CA-5.12 RF-028 «Subir» durante «Guardando…»: si el `PUT` va bien, el diálogo se cierra', async ({
+      page,
+      channel,
+    }) => {
+      test.skip(channel === 'chrome', 'T-051: chromium y webkit');
+      await upWhileSaving(page, 'continue');
+
+      await expect(taskDialog(page)).toHaveCount(0);
+      await expectOrder(page, 'To do', [
+        'Comprar pan',
+        'Preparar la demo final',
+        'Llamar al banco',
+      ]);
+    });
+
+    test('003 CA-5.12 RF-028 «Subir» durante «Guardando…»: si el `PUT` falla, sale el error de guardar y se activan', async ({
+      page,
+      channel,
+    }) => {
+      test.skip(channel === 'chrome', 'T-051: chromium y webkit');
+      await upWhileSaving(page, 'abort');
+
+      await expect(
+        taskDialog(page).getByText(
+          'No hemos podido guardar la tarea. Revisa tu conexión e inténtalo de nuevo.',
+        ),
+      ).toBeVisible();
+      await expect(dialogButton(page, 'Subir')).not.toHaveAttribute('aria-disabled');
+      await expect(dialogButton(page, 'Bajar')).not.toHaveAttribute('aria-disabled');
+    });
+  });
+
+  test.describe('con el diálogo ya cerrado', () => {
+    const NOT_FOUND = 'Esta tarea ya no existe.';
+    const cancelButton = (page: Page) => taskDialog(page).getByRole('button', { name: 'Cancelar' });
+    const notice = (page: Page) =>
+      page.getByRole('alert').filter({ has: page.locator('[data-tone]') });
+
+    // Retiene `…/move` hasta llamar a la función que devuelve: «deja pasar» hasta el servidor o aborta.
+    async function holdMove(page: Page) {
+      let release!: (action: 'continue' | 'abort') => void;
+      const released = new Promise<'continue' | 'abort'>((resolve) => {
+        release = resolve;
+      });
+      const reached = new Promise<void>((resolve) => {
+        void page.route('**/api/tasks/*/move', async (route) => {
+          resolve();
+          if ((await released) === 'abort') await route.abort();
+          else await route.continue();
+        });
+      });
+      return { reached, release };
+    }
+
+    // «Subir» en el detalle de «Preparar la demo» y «Cancelar» antes de la respuesta.
+    async function upThenClose(page: Page) {
+      await openBoard(page);
+      await seedBoard(page);
+      await openDemoDetail(page);
+      const held = await holdMove(page);
+      await dialogButton(page, 'Subir').click();
+      await held.reached;
+      await cancelButton(page).click();
+      await expect(taskDialog(page)).toHaveCount(0);
+      await expect(taskCard(page, 'Preparar la demo')).toBeFocused();
+      return held;
+    }
+
+    test('003 CA-5.13 RF-029 con la red abortada: el orden de antes, el aviso en el tablero y el foco en la tarjeta', async ({
+      page,
+    }) => {
+      const { release } = await upThenClose(page);
+      await expectOrder(page, 'To do', ['Preparar la demo', 'Comprar pan', 'Llamar al banco']);
+
+      release('abort');
+
+      await expect(notice(page)).toHaveText(MOVE_ERROR);
+      await expectOrder(page, 'To do', TODO);
+      await expect(taskCard(page, 'Preparar la demo')).toBeFocused();
+    });
+
+    test('003 CA-5.14 RF-029 con la tarea borrada de verdad: aviso, sin tarjeta y el foco en «Crear tarea»', async ({
+      page,
+    }) => {
+      const { release } = await upThenClose(page);
+      await deleteTaskViaApi(page, 'Preparar la demo');
+
+      release('continue');
+
+      await expect(notice(page)).toHaveText(NOT_FOUND);
+      await expectOrder(page, 'To do', ['Comprar pan', 'Llamar al banco']);
+      await expect(createTaskButton(page)).toBeFocused();
+    });
+
+    test('003 CA-5.14 RF-029 con la última tarea: el foco en el «Crear tarea» del estado vacío', async ({
+      page,
+    }) => {
+      await openBoard(page);
+      await seedBoard(page, { todo: ['Comprar pan', 'Preparar la demo'] });
+      await taskCard(page, 'Preparar la demo').click();
+      const held = await holdMove(page);
+      await dialogButton(page, 'Subir').click();
+      await held.reached;
+      await cancelButton(page).click();
+      // La otra se borra aquí, con la lista nueva: «Preparar la demo» es la última al llegar el fallo.
+      await taskCard(page, 'Comprar pan').click();
+      await taskDialog(page).getByRole('button', { name: 'Borrar tarea' }).click();
+      await taskDialog(page).getByRole('button', { name: 'Borrar tarea' }).last().click();
+      await expect(taskDialog(page)).toHaveCount(0);
+      await expectOrder(page, 'To do', ['Preparar la demo']);
+      await taskCard(page, 'Preparar la demo').focus();
+      await deleteTaskViaApi(page, 'Preparar la demo');
+
+      held.release('continue');
+
+      await expect(notice(page)).toHaveText(NOT_FOUND);
+      await expect(
+        page.getByText('Todavía no tienes tareas. Crea la primera y empieza a organizarte.'),
+      ).toBeVisible();
+      await expect(createTaskButton(page)).toBeFocused();
+    });
+
+    test('003 CA-5.14 RF-029 con el foco ya en otra tarjeta: no se mueve', async ({ page }) => {
+      const { release } = await upThenClose(page);
+      await taskCard(page, 'Llamar al banco').focus();
+      await deleteTaskViaApi(page, 'Preparar la demo');
+
+      release('continue');
+
+      await expect(notice(page)).toHaveText(NOT_FOUND);
+      await expectOrder(page, 'To do', ['Comprar pan', 'Llamar al banco']);
+      await expect(taskCard(page, 'Llamar al banco')).toBeFocused();
+    });
+
+    test('003 E-25 RF-029 con otro detalle abierto: el foco sigue en él y, al cerrarlo, el aviso está en el tablero', async ({
+      page,
+    }) => {
+      const { release } = await upThenClose(page);
+      await taskCard(page, 'Llamar al banco').click();
+      await expect(taskDialog(page)).toBeVisible();
+      await cancelButton(page).focus();
+      await deleteTaskViaApi(page, 'Preparar la demo');
+      const failed = moveResponse(page);
+
+      release('continue');
+
+      expect((await failed).status()).toBe(404);
+      await expect(taskDialog(page)).toBeVisible();
+      await expect(cancelButton(page)).toBeFocused();
+      await cancelButton(page).click();
+      await expect(taskDialog(page)).toHaveCount(0);
+      await expect(notice(page)).toHaveText(NOT_FOUND);
+      await expect(taskCard(page, 'Llamar al banco')).toBeFocused();
+    });
+
+    for (const [name, action] of [
+      ['404', 'continue'],
+      ['la red abortada', 'abort'],
+    ] as const) {
+      test(`003 E-26 RF-029 «Subir» y «Borrar tarea», con ${name}: sin aviso y sin la tarjeta`, async ({
+        page,
+      }) => {
+        await openBoard(page);
+        await seedBoard(page);
+        await openDemoDetail(page);
+        const held = await holdMove(page);
+        await dialogButton(page, 'Subir').click();
+        await held.reached;
+
+        await taskDialog(page).getByRole('button', { name: 'Borrar tarea' }).click();
+        await taskDialog(page).getByRole('button', { name: 'Borrar tarea' }).last().click();
+        await expect(taskDialog(page)).toHaveCount(0);
+        await expectOrder(page, 'To do', ['Comprar pan', 'Llamar al banco']);
+
+        // El fallo se trata antes de volver a pedir la lista, así que su respuesta llega después.
+        const list = page.waitForResponse(
+          (response) =>
+            response.request().method() === 'GET' && response.url().endsWith('/api/tasks'),
+        );
+        held.release(action);
+        await list;
+        await expectNoNotice(page);
+        await expectOrder(page, 'To do', ['Comprar pan', 'Llamar al banco']);
+      });
+    }
   });
 
   for (const colorScheme of ['light', 'dark'] as const) {

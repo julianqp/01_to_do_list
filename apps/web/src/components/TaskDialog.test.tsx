@@ -27,7 +27,9 @@ const DISCARD_QUESTION = '¿Descartar los cambios?';
 function renderDialog(mode: TaskFormMode = { kind: 'create' }) {
   const onClose = vi.fn();
   const tasks = mode.kind === 'edit' ? [mode.task] : [];
-  renderWithClient(<TaskDialog mode={mode} tasks={tasks} onClose={onClose} />);
+  renderWithClient(
+    <TaskDialog mode={mode} tasks={tasks} onClose={onClose} onMoveFailedAfterClose={vi.fn()} />,
+  );
   const dialog = screen.getByRole('dialog');
   return { onClose, dialog, user: userEvent.setup() };
 }
@@ -1029,7 +1031,14 @@ describe('TaskDialog · Subir y Bajar', () => {
 
   it('003 RF-026 D-34 si la tarea ya no está en la lista, no se pinta el bloque', () => {
     const task = taskFixture();
-    renderWithClient(<TaskDialog mode={{ kind: 'edit', task }} tasks={[]} onClose={vi.fn()} />);
+    renderWithClient(
+      <TaskDialog
+        mode={{ kind: 'edit', task }}
+        tasks={[]}
+        onClose={vi.fn()}
+        onMoveFailedAfterClose={vi.fn()}
+      />,
+    );
 
     expect(screen.queryByRole('button', { name: 'Subir' })).toBeNull();
   });
@@ -1305,7 +1314,12 @@ describe('TaskDialog · Subir y Bajar', () => {
     const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
     const dialogWith = (tasks: Task[]) => (
       <QueryClientProvider client={client}>
-        <TaskDialog mode={{ kind: 'edit', task: demo }} tasks={tasks} onClose={vi.fn()} />
+        <TaskDialog
+          mode={{ kind: 'edit', task: demo }}
+          tasks={tasks}
+          onClose={vi.fn()}
+          onMoveFailedAfterClose={vi.fn()}
+        />
       </QueryClientProvider>
     );
     const { rerender } = render(dialogWith([comprar, demo, llamar]));
@@ -1320,5 +1334,318 @@ describe('TaskDialog · Subir y Bajar', () => {
     await userEvent.setup().click(up(dialog));
     const [, init] = browser.callsTo('POST', `/api/tasks/${demo.id}/move`)[0]!;
     expect(JSON.parse(String(init!.body))).toMatchObject({ status: 'todo', index: 1 });
+  });
+
+  describe('con un guardado en camino (D-37)', () => {
+    // «Guardar cambios» con el título cambiado y el `PUT` retenido hasta llamar a `settle`.
+    async function saveHeld(tasks = todoTasks()) {
+      const opened = await openOrder(tasks);
+      let settle!: (response: Response) => void;
+      const route = `PUT /api/tasks/${tasks[1]!.id}`;
+      browser.routes[route] = () =>
+        new Promise<Response>((resolve) => {
+          settle = resolve;
+        });
+      await opened.user.type(field(opened.dialog, 'Título'), ' final');
+      await opened.user.click(save(opened.dialog));
+      await within(opened.dialog).findByRole('button', { name: 'Guardando…' });
+      return { ...opened, settle: (response: Response) => settle(response) };
+    }
+
+    it('003 CA-5.12 RF-028 durante «Guardando…», los dos inactivos, pulsarlos no manda ninguna petición, y sin el texto de RF-028', async () => {
+      const { user, dialog, moves } = await saveHeld();
+
+      expect(up(dialog).getAttribute('aria-disabled')).toBe('true');
+      expect(down(dialog).getAttribute('aria-disabled')).toBe('true');
+      expect(up(dialog).hasAttribute('disabled')).toBe(false);
+      expect(within(dialog).queryByText(NEEDS_SAVE)).toBeNull();
+
+      await user.click(up(dialog));
+      await user.click(down(dialog));
+
+      expect(moves()).toHaveLength(0);
+      expect(position(dialog)).toBe('To do, posición 2 de 3.');
+    });
+
+    it('003 CA-5.12 RF-028 si el guardado va bien, el diálogo se cierra', async () => {
+      const { user, dialog, settle } = await saveHeld();
+      await user.click(up(dialog));
+
+      settle(
+        new Response(JSON.stringify({ task: taskFixture({ status: 'todo' }) }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    });
+
+    it('003 CA-5.12 RF-028 con 500, sale el error de guardar y los botones se activan de nuevo', async () => {
+      const { user, dialog, settle } = await saveHeld();
+      await user.click(up(dialog));
+
+      settle(
+        new Response(JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: '' } }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+      expect(await within(dialog).findByText(SAVE_ERROR)).toBeDefined();
+      expect((dialog as HTMLDialogElement).open).toBe(true);
+      expect(up(dialog).getAttribute('aria-disabled')).toBeNull();
+      expect(down(dialog).getAttribute('aria-disabled')).toBeNull();
+    });
+  });
+
+  describe('con el diálogo ya cerrado (D-36)', () => {
+    // Una respuesta de `…/move` que no llega hasta llamar a `settle`.
+    function holdMove(failWith: (handler: () => Promise<Response>) => void) {
+      let settle!: (response: Response | Error) => void;
+      failWith(
+        () =>
+          new Promise<Response>((resolve, reject) => {
+            settle = (response) =>
+              response instanceof Error ? reject(response) : resolve(response);
+          }),
+      );
+      return (response: Response | Error) => settle(response);
+    }
+    const notFound = () =>
+      new Response(JSON.stringify({ error: { code: 'TASK_NOT_FOUND', message: '' } }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    const boardAlert = () => screen.getAllByRole('alert').at(-1)!;
+    const card = (title: string) => screen.getByRole('button', { name: new RegExp(`^${title}`) });
+
+    async function upAndCancel(tasks = todoTasks()) {
+      const opened = await openOrder(tasks);
+      const settle = holdMove(opened.failWith);
+      await opened.user.click(up(opened.dialog));
+      await waitFor(() => expect(opened.moves()).toHaveLength(1));
+      await opened.user.click(cancel(opened.dialog));
+      expect(screen.queryByRole('dialog')).toBeNull();
+      await waitFor(() => expect(document.activeElement).toBe(card('Preparar la demo')));
+      return { ...opened, settle, tasks };
+    }
+
+    it.each([
+      ['NetworkError', () => new TypeError('Failed to fetch')],
+      ['500', () => new Response('', { status: 500 })],
+    ])(
+      '003 CA-5.13 RF-029 con %s vuelve a su sitio, aviso en el tablero y el foco no cambia',
+      async (_name, failure) => {
+        const { settle } = await upAndCancel();
+
+        settle(failure());
+
+        await waitFor(() => expect(boardAlert().textContent).toContain(MOVE_ERROR));
+        expect(boardAlert().querySelector('[data-tone="offline"]')).not.toBeNull();
+        await waitFor(() =>
+          expectTitlesInOrder(['Comprar pan', 'Preparar la demo', 'Llamar al banco']),
+        );
+        expect(document.activeElement).toBe(card('Preparar la demo'));
+      },
+    );
+
+    it('003 CA-5.14 RF-029 con TASK_NOT_FOUND y el foco en su tarjeta: aviso, sin la tarjeta y el foco en «Crear tarea»', async () => {
+      const tasks = todoTasks();
+      const { settle } = await upAndCancel(tasks);
+      const rest = tasks.filter(({ title }) => title !== 'Preparar la demo');
+      browser.routes['GET /api/tasks'] = () => json(200, { tasks: rest });
+
+      settle(notFound());
+
+      await waitFor(() => expect(boardAlert().textContent).toContain(NOT_FOUND));
+      expect(boardAlert().querySelector('[data-tone="info"]')).not.toBeNull();
+      await waitFor(() => expectTitlesInOrder(['Comprar pan', 'Llamar al banco']));
+      await waitFor(() =>
+        expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Crear tarea' })),
+      );
+    });
+
+    it('003 CA-5.14 RF-029 D-36 con el foco en el asa de su tarjeta, también va a «Crear tarea»', async () => {
+      const tasks = todoTasks();
+      const { settle } = await upAndCancel(tasks);
+      screen.getByRole('button', { name: 'Mover «Preparar la demo»' }).focus();
+      const rest = tasks.filter(({ title }) => title !== 'Preparar la demo');
+      browser.routes['GET /api/tasks'] = () => json(200, { tasks: rest });
+
+      settle(notFound());
+
+      await waitFor(() =>
+        expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Crear tarea' })),
+      );
+    });
+
+    it('003 CA-5.14 RF-029 con el foco perdido, va a «Crear tarea»', async () => {
+      const tasks = todoTasks();
+      const { settle } = await upAndCancel(tasks);
+      (document.activeElement as HTMLElement).blur();
+      const rest = tasks.filter(({ title }) => title !== 'Preparar la demo');
+      browser.routes['GET /api/tasks'] = () => json(200, { tasks: rest });
+
+      settle(notFound());
+
+      await waitFor(() =>
+        expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Crear tarea' })),
+      );
+    });
+
+    it('003 CA-5.14 RF-029 con la última tarea, el foco va al «Crear tarea» del estado vacío', async () => {
+      const [demo, other] = [
+        taskFixture({ status: 'todo' }),
+        taskFixture({ title: 'Otra', status: 'todo' }),
+      ];
+      const { user, dialog, failWith, moves } = await openOrder([demo, other]);
+      const settle = holdMove(failWith);
+      await user.click(down(dialog));
+      await waitFor(() => expect(moves()).toHaveLength(1));
+      await user.click(cancel(dialog));
+      // La otra se borra aquí, con la lista nueva: la tarea es la última al llegar el fallo.
+      browser.routes[`DELETE /api/tasks/${other.id}`] = () => {
+        browser.routes['GET /api/tasks'] = () => json(200, { tasks: [demo] });
+        return Promise.resolve(new Response(null, { status: 204 }));
+      };
+      await user.click(card('Otra'));
+      await user.click(
+        within(screen.getByRole('dialog')).getByRole('button', { name: 'Borrar tarea' }),
+      );
+      await user.click(
+        within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Borrar tarea' }).at(-1)!,
+      );
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      await waitFor(() => expectTitlesInOrder(['Preparar la demo']));
+      card('Preparar la demo').focus();
+      browser.routes['GET /api/tasks'] = () => json(200, { tasks: [] });
+
+      settle(notFound());
+
+      await screen.findByText('Todavía no tienes tareas. Crea la primera y empieza a organizarte.');
+      await waitFor(() =>
+        expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Crear tarea' })),
+      );
+    });
+
+    it('003 CA-5.14 RF-029 con el foco ya en otra tarjeta, no se mueve', async () => {
+      const tasks = todoTasks();
+      const { settle } = await upAndCancel(tasks);
+      card('Llamar al banco').focus();
+      const rest = tasks.filter(({ title }) => title !== 'Preparar la demo');
+      browser.routes['GET /api/tasks'] = () => json(200, { tasks: rest });
+
+      settle(notFound());
+
+      await waitFor(() => expectTitlesInOrder(['Comprar pan', 'Llamar al banco']));
+      expect(boardAlert().textContent).toContain(NOT_FOUND);
+      expect(document.activeElement).toBe(card('Llamar al banco'));
+    });
+
+    it('003 E-25 RF-029 con otro detalle abierto: el foco sigue en él y, al cerrarlo, el aviso está en el tablero', async () => {
+      const tasks = todoTasks();
+      const { user, settle } = await upAndCancel(tasks);
+      await user.click(card('Llamar al banco'));
+      const other = screen.getByRole('dialog');
+      const inside = within(other).getByRole('button', { name: 'Cancelar' });
+      inside.focus();
+      const rest = tasks.filter(({ title }) => title !== 'Preparar la demo');
+      browser.routes['GET /api/tasks'] = () => json(200, { tasks: rest });
+
+      settle(notFound());
+
+      await waitFor(() => expectTitlesInOrder(['Comprar pan', 'Llamar al banco']));
+      expect(screen.getByRole('dialog')).toBe(other);
+      expect(document.activeElement).toBe(inside);
+      await user.click(inside);
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(screen.getByRole('alert').textContent).toContain(NOT_FOUND);
+      await waitFor(() => expect(document.activeElement).toBe(card('Llamar al banco')));
+    });
+
+    it.each([
+      ['TASK_NOT_FOUND', notFound],
+      ['NetworkError', () => new TypeError('Failed to fetch')],
+    ])(
+      '003 E-26 RF-029 «Subir» y «Borrar tarea» con %s: sin aviso y sin la tarjeta',
+      async (_name, failure) => {
+        const tasks = todoTasks();
+        const { user, dialog, failWith, moves } = await openOrder(tasks);
+        const settle = holdMove(failWith);
+        const demo = tasks[1]!;
+        const rest = tasks.filter(({ id }) => id !== demo.id);
+        browser.routes[`DELETE /api/tasks/${demo.id}`] = () => {
+          browser.routes['GET /api/tasks'] = () => json(200, { tasks: rest });
+          return Promise.resolve(new Response(null, { status: 204 }));
+        };
+        await user.click(up(dialog));
+        await waitFor(() => expect(moves()).toHaveLength(1));
+
+        await user.click(within(dialog).getByRole('button', { name: 'Borrar tarea' }));
+        await user.click(
+          within(screen.getByRole('dialog'))
+            .getAllByRole('button', { name: 'Borrar tarea' })
+            .at(-1)!,
+        );
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+        await waitFor(() => expectTitlesInOrder(['Comprar pan', 'Llamar al banco']));
+
+        settle(failure());
+
+        await waitFor(() => expect(browser.callsTo('GET', '/api/tasks').length).toBeGreaterThan(2));
+        await new Promise((resolve) => setTimeout(resolve));
+        expect(screen.getByRole('alert').textContent).toBe('');
+        expectTitlesInOrder(['Comprar pan', 'Llamar al banco']);
+      },
+    );
+
+    it('003 E-26 RF-029 D-36 si el borrado falla, un fallo posterior del movimiento sí avisa', async () => {
+      const tasks = todoTasks();
+      const { user, dialog, failWith, moves } = await openOrder(tasks);
+      const settle = holdMove(failWith);
+      browser.routes[`DELETE /api/tasks/${tasks[1]!.id}`] = () => apiError(500, 'INTERNAL_ERROR');
+      await user.click(up(dialog));
+      await waitFor(() => expect(moves()).toHaveLength(1));
+      await user.click(within(dialog).getByRole('button', { name: 'Borrar tarea' }));
+      await user.click(
+        within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Borrar tarea' }).at(-1)!,
+      );
+      await within(dialog).findByText(DELETE_ERROR);
+      await user.click(cancel(dialog));
+      expect(screen.queryByRole('dialog')).toBeNull();
+
+      settle(new TypeError('Failed to fetch'));
+
+      await waitFor(() => expect(screen.getByRole('alert').textContent).toContain(MOVE_ERROR));
+    });
+
+    it('003 E-8 RF-029 con 401 y el diálogo cerrado: redirige, sin aviso', async () => {
+      const Island = withQueryClient(LiveBoard, { requireSession: true });
+      const tasks = todoTasks();
+      serveOrder(tasks);
+      let settle!: (response: Response) => void;
+      browser.routes[`POST /api/tasks/${tasks[1]!.id}/move`] = () =>
+        new Promise<Response>((resolve) => {
+          settle = resolve;
+        });
+      render(<Island />);
+      const user = userEvent.setup();
+      await user.click(await screen.findByRole('button', { name: /^Preparar la demo/ }));
+      const dialog = screen.getByRole('dialog');
+      await user.click(up(dialog));
+      await waitFor(() => expect(settle).toBeDefined());
+      await user.click(cancel(dialog));
+
+      settle(
+        new Response(JSON.stringify({ error: { code: 'SESSION_EXPIRED', message: '' } }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+      await waitFor(() => expect(browser.replace).toHaveBeenCalledWith('/login?expired=1'));
+      expect(screen.getByRole('alert').textContent).toBe('');
+    });
   });
 });

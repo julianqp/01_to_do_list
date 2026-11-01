@@ -337,6 +337,23 @@ describe('useMoveTask', () => {
     expect(lists).toBeGreaterThan(0);
   });
 
+  it('003 E-26 RF-029 D-36 si la tarea ya no está en la lista, el fallo no la vuelve a poner', async () => {
+    const view = await renderBoard();
+    const response = hold('demo');
+    act(() => view.result.current.mutation.mutate(DEMO_TO_PROGRESS));
+    await waitFor(() => expect(column(view, 'in_progress')).toEqual(['demo', 'correo']));
+
+    // Se ha borrado mientras tanto: la lista nueva ya no la tiene.
+    browser.routes['GET /api/tasks'] = () => json(200, { tasks: [BREAD, MAIL] });
+    await act(() => view.result.current.tasks.refetch());
+    await waitFor(() => expect(column(view, 'in_progress')).toEqual(['correo']));
+    await act(async () => response.settle(new TypeError('Failed to fetch')));
+
+    await waitFor(() => expect(view.result.current.mutation.isPending).toBe(false));
+    expect(column(view, 'todo')).toEqual(['pan']);
+    expect(column(view, 'in_progress')).toEqual(['correo']);
+  });
+
   it('003 E-12 dos movimientos, el primero falla y el segundo va bien: solo el primero vuelve', async () => {
     const view = await renderBoard();
     const demo = hold('demo');

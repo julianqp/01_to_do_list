@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { TASK_STATUSES, type Task, type TaskStatus } from '@todo/shared';
 import { ClockAlert } from 'lucide-react';
+import { ApiError } from '../lib/api';
 import { groupByStatus, placementOf, stepPlacement, type Placement } from '../lib/board-order';
 import { formatShortDate, isOverdue, todayLocal } from '../lib/dates';
 import { TASK_FIELD_IDS, useTaskForm, type TaskFormMode } from '../lib/task-form';
@@ -43,6 +44,8 @@ export type TaskDialogProps = {
   // Spec 003, D-34: la lista viva, para la posición y el sitio de destino de «Subir» y «Bajar».
   tasks: Task[];
   onClose: (result: DialogResult) => void;
+  // Spec 003, D-36: «Subir» o «Bajar» ha fallado con el diálogo ya cerrado (RF-029).
+  onMoveFailedAfterClose: (taskId: string, error: unknown) => void;
 };
 
 // X-7, D-12: las confirmaciones sustituyen el contenido del mismo diálogo.
@@ -66,11 +69,14 @@ const ACTIONS = 'flex flex-wrap justify-end gap-3';
 
 // DESIGN.md §14 Dialog, D-12, D-22: <dialog> nativo con showModal (capa superior, fondo inerte, foco
 // atrapado y ::backdrop). Lo pinta Board con `key` = id de la tarea o 'new' (D-13).
-export function TaskDialog({ mode, tasks, onClose }: TaskDialogProps) {
+export function TaskDialog({ mode, tasks, onClose, onMoveFailedAfterClose }: TaskDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   // El formulario no se desmonta durante una confirmación: al volver, el foco vuelve a donde estaba.
   const lastFocused = useRef<HTMLElement | null>(null);
+  // Spec 003, D-36: lo que `.catch` de `moveWithinColumn` necesita saber cuando llega el fallo.
+  const closed = useRef(false);
+  const deletedByUser = useRef(false);
   const [view, setView] = useState<View>('form');
   const form = useTaskForm(mode);
   const createTask = useCreateTask();
@@ -97,6 +103,13 @@ export function TaskDialog({ mode, tasks, onClose }: TaskDialogProps) {
   useEffect(() => {
     const dialog = dialogRef.current;
     if (dialog && !dialog.open) dialog.showModal();
+  }, []);
+
+  useEffect(() => {
+    closed.current = false;
+    return () => {
+      closed.current = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -163,9 +176,11 @@ export function TaskDialog({ mode, tasks, onClose }: TaskDialogProps) {
     if (deleteTask.isPending) return;
     updateTask.reset();
     if (moveTask.isError) moveTask.reset();
+    deletedByUser.current = true;
     deleteTask.mutate(task.id, {
       onSuccess: () => onClose({ kind: 'deleted' }),
       onError: (error) => {
+        deletedByUser.current = false;
         if (isTaskNotFound(error)) onClose({ kind: 'notFound', message: deleteErrorText(error) });
         else setView('form');
       },
@@ -189,19 +204,18 @@ export function TaskDialog({ mode, tasks, onClose }: TaskDialogProps) {
   const downTo = stepTo('ArrowDown');
 
   // RF-027: al momento y sin tocar el borrador. Una pulsación cada vez, porque con un fallo la tarjeta
-  // volvería a un `from` viejo (D-12). RF-029: si ya no existe, se cierra y avisa el tablero.
+  // volvería a un `from` viejo (D-12). RF-029: si ya no existe, se cierra y avisa el tablero. D-36: con
+  // la promesa, porque TanStack no llama al `onError` de `mutate` con el componente desmontado.
   function moveWithinColumn(to: Placement) {
     if (!saved || !place || moveTask.isPending) return;
     updateTask.reset();
     deleteTask.reset();
-    moveTask.mutate(
-      { task: saved, from: place, to, today },
-      {
-        onError: (error) => {
-          if (isTaskNotFound(error)) onClose({ kind: 'notFound', message: moveErrorText(error) });
-        },
-      },
-    );
+    moveTask.mutateAsync({ task: saved, from: place, to, today }).catch((error) => {
+      // E-8: con la sesión caducada, redirige withQueryClient. E-26: es lo que el usuario acaba de pedir.
+      if ((error instanceof ApiError && error.status === 401) || deletedByUser.current) return;
+      if (closed.current) onMoveFailedAfterClose(saved.id, error);
+      else if (isTaskNotFound(error)) onClose({ kind: 'notFound', message: moveErrorText(error) });
+    });
   }
 
   return (
@@ -274,17 +288,23 @@ export function TaskDialog({ mode, tasks, onClose }: TaskDialogProps) {
                 <p aria-live="polite" aria-atomic="true" className="ps-5 text-sm text-2">
                   {movedText(place, groups[place.status].length)}
                 </p>
-                <div className="flex flex-wrap gap-3">
+                {/* D-37: inactivos también con un guardado en camino: `updateTask.reset()` lo desengancharía. */}
+                {/* D-38: WebKit no enfoca un botón al hacer clic, y Tab volvería al primer campo. En el
+                    contenedor, porque `Button` no llama a `onClick` si está inactivo (RF-028). */}
+                <div
+                  className="flex flex-wrap gap-3"
+                  onClick={(event) => (event.target as HTMLElement).closest('button')?.focus()}
+                >
                   <Button
                     variant="glass"
-                    inactive={!upTo}
+                    inactive={!upTo || saving}
                     onClick={() => upTo && moveWithinColumn(upTo)}
                   >
                     Subir
                   </Button>
                   <Button
                     variant="glass"
-                    inactive={!downTo}
+                    inactive={!downTo || saving}
                     onClick={() => downTo && moveWithinColumn(downTo)}
                   >
                     Bajar

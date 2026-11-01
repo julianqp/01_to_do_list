@@ -88,11 +88,11 @@ export function useMoveTask() {
       updateTasks((tasks) => placeTask(tasks, { ...task, actualEndDate }, to));
     },
     onError: (error, { task, from }) => {
-      updateTasks((tasks) =>
-        isTaskNotFound(error)
-          ? tasks.filter(({ id }) => id !== task.id)
-          : placeTask(tasks, task, from),
-      );
+      updateTasks((tasks) => {
+        if (isTaskNotFound(error)) return tasks.filter(({ id }) => id !== task.id);
+        // D-36: si ya no está (se borró mientras tanto, E-26), `placeTask` la volvería a añadir.
+        return tasks.some(({ id }) => id === task.id) ? placeTask(tasks, task, from) : tasks;
+      });
     },
     // D-29: sin devolver la promesa. Si no, el fallo esperaría a la lista, que con la API caída se
     // reintenta unos 7 s, y con él el aviso y la vuelta a la columna (RF-021, RF-023).
