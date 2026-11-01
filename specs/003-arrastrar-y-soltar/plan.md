@@ -237,7 +237,7 @@ export function useTaskMove(options: {
   announcement: string;                          // texto de la región viva
   dndProps: Pick<DndContextProps, 'sensors' | 'collisionDetection' | 'measuring' | 'accessibility'
     | 'onDragStart' | 'onDragOver' | 'onDragEnd' | 'onDragCancel'>;
-  handleProps(task: Task): { onClick(): void; onKeyDown(e: KeyboardEvent): void; onBlur(): void };
+  handleProps: HandleProps;                      // D-21: un solo objeto estable, con onClick, onKeyDown y onBlur
 };
 type DragState = { task: Task; origin: Placement; current: Placement; mode: 'pointer' | 'keyboard' };
 
@@ -255,7 +255,7 @@ cancelledText(title, place, total): string                // RF-017
 // Modificados
 Board        { tasks: Task[] }   // + DndContext, DragOverlay, región viva; notice pasa a { tone, text }
 BoardColumn  + dragTaskId?: string; dragMode?: 'pointer' | 'keyboard';
-             + handleProps(task): …   // droppable `column:<status>`; cada tarjeta, draggable + droppable (D-9)
+             + handleProps: …   // D-21; droppable `column:<status>`; cada tarjeta, draggable + droppable (D-9)
 TaskCard     + variant?: 'rest' | 'placeholder' | 'lifted' | 'overlay';
              + handleProps?: …;  + dragRef?/dragListeners? (los del <li>)  // D-10, D-11
 ```
@@ -419,6 +419,19 @@ El resto sigue `DESIGN.md` tal cual:
   - *Por qué:* en el WebKit de Playwright, `new Touch(...)` lanza `TypeError: Illegal constructor` y `new TouchEvent` con arrays da `Type error`. `createTouch` + `createTouchList` dan objetos `Touch` reales, y el oyente recibe sus coordenadas (sonda del 2026-10-31). Así se mantiene la prueba táctil en WebKit (RNF-004), que era lo que buscaba R-6.
   - *Alternativas descartadas:* saltar los tests de dedo en `webkit` (RNF-004 sin prueba táctil en WebKit); redefinir `touches` en el evento a mano (funciona, pero con objetos que no son `Touch`).
   - Decidido con el usuario. Que dnd-kit arranque el arrastre con estos eventos se sigue comprobando en T-018 (D-15).
+- **D-18 (añadida en T-015)** Al soltar, la vista previa sigue en pantalla (`landing`) hasta que cambia la lista que llega a `useTaskMove`.
+  - *Por qué:* `onMutate` es asíncrono y TanStack avisa a los suscriptores en un `setTimeout(0)`. Si `drag` se borrara sin más, habría un render con la tarjeta en su sitio de antes y, al cambiar de columna, se perdería el foco del asa (RF-016, RF-020).
+  - *Alternativas descartadas:* cambiar el planificador global de TanStack (`notifyManager`), que afectaría a toda la app; leer la caché directamente en `useTaskMove` (C-4: una sola fuente, la consulta).
+- **D-19 (añadida en T-016)** `useMoveTask` lleva `networkMode: 'always'`.
+  - *Por qué:* por defecto, TanStack **pausa** las mutaciones sin conexión hasta recuperarla. La tarjeta se quedaría en su sitio nuevo sin aviso, y E-7 y RF-021 piden que vuelva y salga el aviso. Con `always`, la petición se intenta, `fetch` falla y se deshace.
+  - *Alternativas descartadas:* comprobar `navigator.onLine` antes de mover (duplica lo que ya resuelve el fallo de `fetch`).
+- **D-20 (añadida en T-018)** Completa D-9: además de `onDragOver`, un `onDragMove` recoloca la tarjeta cuando su centro cruza el de la tarjeta de debajo, dentro de la columna donde ya está.
+  - *Por qué:* `onDragOver` solo se dispara cuando cambia la tarjeta de debajo. Al entrar en una columna por debajo del centro de su primera tarjeta, la tarjeta queda detrás; si el puntero sigue subiendo, la de debajo no cambia y se quedaría segunda, y CA-1.1 pide que quede la primera.
+  - *Sin oscilación:* solo actúa al cruzar el centro en el sentido del cambio: tras cruzar, la condición contraria deja de cumplirse. `placementFromOver` no cambia.
+  - *Alternativas descartadas:* decidir «antes o después» con `below` también en la misma columna (cambia el comportamiento de `arrayMove` que fija D-9 y sus tests); añadir `@dnd-kit/sortable` (R-1).
+- **D-21 (añadida en T-022)** `memo` en `TaskCard` y en la tarjeta arrastrable de `BoardColumn`, con todas sus props estables (plan §8). Cambia un contrato de §4.3: `handleProps` pasa de ser una función por tarea a **un solo objeto estable** para todas las tarjetas; cada manejador saca la tarea de `data-task-handle` y el estado, del último render.
+  - *Por qué:* RNF-002 daba unos 178 ms con 500 tareas, porque al soltar se volvían a pintar todas. Con `memo`, unos 40 ms. Las opciones de los sensores pasan a ser constantes: escritas en línea, rehacían los sensores y el contexto de dnd-kit en cada render.
+  - *Alternativas descartadas:* un comparador a medida en `memo` que ignorara los manejadores (dejaría manejadores viejos, con un `drag` antiguo); virtualizar la lista (más código y el arrastre necesita medir las tarjetas).
 
 ## 6. Trazabilidad
 
