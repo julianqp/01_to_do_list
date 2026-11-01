@@ -1,6 +1,6 @@
 ---
 spec: 003
-spec_version: 4.0        # versión de la spec sobre la que se planifica
+spec_version: 5.0        # versión de la spec sobre la que se planifica
 estado: aprobado         # borrador | aprobado
 creado: 2026-10-31
 aprobado: 2026-10-31, Julian Querol Polo
@@ -80,7 +80,7 @@ aprobado: 2026-10-31, Julian Querol Polo
 | C-17 | ✅ | Cada RF tiene al menos un test (§6) |
 | C-18 | ✅ | Vitest y Testing Library (teclado completo en jsdom); Supertest contra Postgres real; Playwright para arrastrar con ratón y con el dedo y para el flujo de teclado |
 | C-19 | ✅ | DoD de cada tarea |
-| C-20 | ✅ | Alternativa sin arrastre usable con teclado: el asa (HU-3), con anuncios. El detalle de la 002 sigue permitiendo cambiar de estado. Con un solo puntero sin arrastrar (WCAG 2.5.7): «Subir» y «Bajar» y el estado del detalle (D-34; verificación I-2) |
+| C-20 | ✅ | Alternativa sin arrastre usable con teclado: el asa (HU-3), con anuncios. El detalle de la 002 sigue permitiendo cambiar de estado. Con un solo puntero sin arrastrar (WCAG 2.5.7): «Subir» y «Bajar» y el estado del detalle (D-34; verificación I-2). El anillo de foco del botón inactivo baja de 3:1 en claro: WCAG 1.4.11 exime a los componentes inactivos y queda como riesgo aceptado (§8) |
 | C-21 | ✅ | Nada fuera de la spec. La animación de las tarjetas al reordenar queda fuera (X-2) y pasa a «Ideas sin priorizar» |
 | C-22 | ✅ | Abstracciones nuevas con dos usos o más: `placeTask` (vista previa, actualización optimista y deshacer), `makeRoom` en el repository (crear, cambiar de estado y mover) y `TaskCard` con variantes (lista y capa que sigue al puntero) |
 | C-23 | ✅ | Identificadores en inglés (`position`, `move`, `Placement`); textos en castellano |
@@ -129,7 +129,7 @@ flowchart LR
 6. **Crear y detalle:**
    - `POST /api/tasks` coloca la tarea la primera de Backlog (RF-009).
    - `PUT /api/tasks/:id` la coloca la primera de la columna nueva solo si cambia el estado (RF-010); si no, conserva su posición. Guardar el diálogo no cambia: sigue sin actualización optimista (002/D-7).
-7. **«Subir» y «Bajar»** *(spec v4.0, D-34)*: `TaskDialog` recibe la lista de `Board`, calcula el sitio con `placementOf` y `stepPlacement`, y guarda con `useMoveTask`, como el paso 4, sin cerrarse. El aviso de error va dentro del diálogo, y `TASK_NOT_FOUND` lo cierra.
+7. **«Subir» y «Bajar»** *(spec v4.0, D-34)*: `TaskDialog` recibe la lista de `Board`, calcula el sitio con `placementOf` y `stepPlacement`, y guarda con `useMoveTask`, como el paso 4, sin cerrarse. El aviso de error va dentro del diálogo, y `TASK_NOT_FOUND` lo cierra. *(Spec v5.0, D-36)* Si el diálogo ya se cerró, el aviso va al tablero.
 
 ### 4.2 Modelo de datos
 
@@ -241,7 +241,7 @@ export function useTaskMove(options: {
   drag: DragState | null;
   draggedTask: Task | undefined;                 // D-8: la tarea de `drag`, buscada en la lista (para la capa)
   announcement: string;                          // texto de la región viva
-  dndProps: Pick<DndContextProps, 'sensors' | 'collisionDetection' | 'measuring' | 'accessibility'
+  dndProps: Pick<DndContextProps, 'sensors' | 'collisionDetection' | 'accessibility'
     | 'onDragStart' | 'onDragOver' | 'onDragMove' | 'onDragEnd' | 'onDragCancel'>; // onDragMove: D-20
   handleProps: HandleProps;                      // D-21: un solo objeto estable, con onClick, onKeyDown, onMouseDown (D-24) y onBlur
 };
@@ -268,6 +268,7 @@ BoardColumn  + dragTaskId?: string; dragMode?: 'pointer' | 'keyboard';
 TaskCard     + variant?: 'rest' | 'placeholder' | 'lifted' | 'overlay';
              + handleProps?: …;  + dragRef?/dragListeners? (los del <li>)  // D-10, D-11
 TaskDialog   + tasks: Task[]     // D-34: la lista viva, para la posición y el sitio de destino
+             + onMoveFailedAfterClose: (taskId: string, error: unknown) => void // D-36
 Button       + inactive?: boolean // D-34: aria-disabled e ignora la activación, sin Spinner y sin perder el foco
 ```
 
@@ -287,7 +288,7 @@ Button       + inactive?: boolean // D-34: aria-disabled e ignora la activación
 | Tablero | `apps/web/src/components/Board.tsx` | `DndContext`, capa, región viva, aviso con tono | Modificado |
 | Columna | `apps/web/src/components/BoardColumn.tsx` | Droppable de la columna y de cada tarjeta | Modificado |
 | Tarjeta | `apps/web/src/components/TaskCard.tsx` | Contenedor, botón de abrir, asa y variantes | Modificado |
-| Detalle | `apps/web/src/components/TaskDialog.tsx`, `Button.tsx` | «Subir», «Bajar» y posición (D-34); estado inactivo del botón | Modificado |
+| Detalle | `apps/web/src/components/TaskDialog.tsx`, `Button.tsx` | «Subir», «Bajar» y posición (D-34); estado inactivo del botón; fallo con el diálogo cerrado (D-36), inactivos al guardar (D-37) y foco tras el clic (D-38) | Modificado |
 | Área privada | `apps/web/src/components/PrivateArea.tsx` | Tablero si hay datos (D-30); `scroll-padding` de `main` (D-23) | Modificado |
 | Estilos | `apps/web/src/styles/tokens.css` | `--ring-drop` (X-1) | Modificado |
 | Tests de diseño | `apps/web/src/styles/tokens.test.ts` | Valor esperado y pareja no textual del anillo | Modificado |
@@ -518,13 +519,30 @@ El resto sigue `DESIGN.md` tal cual:
   - **Sin tocar el borrador:** `useTaskForm` no cambia, así que moverla no cuenta como cambio (RF-027).
   - **Anuncios:** un `<p aria-live="polite">` dentro del diálogo y siempre presente. La región viva del tablero (D-7) queda inerte detrás de `showModal`.
   - **Inactivo:** `Button` gana `inactive`, con `aria-disabled` y sin atender la activación, como `loading` (004/D-9): con `disabled`, el botón perdería el foco al llegar al borde. Se pinta a opacidad .45, el «Deshabilitado» del Button de `DESIGN.md` §14. *Añadido en T-047:* tampoco lleva la escala al pulsar ni el `hover`, porque pulsarlo no hace nada (CA-5.5).
-  - **Una pulsación cada vez:** con `move.isPending`, otra pulsación se ignora (RF-027), como `saving` en `handleSubmit`. Si no, con un fallo la tarjeta volvería a un `from` viejo (D-12).
-  - **Errores:** el `onError` de la llamada. `moveErrorText` en la alerta del diálogo, junto a `actionError` (002/D-20), y `onClose({ kind: 'notFound', message })` con `TASK_NOT_FOUND`, que ya lleva el foco a «Crear tarea» (002/D-14). `onError` de `useMoveTask` no cambia, y la sesión caducada redirige como hasta ahora (E-8).
+  - **Una pulsación cada vez:** con `move.isPending`, otra pulsación se ignora (RF-027), como `saving` en `handleSubmit`. Si no, con un fallo la tarjeta volvería a un `from` viejo (D-12). *Con un guardado en camino, ver D-37.*
+  - **Errores:** el `onError` de la llamada. `moveErrorText` en la alerta del diálogo, junto a `actionError` (002/D-20), y `onClose({ kind: 'notFound', message })` con `TASK_NOT_FOUND`, que ya lleva el foco a «Crear tarea» (002/D-14). `onError` de `useMoveTask` no cambia, y la sesión caducada redirige como hasta ahora (E-8). *Con el diálogo abierto; el `onError` de la llamada y la frase sobre `useMoveTask` los sustituye D-36.*
   - *Alternativas descartadas:* aplicar al guardar (D-12 ya resuelve el guardado al momento; decisión del usuario); controles en la tarjeta (dos botones más por tarjeta, y el usuario eligió el detalle).
 - **D-35 (añadida en la spec v4.0, T-046)** RF-019, CA-4.7: `inVisibleColumn` mira la geometría, no qué elemento hay encima, así que soltar sobre «Crear tarea», fijo por debajo de 768 px, cuenta como soltar en la columna si esta queda debajo. Es lo que ya hacía D-31 y ahora es comportamiento esperado: sin cambio de código, con tests.
   - *Por qué:* es adonde se lleva la tarjeta para que la página haga scroll hacia abajo (E-4); cancelar ahí perdería el arrastre (verificación M-4).
   - *Consecuencia aceptada:* la capa pasa sobre «Crear tarea», donde `webkit` midió 4,39:1 (verificación M-3, sin tarea).
   - *Alternativas descartadas:* comprobar con `elementFromPoint` y cancelar sobre el botón (decisión del usuario).
+- **D-36 (añadida en la spec v5.0)** RF-029, CA-5.13, CA-5.14, E-25, E-26: `moveWithinColumn` pasa a `mutateAsync` y trata el fallo en su `.catch`, como `commit` (D-29), porque TanStack no llama al `onError` de `mutate` con el componente desmontado (verificación I-1). Completa D-34.
+  - **Sesión caducada:** con 401, nada, como `commit`; ya redirige `withQueryClient` (E-8).
+  - **Diálogo abierto:** como hasta ahora. `actionError` lee `moveTask.isError` y `TASK_NOT_FOUND` llama a `onClose({ kind: 'notFound', message })`.
+  - **Diálogo cerrado:** un `ref` que un efecto pone a `true` al desmontar lo distingue, y se llama a la prop nueva `onMoveFailedAfterClose(taskId, error)`.
+  - **En `Board`:** pone el aviso con el mismo tono y texto que `commit`. Con `TASK_NOT_FOUND`, si `document.activeElement` es `body` o está dentro de `[data-task-id="<id>"]`, o `focusTarget` aún apunta a esa tarjeta, `focusTarget` pasa a `{ kind: 'create', removedId: id }`. Con otro diálogo abierto, el foco está dentro de él, así que no hace falta comprobarlo aparte (E-25). La función solo usa `setNotice` y `focusTarget`, estables, porque la que llega al `.catch` es la del render en que se pulsó.
+  - **Borrada por el usuario (E-26):** un `ref` se pone a `true` en `confirmDelete` y vuelve a `false` si el borrado falla; con él, el `.catch` no hace nada.
+  - **Cambia `onError` de `useMoveTask`:** con un fallo que no sea `TASK_NOT_FOUND`, solo recoloca la tarea si sigue en la lista. Hoy `placeTask` la volvería a añadir, y una tarea ya borrada reaparecería hasta la siguiente lista.
+  - *Consecuencia aceptada:* si el usuario cierra, vuelve a abrir el detalle de la misma tarea y la borra desde ahí antes de la respuesta, ese `ref` no se entera y sale el aviso. No pierde nada, y sería raro incluso con un servidor lento.
+  - *Alternativas descartadas:* subir la mutación a `Board` (más cambios en `TaskDialog` y en sus tests, para el mismo resultado); no dejar cerrar con un movimiento en camino (contradice CA-5.7); guardar el `removedId` borrado en `Board` (el 404 puede llegar antes de que termine el borrado).
+- **D-37 (añadida en la spec v5.0)** RF-028, CA-5.12: `inactive={!upTo || saving}` en «Subir» y `inactive={!downTo || saving}` en «Bajar». Así no se llega a `updateTask.reset()`, que desengancha la mutación en curso: no llegaba su `onSuccess`, que cierra, ni su error a `failedSave` (verificación I-2). Completa D-34.
+  - Con `aria-disabled` y sin `disabled`, por lo mismo que en D-34: el botón conserva el foco. Se pinta a opacidad .45, con el riesgo aceptado de M-1 (§8).
+  - El texto de RF-028 sigue saliendo solo con el estado cambiado.
+  - *Alternativas descartadas:* solo `if (saving) return` en `moveWithinColumn` (lo proponía la verificación, pero el botón parecería activo sin hacer nada; decisión del usuario).
+- **D-38 (añadida en la spec v5.0)** RF-027, RF-028: un `onClick` en el contenedor de los dos botones, `(event.target as HTMLElement).closest('button')?.focus()`. Con clic en WebKit, el botón no se queda con el foco y Tab vuelve al primer campo (verificación M-2; el mismo comportamiento de D-24). La spec no cambia: RF-027 ya lo exigía.
+  - En el contenedor y no en `onClick` de cada botón, porque `Button` no llama a `onClick` si está inactivo, y un segundo clic en un botón que llegó al borde también tiene que conservar el foco (RF-028).
+  - Solo lo prueba un E2E en `webkit`: `user-event` enfoca al hacer clic, como `chromium`.
+  - *Alternativas descartadas:* acotar RF-027 a la activación con teclado (decisión del usuario); una prop nueva en `Button` (más superficie para los mismos dos botones); `preventDefault` en `mousedown`, como D-24 (en `chromium` el foco tampoco llegaría al botón si estaba en otro sitio).
 
 ## 6. Trazabilidad
 
@@ -556,9 +574,9 @@ El resto sigue `DESIGN.md` tal cual:
 | RF-024 | `scrollIntoView` sobre la tarjeta tras cada paso; `scroll-padding` de `main` (D-23) | e2e con columna con scroll, a 1280 y 375 px: en cada flecha, la tarjeta dentro de la lista o de la ventana y el asa sin tapar (CA-3.11) |
 | RF-025 | `PrivateArea` pinta el tablero si hay datos (D-30) | unit `PrivateArea.test` (falla el refresco de `tasks` o de `me` con datos: sigue el tablero; sin datos, el error de carga de 002/CA-1.6); e2e con toda la API caída, pasados los reintentos (CA-1.12) |
 | RF-026 | Bloque de posición en `TaskDialog` con `tasks`, `movedText` y región viva propia (D-34) | unit `TaskDialog.test` (texto, botones, nada al crear, CA-5.1); e2e con teclado (anuncio, CA-5.4) |
-| RF-027 | `useMoveTask` sin cerrar el diálogo; borrador intacto (D-34) | unit `TaskDialog.test` (CA-5.2, CA-5.6, CA-5.7, CA-5.11, una pulsación cada vez); e2e con clic, toque y volver a cargar (CA-5.2, CA-5.3) |
-| RF-028 | `stepPlacement` devuelve `undefined`; estado elegido frente al guardado; `Button` `inactive` (D-34) | unit `TaskDialog.test` y `Button.test` (CA-5.5 con el foco, CA-5.8) |
-| RF-029 | `onError` de la llamada; `notFound` (D-34, 002/D-14, 002/D-20) | unit `TaskDialog.test` (CA-5.9); e2e con `page.route` y con la tarea borrada de verdad (CA-5.9, CA-5.10) |
+| RF-027 | `useMoveTask` sin cerrar el diálogo; borrador intacto (D-34); foco tras el clic (D-38) | unit `TaskDialog.test` (CA-5.2, CA-5.6, CA-5.7, CA-5.11, una pulsación cada vez); e2e con clic, toque y volver a cargar (CA-5.2, CA-5.3); e2e `003 RF-027 D-38` en `chromium` y `webkit` |
+| RF-028 | `stepPlacement` devuelve `undefined`; estado elegido frente al guardado; `Button` `inactive` (D-34); guardado en camino (D-37) | unit `TaskDialog.test` y `Button.test` (CA-5.5 con el foco, CA-5.8, CA-5.12); e2e con el `PUT` retenido (CA-5.12) |
+| RF-029 | `.catch` de `mutateAsync`; `notFound` (D-34, D-36, 002/D-14, 002/D-20); `onMoveFailedAfterClose` (D-36) | unit `TaskDialog.test` (CA-5.9, E-26); unit `Board.test` (CA-5.13, CA-5.14, foco según dónde estaba); e2e con `page.route` y con la tarea borrada de verdad (CA-5.9, CA-5.10, CA-5.13, CA-5.14, E-25, E-26) |
 | RNF-001 | Asa con nombre, foco global y 44/32 px (D-11); región viva (D-7); anillo del hueco (X-1); `motion-safe:` en la escala (X-2); foco siempre a la vista (D-23) y nunca perdido (D-26); un solo puntero sin arrastrar (D-34) | `tokens.test` (`--ring-drop` sobre la columna ≥ 3:1 y el icono del asa sobre la tarjeta ≥ 3:1, en N, SB y C+, claro y oscuro); axe en el tablero con una tarjeta cogida con teclado y en pleno arrastre con puntero, en los dos temas; e2e (tamaño del asa a 375 y 1280; con `reducedMotion: 'reduce'`, la capa no tiene `scale`; «Subir» y «Bajar» de 44 px, y axe con el detalle abierto en los dos temas); checklist §21 |
 | RNF-002 | Optimista en el mismo render (D-12); `placeTask` O(n) | e2e (solo `chromium`): 500 tareas, 200 en To do; arrastre con ratón; desde el `pointerup` hasta el primer frame con la tarjeta en su sitio y sin hueco (`MutationObserver` + `requestAnimationFrame` en la página) ≤ 100 ms |
 | RNF-003 | `where userId` en la lectura, el desplazamiento y la escritura (D-2, D-5); `position` no se expone | api: mover una tarea ajena → 404, y el orden de Luis no cambia cuando Ana mueve y crea (C-13) |
@@ -588,6 +606,8 @@ El resto sigue `DESIGN.md` tal cual:
 | E-22 | RF-025, D-30 | unit `PrivateArea.test`; e2e con toda la API caída |
 | E-23 | RF-028 en los dos sentidos (D-34) | unit `TaskDialog.test` (posición 1 de 1 y los dos botones inactivos) |
 | E-24 | La lista de esta pestaña y `lockUser` (D-2, D-34) | unit `TaskDialog.test` (con otro orden en la lista, el `index` sale de ella) |
+| E-25 | `notice` en `Board`; el foco solo se mueve desde la tarjeta o `body` (D-36) | e2e: «Subir», cerrar, abrir otra tarea y soltar el fallo: el foco sigue en ese diálogo y, al cerrarlo, el aviso está en el tablero |
+| E-26 | `ref` en `confirmDelete`; `onError` no recoloca una tarea que ya no está en la lista (D-36) | unit `task-queries.test` (no vuelve a la lista); unit `TaskDialog.test` (sin `notFound` ni aviso); e2e con el borrado de verdad y `…/move` retenido, con 404 y con la red abortada |
 
 ## 7. Estrategia de pruebas
 
@@ -666,11 +686,14 @@ El resto sigue `DESIGN.md` tal cual:
 | El cambio de la tarjeta (`button` → contenedor con dos botones) rompe tests y E2E de la 002 | Alta | Bajo | D-16; `pnpm test` y `pnpm test:e2e` completos al cerrar esa tarea |
 | La variante con retícula (SB) deja el anillo por debajo de 3:1 | Baja | Medio | `--ink-500` en claro da ≈ 4.3:1 (R-5); `tokens.test` lo mide en N, SB y C+ |
 | Una edición en otra pestaña se cruza con la lectura del service (D-5) | Baja | Bajo | La spec acepta que gane el último (E-11); no se añade control de versiones |
-| Deuda de la 004: WebKit intermitente con el servidor de desarrollo (M-7) | Alta | Bajo | `retries: 1` en WebKit, como hasta ahora (004/D-20) |
+| Deuda de la 004: WebKit intermitente con el servidor de desarrollo (M-7) | Alta | Bajo | `retries: 1` en WebKit, como hasta ahora (004/D-20). Cuarta verificación (M-5): `/signup` sin hidratar en 3 de 180 sin reintentos (1,7 %). Ese reintento podría esconder un fallo real, y no se corrige en esta spec (C-21) |
 | Un lector de pantalla envía su activación como clic de puntero y abre el detalle en vez de coger la tarjeta (D-24) | Desconocida | Medio | Riesgo aceptado: sin prueba con lector real (D-22). Espacio y Enter siguen cubiertos por los E2E de D-15 |
 | El refactor de `drag` y `landing` por id rompe el foco o la vista previa (D-8, D-18) | Media | Alto | Va el primero (T-026), sin cambio de comportamiento y protegido por los tests actuales de `Board` y los E2E de teclado y ratón |
 | La regla de cruzar el centro (D-9, D-20) no elimina la oscilación o cambia otro gesto: al arrastrar hacia abajo ya no basta con tocar la tarjeta siguiente | Media | Medio | T-044 repite `003 RF-007 D-9`, CA-1.1, CA-2.1, CA-2.5 y CA-4.3; los E2E que haya que ajustar se anotan en el Registro. Si sigue oscilando, se para y se avisa |
 | «Subir» o «Bajar» y «Guardar cambios» se cruzan en el servidor | Baja | Bajo | Sin cambio de estado, `PUT` no toca la posición (RF-010); con él, los botones están inactivos (RF-028) |
+| Anillo de foco de un botón inactivo por debajo de 3:1 en claro, porque `opacity-45` también afecta al `outline`: 2,44:1 en claro y 3,22:1 en oscuro (verificación M-1). CA-5.5 deja el foco ahí al llegar al borde | Alta | Bajo | **Riesgo aceptado, decisión del usuario:** WCAG 1.4.11 exime a los componentes inactivos, axe no lo marca y el anillo se sigue viendo, flojo. Si se quisiera corregir, la opacidad iría solo al contenido, lo que cambia cómo se aplica el «Deshabilitado» de `DESIGN.md` §14 |
+| Los tests de escrituras a la vez (D-2) pueden agotar los 5 s si `pnpm test` y `pnpm test:e2e` se lanzan a la vez (verificación M-4) | Media | Bajo | **Riesgo aceptado, decisión del usuario:** no se lanzan a la vez. No se ha buscado la causa |
+| Sombra de la tarjeta cogida recortada contra la lista (RNF-005; verificación M-4) | Alta | Bajo | **Riesgo aceptado, decisión del usuario:** sin tarea; dura lo que el movimiento. No se ha vuelto a medir |
 
 ## 9. Despliegue y operación
 

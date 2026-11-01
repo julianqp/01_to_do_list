@@ -2,10 +2,10 @@
 id: 003
 titulo: Arrastrar y soltar
 estado: en-implementacion # borrador | aprobada | en-implementacion | implementada | obsoleta
-version: 4.0
+version: 5.0
 autor: Julian Querol Polo
 creada: 2026-10-31
-aprobada: 2026-11-01 (v4.0), Julian Querol Polo   # AAAA-MM-DD, por quién; v1.0 el 2026-10-31
+aprobada: 2026-11-01 (v5.0), Julian Querol Polo   # AAAA-MM-DD, por quién; v1.0 el 2026-10-31
 ticket:
 ---
 
@@ -124,6 +124,9 @@ Como usuario que no puede o no quiere arrastrar, quiero subir o bajar una tarea 
 - **CA-5.9** Dado que el servidor no responde, cuando el usuario pulsa «Subir» en el detalle de CA-5.1, entonces la tarea vuelve a la posición 2 de To do, el texto vuelve a «To do, posición 2 de 3.», el diálogo sigue abierto y dentro de él aparece el aviso de CA-1.9.
 - **CA-5.10** Dada «Preparar la demo» borrada en otra pestaña, cuando el usuario pulsa «Subir» en su detalle, entonces el diálogo se cierra, en el tablero aparece «Esta tarea ya no existe.», la tarjeta desaparece y el foco pasa a «Crear tarea».
 - **CA-5.11** Dada la tarea subida como en CA-5.2, cuando el usuario cambia el título y pulsa «Guardar cambios», entonces la tarjeta conserva su posición nueva. Si además cambia el estado, entra la primera de la columna nueva (RF-010).
+- **CA-5.12** *(v5.0)* Dado el detalle de CA-5.1 con el título cambiado y «Guardar cambios» en camino («Guardando…»), «Subir» y «Bajar» están inactivos y, si el usuario los pulsa, nada se mueve y no se guarda nada. Si el guardado va bien, el diálogo se cierra (002/RF-013); si falla, aparece el error de guardar (002/RF-028) y los botones se activan de nuevo.
+- **CA-5.13** *(v5.0)* Dado que el servidor tarda y al final no responde, cuando el usuario pulsa «Subir» en el detalle de CA-5.1 y cierra el diálogo antes de la respuesta, entonces la tarea vuelve a la posición 2 de To do, en el tablero aparece el aviso de CA-1.9 y el foco no cambia.
+- **CA-5.14** *(v5.0)* Dada «Preparar la demo» borrada en otra pestaña, cuando el usuario pulsa «Subir» en su detalle y cierra el diálogo antes de la respuesta, entonces en el tablero aparece «Esta tarea ya no existe.», la tarjeta desaparece y el foco pasa a «Crear tarea» si seguía en la tarjeta o se ha perdido. Si ya está en otro sitio, no cambia.
 
 > Prioridades: **P1** imprescindible (sin esto no se publica) · **P2** importante · **P3** deseable.
 
@@ -173,8 +176,8 @@ Como usuario que no puede o no quiere arrastrar, quiero subir o bajar una tarea 
 
 - **RF-026** El detalle de una tarea ya creada DEBE mostrar, debajo de «Estado», el texto «<columna>, posición <n> de <total>.» y los botones «Subir» y «Bajar», que se activan con un clic, un toque, Enter o Espacio. Cada cambio de ese texto DEBE anunciarse al lector de pantalla. *(HU-5)*
 - **RF-027** CUANDO el usuario pulse «Subir» o «Bajar», el sistema DEBE mover la tarea una posición dentro de su columna y guardarlo al momento, sin pulsar «Guardar cambios», como en RF-007 y RF-020, con el diálogo abierto, el foco en el botón pulsado y los demás campos como estén. Con ese movimiento guardándose, otra pulsación no hace nada. El movimiento no cuenta como cambio sin guardar (002/RF-021), y ni «Cancelar» ni descartar los cambios lo deshacen. *(HU-5)*
-- **RF-028** SI no hay posición en esa dirección, o el estado elegido en el formulario no es el guardado, ENTONCES el botón DEBE quedar inactivo y conservar el foco si lo tenía. Con el estado cambiado sin guardar, DEBE mostrar debajo «Guarda el cambio de estado para poder subirla o bajarla.». *(HU-5)*
-- **RF-029** SI el movimiento falla como en RF-021, ENTONCES la tarea DEBE volver a su posición de antes y el aviso de RF-021 DEBE salir dentro del diálogo, sin cerrarlo. SI la tarea ya no existe o no es suya, ENTONCES el diálogo DEBE cerrarse, con el aviso de RF-022 en el tablero y el foco en «Crear tarea». *(HU-5)*
+- **RF-028** SI no hay posición en esa dirección, el estado elegido en el formulario no es el guardado o hay un guardado de la tarea en camino *(v5.0)*, ENTONCES el botón DEBE quedar inactivo y conservar el foco si lo tenía. Con el estado cambiado sin guardar, DEBE mostrar debajo «Guarda el cambio de estado para poder subirla o bajarla.». *(HU-5)*
+- **RF-029** SI el movimiento falla como en RF-021, ENTONCES la tarea DEBE volver a su posición de antes y el aviso de RF-021 DEBE salir dentro del diálogo, sin cerrarlo. SI la tarea ya no existe o no es suya, ENTONCES el diálogo DEBE cerrarse, con el aviso de RF-022 en el tablero y el foco en «Crear tarea». *(v5.0)* SI el diálogo ya se cerró cuando llega el fallo, ENTONCES el aviso de RF-021 o RF-022 DEBE salir en el tablero y, si la tarea ya no existe y el foco seguía en su tarjeta o se ha perdido, el foco DEBE pasar a «Crear tarea»; en cualquier otro caso, el foco no cambia. SI el usuario ha borrado la tarea desde su detalle, ENTONCES el fallo del movimiento NO DEBE mostrar ningún aviso ni devolver la tarjeta al tablero. *(HU-5)*
 
 ## 6. Requisitos no funcionales
 
@@ -212,6 +215,8 @@ Como usuario que no puede o no quiere arrastrar, quiero subir o bajar una tarea 
 | E-22 | *(v3.0)* No se puede volver a obtener la lista con el tablero a la vista, tras un movimiento o por cualquier otra causa | El tablero sigue con lo que ya tenía, sin error de carga (RF-025) y sin aviso propio; la lista se actualiza la próxima vez que se pida |
 | E-23 | *(v4.0)* La tarea es la única de su columna | El detalle muestra «<columna>, posición 1 de 1.», con «Subir» y «Bajar» inactivos |
 | E-24 | *(v4.0)* El orden de la columna cambió en otra pestaña con el detalle abierto | La posición es la de la lista que tiene esta pestaña; al pulsar se guarda como cualquier movimiento y gana el último (E-11) |
+| E-25 | *(v5.0)* «Subir» o «Bajar» falla cuando ya hay otro diálogo abierto | El aviso queda en la zona de alerta del tablero, a la vista al cerrar ese diálogo, y el foco no sale de él (RF-029) |
+| E-26 | *(v5.0)* Con «Subir» o «Bajar» en camino, el usuario borra la tarea desde su detalle | Si el movimiento falla, no aparece ningún aviso y la tarjeta no vuelve al tablero: es lo que el usuario acaba de pedir (RF-029) |
 
 ## 8. Entidades y glosario
 
@@ -276,6 +281,10 @@ Historial de preguntas resueltas durante `/sdd-clarificar`.
 | 2026-11-01 | ¿Qué pasa con «Subir» y «Bajar» si se ha cambiado el estado sin guardar? | Quedan inactivos, con un texto que explica por qué, hasta guardar o volver al estado original | RF-028, CA-5.8 |
 | 2026-11-01 | Si falla «Subir» o «Bajar», ¿dónde sale el aviso? | Dentro del diálogo, como los demás errores de guardar. Si la tarea ya no existe, el diálogo se cierra y el aviso sale en el tablero | RF-029, CA-5.9, CA-5.10 |
 | 2026-11-01 | Por debajo de 768 px, ¿soltar sobre «Crear tarea» es soltar fuera? | No, si la columna está debajo: es la zona de scroll automático y se guarda en la posición que marca el hueco. Si la columna termina antes del botón, sí | RF-019, CA-4.7 |
+| 2026-11-01 | ¿Qué pasa con «Subir» y «Bajar» mientras se guarda la tarea? | Quedan inactivos: el guardado no se toca y, al terminar, el diálogo se cierra o muestra su error | RF-028, CA-5.12 |
+| 2026-11-01 | Si «Subir» o «Bajar» falla con el diálogo ya cerrado, ¿hay aviso? | Sí, en el tablero, como un fallo al arrastrar | RF-029, CA-5.13, CA-5.14, E-25 |
+| 2026-11-01 | Y si además la tarea ya no existe, ¿adónde va el foco? | A «Crear tarea» si seguía en su tarjeta o se ha perdido; si el usuario ya está en otra cosa, no se le mueve | RF-029, CA-5.14, E-25 |
+| 2026-11-01 | Con «Subir» o «Bajar» en camino y la tarea borrada desde su detalle, ¿se avisa si el movimiento falla? | No: el fallo puede venir de ese mismo borrado, y el aviso sería una falsa alarma | RF-029, E-26 |
 
 ## 12. Registro de cambios
 
@@ -288,3 +297,4 @@ Historial de preguntas resueltas durante `/sdd-clarificar`.
 | 3.0     | 2026-11-01 | Nuevos RF-025, CA-1.12 y E-22. Cambia RF-021 (sin esperar a otra respuesta del servidor), además de §10 | Hallazgo de T-031: con la API caída no se cumplían RF-021, RF-023, CA-1.9, CA-2.6 ni CA-3.13; decisión del usuario con `/sdd-cambiar-spec` |
 | 3.1     | 2026-11-01 | RF-023: al fallar el guardado, vuelve a la columna de partida solo si el foco seguía en su asa; al cancelar, siempre. Sin cambio de comportamiento: recoge lo que ya hacía D-26 | Observación M-4 de `/sdd-verificar` (`verificacion.md`, segunda); decisión del usuario con `/sdd-cambiar-spec` |
 | 4.0     | 2026-11-01 | Nuevos HU-5, RF-026 a RF-029, CA-5.1 a CA-5.11, CA-4.7, E-23 y E-24: «Subir» y «Bajar» en el detalle. «Subir» y «Bajar» salen de §9. Cambian RF-019 (soltar sobre «Crear tarea» con la columna debajo guarda, como ya hacía el código) y RNF-001 (cita WCAG 2.5.7), además de §2 y §10. Ningún ID se elimina | Observaciones I-2 y M-4 de `/sdd-verificar` (`verificacion.md`, tercera); decisiones del usuario con `/sdd-cambiar-spec` |
+| 5.0     | 2026-11-01 | Nuevos CA-5.12, CA-5.13, CA-5.14, E-25 y E-26. Cambian RF-028 («Subir» y «Bajar» inactivos con un guardado en camino) y RF-029 (fallo con el diálogo ya cerrado: aviso en el tablero y foco definido; sin aviso si el usuario ha borrado la tarea). Ningún ID se elimina | Observaciones I-1 e I-2 de `/sdd-verificar` (`verificacion.md`, cuarta); decisiones del usuario con `/sdd-cambiar-spec` |

@@ -1,7 +1,7 @@
 ---
 spec: 003
 plan_aprobado: 2026-10-31
-progreso: 48/49
+progreso: 48/53
 ---
 
 # Tareas · Spec 003 · Arrastrar y soltar
@@ -599,10 +599,60 @@ Resuelven `verificacion.md` (tercera, NO APTO), con las decisiones del usuario d
   - Cubre: C-17, C-19, RF-026 a RF-029, CA-4.7, CA-5.1 a CA-5.11, E-23, E-24
   - Hecho cuando: hay un test cuyo título empieza por `003 ` para cada ID, con el criterio de T-024 (106 IDs, sin contar E-19); `pnpm test`, `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` en verde en los tres proyectos, con los «flaky» identificados; el Registro tiene el recuento.
 
-- [ ] **T-037** Volver a ejecutar `/sdd-verificar` (cuarta verificación)
-  - Depende de: T-036 y T-040 a T-049. **Es la última tarea**
+## Fase 9 · Spec v5.0: correcciones de la cuarta verificación
+
+Resuelven `verificacion.md` (cuarta, APTO CON OBSERVACIONES), con las decisiones del usuario del 2026-11-01: I-1, I-2, M-2 y M-4 a M-7. M-1 queda como riesgo aceptado (plan §8) y M-3 sigue sin tarea. Cada una termina con `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde.
+
+- [ ] **T-050** Avisar en el tablero si «Subir» o «Bajar» falla con el diálogo ya cerrado
+  - Depende de: T-049
+  - Ficheros: `apps/web/src/components/TaskDialog.tsx`, `TaskDialog.test.tsx`, `Board.tsx`, `Board.test.tsx`, `apps/web/src/lib/task-queries.ts`, `task-queries.test.tsx`, `e2e/drag-and-drop.spec.ts`
+  - Cubre: RF-021, RF-022, RF-029, CA-5.13, CA-5.14, E-9, E-25, E-26, D-36 (verificación I-1)
+  - Pasos (tests primero; se anota en el Registro cómo fallan):
+    - `moveWithinColumn` pasa a `mutateAsync` con `.catch`, sin cambiar lo que pasa con el diálogo abierto;
+    - prop `onMoveFailedAfterClose` y, en `Board`, el aviso y el foco de D-36;
+    - el `ref` de `confirmDelete` y `onError` de `useMoveTask` sin recolocar una tarea que ya no está en la lista.
+  - Casos, retener la respuesta de `…/move` con `page.route` hasta que el diálogo esté cerrado, en los tres proyectos:
+    - `003 CA-5.13 RF-029` «Subir», «Cancelar» y red abortada: el orden de antes, el aviso de CA-1.9 en el tablero y el foco sigue en la tarjeta;
+    - `003 CA-5.14 RF-029` «Subir», «Cancelar» y la tarea borrada de verdad: «Esta tarea ya no existe.», sin tarjeta y el foco en «Crear tarea»; también con la última tarea, en el «Crear tarea» del estado vacío;
+    - `003 CA-5.14 RF-029` con el foco ya en otra tarjeta: no se mueve;
+    - `003 E-25 RF-029` con otro detalle abierto al llegar el fallo: el foco sigue en él y, al cerrarlo, el aviso está en el tablero;
+    - `003 E-26 RF-029` «Subir» y «Borrar tarea», con 404 y con la red abortada: sin aviso y sin la tarjeta;
+    - `003 E-8 RF-029` con 401 y el diálogo cerrado: redirige, sin aviso (unitario).
+  - Hecho cuando: los casos pasan; `003 CA-5.9`, `003 CA-5.10` y los demás tests de `TaskDialog` siguen en verde sin cambiarlos, salvo pasar la prop nueva al montarlo.
+
+- [ ] **T-051** Dejar inactivos «Subir» y «Bajar» mientras se guarda la tarea
+  - Depende de: T-050
+  - Ficheros: `apps/web/src/components/TaskDialog.tsx`, `TaskDialog.test.tsx`, `e2e/drag-and-drop.spec.ts`
+  - Cubre: RF-028, CA-5.12, D-37, 002/RF-013, 002/RF-028 (verificación I-2)
+  - Casos (tests primero), con el `PUT` retenido:
+    - `003 CA-5.12 RF-028` en `TaskDialog.test.tsx`, durante «Guardando…»: los dos botones con `aria-disabled`, y pulsarlos no manda ninguna petición a `…/move`;
+    - `003 CA-5.12 RF-028` en `TaskDialog.test.tsx`, con 500: sale el error de guardar y los botones se activan de nuevo;
+    - `003 CA-5.12 RF-028` E2E en `chromium` y `webkit`, pulsando «Subir» durante «Guardando…»: si el `PUT` va bien, el diálogo se cierra; si falla, sale «No hemos podido guardar la tarea…», como en las sondas de la verificación.
+  - Hecho cuando: los casos pasan, y el texto de RF-028 no sale durante el guardado si el estado no ha cambiado.
+
+- [ ] **T-052** Dejar el foco en «Subir» o «Bajar» tras el clic
+  - Depende de: T-051
+  - Ficheros: `apps/web/src/components/TaskDialog.tsx`, `e2e/drag-and-drop.spec.ts`
+  - Cubre: RF-027, RF-028, D-38 (verificación M-2)
+  - Casos (E2E primero; en `webkit` tiene que fallar antes del cambio), en `chromium` y `webkit`:
+    - `003 RF-027 D-38` clic en «Bajar»: el foco en el botón y Tab va al campo siguiente, no al primero del formulario;
+    - `003 RF-028 D-38` clic en el botón hasta llegar al borde y otro clic ya inactivo: el foco sigue en él.
+  - Hecho cuando: los casos pasan; `003 CA-5.4` sigue en verde; se recupera el `toBeFocused` que T-048 quitó de CA-5.9 por este motivo.
+
+- [ ] **T-053** Limpiar los restos de M-4 a M-7 y comprobar la trazabilidad y la suite completa
+  - Depende de: T-052
+  - Ficheros: `apps/web/src/lib/task-move.ts`, `apps/web/src/components/Board.tsx`, `specs/roadmap.md`, `specs/003-arrastrar-y-soltar/tasks.md`, tests existentes (solo si falta alguno)
+  - Cubre: C-17, C-19, C-24, verificación M-4 a M-7, CA-5.12 a CA-5.14, E-25, E-26
+  - Pasos, sin cambio de comportamiento:
+    - **M-4 y M-5:** ya están en el plan §8, desde `/sdd-cambiar-spec`. Sin código: M-5 es deuda de la 004 (C-21);
+    - **M-6:** comentario de [task-move.ts:148](../../apps/web/src/lib/task-move.ts#L148) («espera a volver a pedir la lista», y desde D-29 ya no espera) y de [Board.tsx:28](../../apps/web/src/components/Board.tsx#L28) (de D-9 a D-32); historial y `actualizado` de `specs/roadmap.md`, con las v2.0 a v5.0 y las verificaciones. El `measuring` del plan §4.3 y el hash de T-049 ya están corregidos;
+    - **M-7:** solo se deja constancia en el Registro de que `9702bc2` junta cinco tareas: arreglarlo exigiría reescribir el historial, que `CLAUDE.md` prohíbe.
+  - Hecho cuando: hay un test cuyo título empieza por `003 ` para cada ID, con el criterio de T-024 (111 IDs, sin contar E-19); `pnpm test`, `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` en verde en los tres proyectos, con los «flaky» identificados; el Registro tiene el recuento.
+
+- [ ] **T-037** Volver a ejecutar `/sdd-verificar` (quinta verificación)
+  - Depende de: T-036, T-040 a T-049 y T-050 a T-053. **Es la última tarea**
   - Ficheros: `specs/003-arrastrar-y-soltar/verificacion.md`
-  - Cubre: todos (spec v4.0)
+  - Cubre: todos (spec v5.0)
   - Hecho cuando: el informe está escrito, en una sesión nueva si es posible; si sale APTO, la spec pasa a `implementada` con la confirmación del usuario
 
 ## Registro
@@ -666,4 +716,6 @@ Resuelven `verificacion.md` (tercera, NO APTO), con las decisiones del usuario d
 | T-046 | 9702bc2 | D-35, sin cambios en `apps/web`: 4 tests nuevos, con ratón y con el dedo, a 375 px. **El dedo y la columna corta, que no se habían medido, se comportan como dice la spec.** Con 12 tarjetas se guarda donde marcaba el hueco, sin diálogo de crear, y sigue igual al volver a cargar; el orden se lee en la captura del mismo evento de soltar, porque la página hace scroll sola (E-4) y el hueco se mueve hasta el último momento. Con 3 tarjetas vuelve, sin petición, aviso ni diálogo. Un primer intento falló por el propio test: al volver a cargar, el móvil enseña otra columna y faltaba elegir To do; el producto ya había pasado esas comprobaciones. 36 de 36 con `--repeat-each=3 --retries=0` en `chromium`, `chrome` y `webkit`. No se han visto fallar, porque la tarea no lo pide y el comportamiento ya existía. `pnpm test` (900), `pnpm lint` y `pnpm typecheck` en verde |
 | T-047 | 801dea6 | D-34. Test primero: de 27 tests nuevos, 24 fallaban porque no existían los botones, `inactive` ni `MOVE_NEEDS_SAVE`; los otros 3 describen lo que no cambia (al crear no hay bloque, sin la tarea en la lista tampoco, y el foco de un botón activo). Después, en verde. Los tests de `TaskDialog` de la 002 solo cambian en `renderDialog`, que pasa `tasks`. `Board.test.tsx` no hace falta tocarlo. **Nombres que el plan no fijaba:** `moveWithinColumn` y `stepTo`. **Añadido a D-34, anotado en el plan:** el botón inactivo tampoco lleva la escala al pulsar ni el `hover`, porque pulsarlo no hace nada (CA-5.5); `hover:bg-raised` sale de `VARIANTS` para poder quitarlo. Al guardar o borrar, el aviso de mover solo se reinicia si hubo error, para no perder un movimiento en camino. Tests además de los listados: `003 RF-020 D-34`, `003 E-8 RF-029`, dos de `003 RF-029 D-34` (el aviso se quita con la siguiente acción) y `003 RF-026 D-34` (sin la tarea en la lista). `pnpm test` (927), `pnpm lint` y `pnpm typecheck` en verde; `design-rules.test.ts` sin cambiarlo |
 | T-048 | f0df067 | 10 E2E nuevos en los tres proyectos: CA-5.2, CA-5.3, CA-5.4 (Enter y Espacio), CA-5.9, CA-5.10, axe en claro y oscuro (con un botón inactivo y con el texto de RF-028) y 44 px de alto a 375 y 1280. Se escriben después de T-047, así que no se han visto fallar. **Una pasada:** 29 de 30; el fallo era de mi test, que en CA-5.9 miraba el foco tras un clic y `webkit` no enfoca los botones al hacer clic (ver el punto 3 de abajo). **Sin ese `toBeFocused`, con `--repeat-each=3 --retries=0`:** 89 de 90, y el fallo es de `/signup` sin hidratar (M-7, `axe` en oscuro en `webkit`, en `signup`, antes de llegar al tablero). `DESIGN.md` a `1.5.0-todo.1`: §11.4 y su historial; también «Los errores al guardar, borrar o mover» en la misma Alert (plan D-34). **Capturas en `chromium`, en una sonda ya borrada:** a 1280 y a 375, en claro y en oscuro, el bloque se ve como dice §11.4. `pnpm test` (927), `pnpm lint` y `pnpm typecheck` en verde. **Lote parado antes de T-049, tres hallazgos pendientes de la decisión del usuario:** (1) **contradice RF-021:** si se cierra el diálogo con el movimiento en camino y después falla, la tarjeta vuelve, pero no sale ningún aviso (sonda en `chromium`: orden de antes, 0 avisos), porque el `onError` de `mutate` no se dispara con el componente desmontado (D-34). Con `TASK_NOT_FOUND` pasaría lo mismo, por la lectura y sin medir. La ventana es lo que tarde la petición; (2) **anillo de foco del botón inactivo:** la opacidad .45 también le afecta, y baja de 11,02:1 a 2,44:1 en claro y de 10,55:1 a 3,22:1 en oscuro sobre la carpeta (calculado). Se ve en la captura. WCAG 1.4.11 exime a los componentes inactivos y axe no lo marca, pero CA-5.5 deja el foco ahí justo al llegar al borde; (3) **RF-027 dice «el foco en el botón pulsado»:** con teclado se cumple en todos los proyectos; con clic, en `webkit` no, por cómo se comporta Safari con los botones |
-| T-049 | | **Trazabilidad: 106 de 106 IDs**, con el criterio de T-024 y sin contar E-19: RF-001…RF-029 (29), CA-1.1…CA-1.12, CA-2.1…CA-2.6, CA-3.1…CA-3.13, CA-4.1…CA-4.7 y CA-5.1…CA-5.11 (49), E-1…E-24 salvo E-19 (23) y RNF-001…RNF-005 (5). No falta ninguno, así que no se añade ningún test. **Suite, una pasada sobre `f0df067`:** `pnpm test` (927), `pnpm lint` y `pnpm typecheck` en verde. `pnpm test:e2e` (cuatro ficheros, tres proyectos) termina con código 0, en 5 min: 385 pasan, 42 saltados según lo previsto (`chrome` 36, `webkit` 6) y 2 «flaky» en `webkit`, que pasan al reintentar: `board.spec.ts` CA-3.3 y `003 CA-1.7`. **Los dos «flaky» son `/signup` sin hidratar (M-7):** el primer intento falla en `tabTo`, dentro de `signup`, sin encontrar el campo de email y antes de llegar al tablero. **Este verde no resuelve lo pendiente:** los tres hallazgos de T-048 siguen sin decidir, y el primero contradice RF-021. No hay E2E para ese caso, así que la suite no puede detectarlo. Si alguno cambia código, hay que repetir esta suite |
+| T-049 | 6e90cb6 | **Trazabilidad: 106 de 106 IDs**, con el criterio de T-024 y sin contar E-19: RF-001…RF-029 (29), CA-1.1…CA-1.12, CA-2.1…CA-2.6, CA-3.1…CA-3.13, CA-4.1…CA-4.7 y CA-5.1…CA-5.11 (49), E-1…E-24 salvo E-19 (23) y RNF-001…RNF-005 (5). No falta ninguno, así que no se añade ningún test. **Suite, una pasada sobre `f0df067`:** `pnpm test` (927), `pnpm lint` y `pnpm typecheck` en verde. `pnpm test:e2e` (cuatro ficheros, tres proyectos) termina con código 0, en 5 min: 385 pasan, 42 saltados según lo previsto (`chrome` 36, `webkit` 6) y 2 «flaky» en `webkit`, que pasan al reintentar: `board.spec.ts` CA-3.3 y `003 CA-1.7`. **Los dos «flaky» son `/signup` sin hidratar (M-7):** el primer intento falla en `tabTo`, dentro de `signup`, sin encontrar el campo de email y antes de llegar al tablero. **Este verde no resuelve lo pendiente:** los tres hallazgos de T-048 siguen sin decidir, y el primero contradice RF-021. No hay E2E para ese caso, así que la suite no puede detectarlo. Si alguno cambia código, hay que repetir esta suite |
+| T-037 | 2688bb0 | **Cuarta verificación; T-037 sigue pendiente hasta la quinta.** `verificacion.md`: **APTO CON OBSERVACIONES**, en una sesión nueva, sobre `6e90cb6`. Sin bloqueantes. Importantes: **I-1**, «Subir» o «Bajar» con el diálogo ya cerrado falla sin aviso, e **I-2**, pulsarlos con «Guardar cambios» en camino deja el diálogo abierto y oculta el error. Menores: M-1 a M-7. `pnpm test` (927), `pnpm lint` y `pnpm typecheck` en verde; `pnpm test:e2e` con 384 pasan, 42 saltados y 3 «flaky» en `webkit`, todos de `/signup`; trazabilidad, 106 de 106 |
+| — | | 2026-11-01, `/sdd-cambiar-spec` tras la cuarta verificación, con las decisiones del usuario. **Spec v5.0:** RF-028 (inactivos con un guardado en camino; I-2), RF-029 (con el diálogo cerrado, aviso en el tablero y foco en «Crear tarea» si seguía en la tarjeta o se perdió; I-1), CA-5.12 a CA-5.14, E-25 y E-26. **La petición citaba RF-029 para I-2 y RF-027 para I-1; con la confirmación del usuario, I-2 va a RF-028 e I-1 a RF-029**, que son los que tratan de eso. **E-26 es nuevo, detectado en el análisis y confirmado por el usuario:** si el usuario borra la tarea con un movimiento en camino, no hay aviso ni vuelve la tarjeta. **Plan:** nuevas D-36 a D-38; D-34 remite a ellas; M-1 y M-4 como riesgos aceptados en §8, M-5 en la fila de la 004, y `measuring` fuera de §4.3 (M-6). **Tareas:** nuevas T-050 a T-053; T-037 pasa a ser la quinta verificación. Ninguna tarea `[x]` se rehace ni queda obsoleta. El hash de T-049 se anota aquí. **Sin tarea:** M-3, que necesita Safari real y volverá a salir en la verificación |
