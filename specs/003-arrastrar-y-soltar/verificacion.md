@@ -1,61 +1,59 @@
-# Verificación · Spec 003 · 2026-11-01 (cuarta)
+# Verificación · Spec 003 · 2026-11-01 (quinta)
 Resultado: **APTO CON OBSERVACIONES**
 
 ## Resumen
 
-- **Lo esencial:** no hay bloqueantes. Las cuatro comprobaciones están en verde y los dos bloqueantes y los dos importantes de la tercera verificación están resueltos. Ratón, dedo, teclado y «Subir» y «Bajar» funcionan como dice la spec v4.0 en el flujo normal.
-- **Por qué no es APTO:** dos importantes, los dos con un movimiento o un guardado **en camino** en el diálogo. La suite no los detecta. Ninguno pierde datos y la ventana es lo que tarde la petición.
-  - **I-1:** si se cierra el diálogo con «Subir» o «Bajar» en camino y falla, la tarjeta vuelve a su sitio o desaparece **sin ningún aviso**. Contradice RF-021 y RF-022. Ya lo anotó T-048, sin decidir.
-  - **I-2 (nuevo):** si se pulsa «Subir» o «Bajar» con «Guardar cambios» en camino, el diálogo no se cierra al guardar y, si el guardado falla, **el error no sale**. Rompe 002/RF-013 y 002/RF-028 desde código de esta spec.
-- **Recomendación:** no cerrar la spec todavía. Los dos arreglos son pequeños, y los tests nuevos cuestan poco comparados con dejar un fallo silencioso. El cierre, y con él T-037, queda pendiente de la decisión del usuario.
-- **Independencia:** auditoría en una sesión nueva, sin haber escrito el código, sobre `6e90cb6` con el árbol limpio. Se volvió a ejecutar todo y se leyó el código de producción de `main...HEAD`.
-- **Alcance revisado:** `spec.md` v4.0, `plan.md` (hasta D-35), `tasks.md` (48/49), constitución v1.1 y `DESIGN.md` 1.5.0-todo.1. Sustituye al informe de la tercera verificación, que sigue en el historial de git (`b8924dd`).
+- **Lo esencial:** no hay bloqueantes. Ratón, dedo, teclado y «Subir» y «Bajar» cumplen la spec v5.0 en sus flujos normales y en los casos de error que pide. Los dos importantes y los menores M-1, M-2 y M-6 de la cuarta verificación están resueltos.
+- **Por qué no es APTO:** quedan dos importantes.
+  - **I-1:** `pnpm test` falla de vez en cuando, y sigue sin saberse por qué. Un test de escrituras a la vez que suele tardar 45 ms superó los 5 s, sin E2E en marcha. Eso desmiente el supuesto del riesgo aceptado en el plan §8 y no descarta un bloqueo en código de producción (D-2).
+  - **I-2:** el aviso de error del diálogo sale arriba, y no se ve si el diálogo está desplazado. Afecta a CA-5.9 solo con el diálogo desplazado, pero a «Guardar cambios» de la 002 en los cuatro tamaños medidos. El usuario no ve ninguna señal de que no se ha guardado. Es un defecto de la 002 que no se detectó antes, no de esta spec.
+- **Menores nuevos:** tres desviaciones en casos raros (M-1 a M-3). Ninguna pierde datos, y la lista se corrige sola al volver a pedirse.
+- **Recomendación:** el núcleo de la spec está listo y no veo motivo para otra ronda completa. Antes de cerrar, decide I-1 e I-2. Lo que menos cuesta y más protege es I-2: un solo efecto en `TaskDialog` lo resuelve también para la 002.
+- **Independencia:** auditoría en una sesión nueva, sin haber escrito el código, sobre `d4bd677` con el árbol limpio. Se volvió a ejecutar todo y se leyó el código de producción de `main...HEAD`.
+- **Alcance revisado:** `spec.md` v5.0, `plan.md` (hasta D-38), `tasks.md` (52/53), constitución v1.1 y `DESIGN.md` 1.5.0-todo.1. Sustituye al informe de la cuarta verificación, que sigue en el historial de git (`2688bb0`).
 
 | Comprobación | Resultado |
 |---|---|
-| `pnpm test` | ✅ 40 ficheros, 927 tests en verde |
+| `pnpm test` | ⚠️ 40 ficheros y 943 tests en verde en 20 de 21 pasadas. **1 fallo** por tiempo agotado (I-1) |
 | `pnpm lint` | ✅ ESLint y Prettier sin errores |
 | `pnpm typecheck` | ✅ 0 errores y 5 sugerencias (`hints`) de Astro |
-| `pnpm test:e2e` (4 ficheros × `chromium`, `chrome`, `webkit`) | ✅ Código 0: 384 pasan, 42 saltados (`chrome` 36, `webkit` 6) y 3 «flaky» en `webkit`. Los 3 fallan en `signup`, antes de llegar al tablero (M-5), y pasan al reintentar |
-| Trazabilidad | ✅ 106/106 IDs con al menos un test cuyo título empieza por `003 ` (107 contando E-19, que es manual) |
-| `webkit`, sin reintentos, ×30: `003 CA-2.5`, los tres `003 RF-007 D-9` y los dos `003 E-21` | ✅ 177 de 180 pasan. Los 3 fallos son de `signup`. **0 fallos reales** |
-| RNF-002 entre columnas, 3 veces | ✅ 20,4 / 21,7 / 23,7 ms |
-| RNF-002 reordenando en la columna de 200, 3 veces | ✅ 49,6 / 50 / 47,1 ms, frente a los 20 ms de T-044: más lento aquí, pero lejos de los 100 ms |
-| Cambio de vista previa con 200 tarjetas (sin límite en la spec) | 51,3 / 55,6 / 47,3 ms |
-| E-19 | ✅ Leída la migración: el relleno da el mismo orden que la lectura. Solo tiene un commit. No se repitió la comprobación manual de T-002 |
-| Restos | ✅ Sin `console.log`, `TODO`, `FIXME`, `any`, `.only` ni `style=` en los ficheros de producción de la spec. Los `TODO` de `e2e/drag-and-drop.spec.ts` son una constante |
+| `pnpm test:e2e` (4 ficheros × `chromium`, `chrome`, `webkit`) | ✅ Código 0: 414 pasan, 46 saltados (`chrome` 40, `webkit` 6) y 2 «flaky» en `webkit`. Los 2 fallan en `signup` (M-6) y pasan al reintentar |
+| Trazabilidad | ✅ 111/111 IDs con al menos un test cuyo título empieza por `003 `. El ID 112, E-19, es manual y aquí se probó de verdad |
+| `webkit`, sin reintentos, ×10: `003 CA-5.12` a `CA-5.14`, `E-25`, `E-26`, los `D-38`, `CA-2.5`, `RF-007 D-9` y `E-21` | ✅ 166 de 170 pasan. Los 4 fallos son de `signup` (2,4 %). **0 fallos reales** |
+| RNF-002 entre columnas, 3 veces | ✅ 22,3 / 19 / 21,7 ms |
+| RNF-002 reordenando en la columna de 200, 3 veces | ✅ 22 / 22,2 / 45,3 ms |
+| Cambio de vista previa con 200 tarjetas (sin límite en la spec) | 35,9 / 36,8 / 36,5 ms |
+| E-19, con datos reales | ✅ En una base temporal, ya borrada: migraciones de la 001 y la 002, 200 tareas de 2 usuarios con `createdAt` repetidos y la migración `task_position`. **0 tareas cambian de orden**, 0 posiciones repetidas, índice sustituido y sin valor por defecto. La migración solo tiene un commit |
+| Restos | ✅ Sin `console.log`, `TODO`, `FIXME`, `any` ni `style=` en los ficheros de producción de la spec |
 
 **Sondas temporales.** Para lo que la suite no cubre se ejecutaron dos ficheros E2E en `chromium` y `webkit`, fuera del repositorio. En este informe, «sonda» significa que la evidencia sale de ahí y que **ningún test del repositorio la protege**.
 
 **Comprobado por sonda, sin problemas:**
 
-- Control de I-2: sin pulsar «Subir», con el `PUT` igual de lento, el diálogo se cierra al guardar y, si falla, sale el error. La causa queda aislada.
-- `index` muy grande en `POST …/move` (1000, 2³¹ − 1, 2³¹ y 2⁵³ − 1): responde 200 y va al final, como dice D-3.
-- Con ratón a paso lento y un título de 200 caracteres en la columna: de la primera a la última y de vuelta, cae donde se suelta y hace una sola petición por gesto.
+- E-4 hacia arriba: `scrollTop` de 1836 a 0. E-5 hacia la izquierda: `scrollLeft` de 760 a 0 (ver M-5).
+- Control de M-1: con otra tarea que sigue existiendo, el foco va a «Crear tarea» como pide la spec.
 
 **Límites de esta auditoría:**
 
 - Los anuncios se comprueban por el texto de la región viva, no por lo que dice un lector de pantalla (D-22, riesgo aceptado). El riesgo de D-24 tampoco se puede descartar.
-- El arrastre con el dedo se comprueba con emulación táctil, como pide RNF-004. En `webkit` usa eventos sintéticos (D-17).
-- La checklist §21 no se repitió. T-042 y T-048 anotan capturas de lo que cambiaron, y aquí solo se miraron el anillo del botón inactivo y la capa sobre «Crear tarea».
-- Sin Safari real por parte de esta auditoría: ver M-3.
-- No se buscó el cuelgue de M-4. `pnpm test` pasó una vez, sin E2E a la vez.
+- El arrastre con el dedo se comprueba con emulación táctil, como pide RNF-004. En `webkit` usa eventos sintéticos (D-17). No se ha probado en un móvil real.
+- La checklist §21 no se repitió: T-050 a T-053 no cambian lo visual.
+- Sin Safari real: ver M-4.
+- La causa de I-1 no se ha encontrado.
 
 ### Problemas de la verificación anterior
 
 | Problema | Estado | Comprobación |
 |---|---|---|
-| B-1 (la vista previa oscila) | ✅ Resuelto | D-9 y D-20. `003 RF-007 D-9` sin cambiar pasa, y 0 fallos reales en ×30 en `webkit` |
-| B-2 (fase 7 sin terminar) | ✅ Resuelto | 48 de 49 tareas `[x]`. Solo queda T-037, que es esta verificación |
-| I-1 (E-21 con el dedo) | ✅ Resuelto | D-33. `003 E-21 RF-005 D-33` pasa, también en ×30 en `webkit` |
-| I-2 (WCAG 2.5.7) | ✅ Resuelto | HU-5, RF-026 a RF-029 y D-34. Quedan los casos de I-1 e I-2 de este informe |
-| M-1 (anillo y sombra recortados) | ⚠️ En parte | Anillo resuelto (T-042; `003 RNF-001 C-20` pasa). La sombra sigue sin tarea por decisión del usuario, y no se volvió a medir |
-| M-2 (`RemeasureOnPreview` fuera del plan) | ✅ Resuelto | D-32. Queda un resto en `plan.md`: M-6 |
-| M-3 (contraste de la capa en Safari) | ⚠️ Abierto | M-3 de este informe |
-| M-4 (soltar sobre «Crear tarea») | ✅ Resuelto | RF-019, CA-4.7 y D-35, con tests con ratón y con el dedo |
-| M-5 (cuelgue de escrituras a la vez) | ⚠️ Sin tarea | M-4 de este informe |
-| M-6 (documentos) | ⚠️ En parte | `plan.md` §4.4 y §4.5 corregidos (T-043). El roadmap se completa al cerrar: M-6 de este informe |
-| M-7 (`/signup` sin hidratar) | ⚠️ Conocido | M-5 de este informe. Es de la 004 |
+| I-1 (sin aviso con el diálogo cerrado) | ✅ Resuelto | D-36, RF-029, CA-5.13, CA-5.14, E-25 y E-26, con tests unitarios y E2E. Queda un caso cercano en M-3 |
+| I-2 (pulsar con un guardado en camino) | ✅ Resuelto | D-37, RF-028, CA-5.12. `003 CA-5.12` pasa, también ×10 en `webkit` |
+| M-1 (anillo del botón inactivo) | ✅ Decidido | Riesgo aceptado por el usuario en el plan §8. No se volvió a medir |
+| M-2 (foco tras el clic en `webkit`) | ✅ Resuelto | D-38. `003 RF-027 D-38` y `003 RF-028 D-38` pasan |
+| M-3 (capa sobre «Crear tarea» en `webkit`) | ⚠️ Abierto | M-4 de este informe |
+| M-4 (escrituras a la vez y sombra) | ⚠️ En parte | La sombra es riesgo aceptado (plan §8). El cuelgue pasa a I-1 de este informe, porque ya no vale lo que se aceptó |
+| M-5 (`/signup` sin hidratar) | ⚠️ Conocido | M-6 de este informe. Es de la 004 |
+| M-6 (documentos) | ✅ Resuelto | Comprobados `measuring`, los dos comentarios y el roadmap. Quedan otros restos en M-7 |
+| M-7 (un commit con cinco tareas) | ✅ Anotado | Consta en el Registro, y se repite con `a43d380`: M-7 de este informe |
 
 ## Matriz de verificación
 
@@ -66,12 +64,12 @@ Leyenda: ✅ cumple · ⚠️ parcial · ❌ no cumple · ❓ no verificable. To
 | ID | Código | Test | Veredicto |
 |---|---|---|---|
 | RF-001 | `task-move.ts` `commit`; `tasks.service.moveTask`; `task.repository.moveTaskOfUser` | `move`, `Board`, `order`, `e2e` | ✅ |
-| RF-002 | `Board.tsx` `DragOverlay`; `TaskCard.tsx` variantes | `TaskCard`, `BoardColumn`, `e2e` | ✅ |
-| RF-003 | `shared` `actualEndDateAfterMove`; `today = todayLocal()` | `shared`, `move`, `service`, `Board`, `queries`, `e2e` | ✅ |
-| RF-004 | Ídem | `shared`, `move`, `service`, `Board`, `queries`, `e2e` | ✅ |
+| RF-002 | `Board.tsx` `DragOverlay`; `TaskCard.tsx` variantes | `BoardColumn`, `TaskCard`, `e2e` | ✅ |
+| RF-003 | `shared` `actualEndDateAfterMove`; `today = todayLocal()` | `service`, `move`, `Board`, `queries`, `e2e`, `shared` | ✅ |
+| RF-004 | Ídem | `service`, `move`, `Board`, `queries`, `e2e`, `shared` | ✅ |
 | RF-005 | `onDragOver`, `onDragCancel`, `inVisibleColumn` (D-31), `touchend` en el origen (D-33) | `e2e` (CA-1.7, D-31, E-21, D-33, CA-4.5) | ✅ |
 | RF-006 | `TaskCard.tsx` botón de abrir y `event.detail` en el asa; `MouseSensor` `distance: 5` | `TaskCard`, `e2e` | ✅ |
-| RF-007 | `makeRoom`; `stepPlacement`; `placementFromOver` con `below`; `RemeasureOnPreview` | `move`, `service`, `Board`, `TaskDialog`, `order`, `e2e` | ✅ |
+| RF-007 | `makeRoom`; `stepPlacement`; `placementFromOver` con `below`; `RemeasureOnPreview` | `service`, `move`, `Board`, `TaskDialog`, `order`, `e2e` | ✅ |
 | RF-008 | `columnOrder` en `findTasksByUser` | `list`, `e2e` | ✅ |
 | RF-009 | `createTask` con `makeRoom(backlog, 0)` | `create` | ✅ |
 | RF-010 | `updateTask` con `toTop` | `list`, `update`, `TaskDialog` | ✅ |
@@ -84,16 +82,16 @@ Leyenda: ✅ cumple · ⚠️ parcial · ❌ no cumple · ❓ no verificable. To
 | RF-017 | `cancel`; `leaveHandle` en diferido | `Board`, `messages`, `e2e` | ✅ |
 | RF-018 | `TouchSensor` `{ delay: 250, tolerance: 5 }` | `e2e` (CA-4.2 sin `webkit`, R-6) | ✅ |
 | RF-019 | Columnas ocultas sin medidas (D-13); `inVisibleColumn` (D-35) | `e2e`, con ratón y con el dedo | ✅ |
-| RF-020 | `useMoveTask.onMutate`; `landing` | `queries`, `TaskDialog`, `e2e` | ✅ |
-| RF-021 | `onError`; `onSettled` sin esperar (D-29); `moveErrorText` | `Board`, `queries`, `e2e` con la API caída | ⚠️ Desde el tablero cumple. Con «Subir» o «Bajar» y el diálogo ya cerrado, sin aviso (I-1) |
-| RF-022 | `onError` con `isTaskNotFound`; `onTaskGone` (D-26) | `move`, `Board`, `queries`, `messages`, `e2e` con borrado real | ⚠️ Ídem: la tarjeta desaparece sin aviso (I-1) |
+| RF-020 | `useMoveTask.onMutate`; `landing` | `TaskDialog`, `queries`, `e2e` | ✅ |
+| RF-021 | `onError`; `onSettled` sin esperar (D-29); `moveErrorText`; `handleMoveFailedAfterClose` (D-36) | `Board`, `messages`, `queries`, `e2e` con la API caída | ⚠️ Si «Subir» falla y después «Guardar cambios» cierra el diálogo, el aviso se pierde (M-3) |
+| RF-022 | `onError` con `isTaskNotFound`; `onTaskGone` (D-26) | `move`, `Board`, `messages`, `queries`, `e2e` con borrado real | ⚠️ Foco en `BODY` si la lista se queda vacía al llegar (M-1) |
 | RF-023 | `onMobileColumn` (D-13, D-26) | `Board`, `e2e` | ✅ |
 | RF-024 | `scrollIntoView` (D-23); `max-md:scroll-pb-24` | `e2e` | ✅ |
 | RF-025 | `PrivateArea` por `tasks.data` (D-30) | `PrivateArea`, `e2e` | ✅ |
 | RF-026 | Bloque de posición en `TaskDialog.tsx`; `movedText`; `aria-live="polite"` | `TaskDialog`, `e2e` | ✅ |
-| RF-027 | `moveWithinColumn`; `useTaskForm` sin tocar | `TaskDialog`, `e2e` | ⚠️ Pisa un guardado en camino (I-2). Con clic en `webkit`, el foco no queda en el botón (M-2) |
-| RF-028 | `stepTo`; `Button` `inactive`; `MOVE_NEEDS_SAVE` | `Button`, `TaskDialog`, `messages`, `e2e` | ✅ Conserva el foco; el anillo se ve poco (M-1) |
-| RF-029 | `onError` de la llamada; `kind: 'notFound'` | `TaskDialog`, `e2e` | ✅ Con el diálogo abierto, que es lo que pide. Cerrado: I-1 |
+| RF-027 | `moveWithinColumn`; `useTaskForm` sin tocar; `onClick` del contenedor (D-38) | `TaskDialog`, `e2e` | ⚠️ Al cerrar y volver a abrir la misma tarea, otra pulsación sí sale (M-2) |
+| RF-028 | `stepTo`; `Button` `inactive`; `MOVE_NEEDS_SAVE`; `saving` (D-37) | `Button`, `TaskDialog`, `messages`, `e2e` | ✅ Anillo poco visible, riesgo aceptado (plan §8) |
+| RF-029 | `.catch` de `mutateAsync`; `kind: 'notFound'`; `onMoveFailedAfterClose`; `deletedByUser` | `TaskDialog`, `queries`, `e2e` | ⚠️ El aviso sale en el diálogo, pero no siempre se ve (I-2). Foco en `BODY` con la lista vacía (M-1) |
 
 ### Criterios de aceptación
 
@@ -115,9 +113,9 @@ Leyenda: ✅ cumple · ⚠️ parcial · ❌ no cumple · ❓ no verificable. To
 | CA-2.2 | `list`, `e2e` (otro contexto de navegador) | ✅ |
 | CA-2.3 | `create` | ✅ |
 | CA-2.4 | `update` | ✅ |
-| CA-2.5 | `Board`, `e2e`; ×30 en `webkit` | ✅ |
+| CA-2.5 | `Board`, `e2e`; ×10 en `webkit` | ✅ |
 | CA-2.6 | `Board`, `e2e` con ratón | ✅ |
-| CA-3.1 | `TaskCard`, `e2e` (foco visible real y 4 px de sitio, T-042) | ✅ |
+| CA-3.1 | `TaskCard`, `e2e` (foco visible real) | ✅ |
 | CA-3.2 | `Board`, `TaskCard`, `messages`, `e2e` | ✅ |
 | CA-3.3 | `Board`, `order`, `messages` | ✅ |
 | CA-3.4 | `Board`, `order`, `messages`, `e2e` | ✅ |
@@ -128,7 +126,7 @@ Leyenda: ✅ cumple · ⚠️ parcial · ❌ no cumple · ❓ no verificable. To
 | CA-3.9 | `Board`, `e2e` | ✅ |
 | CA-3.10 | `Board`, `e2e` | ✅ |
 | CA-3.11 | `e2e` a 1280 × 900, 1280 × 720, 768 y 375 | ✅ |
-| CA-3.12 | `Board`, `e2e` con borrado real | ✅ |
+| CA-3.12 | `Board`, `e2e` con borrado real | ✅ Con otras tareas en el tablero, como dice el criterio. Ver M-1 |
 | CA-3.13 | `Board`, `e2e` con `…/move` y con toda la API abortados | ✅ |
 | CA-4.1 | `e2e`, en los tres proyectos | ✅ |
 | CA-4.2 | `e2e`, en `chromium` y `chrome` (R-6) | ✅ En `webkit`, sin prueba |
@@ -141,23 +139,26 @@ Leyenda: ✅ cumple · ⚠️ parcial · ❌ no cumple · ❓ no verificable. To
 | CA-5.2 | `TaskDialog`, `e2e` con volver a cargar | ✅ |
 | CA-5.3 | `TaskDialog`, `e2e` con toque a 375 | ✅ |
 | CA-5.4 | `TaskDialog`, `e2e` con Enter y con Espacio | ✅ |
-| CA-5.5 | `Button`, `TaskDialog` | ✅ Conserva el foco; el anillo se ve poco (M-1) |
+| CA-5.5 | `Button`, `TaskDialog`, `e2e` `003 RF-028 D-38` | ✅ Anillo poco visible, riesgo aceptado (plan §8) |
 | CA-5.6 | `TaskDialog` | ✅ |
 | CA-5.7 | `TaskDialog` | ✅ |
 | CA-5.8 | `TaskDialog`, `messages`; `e2e` con axe | ✅ |
-| CA-5.9 | `TaskDialog`, `e2e` | ✅ |
-| CA-5.10 | `TaskDialog`, `e2e` con borrado real | ✅ |
+| CA-5.9 | `TaskDialog`, `e2e` | ⚠️ Cumple desde arriba del todo. Con el diálogo desplazado, el aviso no se ve (I-2) |
+| CA-5.10 | `TaskDialog`, `e2e` con borrado real | ✅ Con otras tareas en el tablero. Ver M-1 |
 | CA-5.11 | `TaskDialog` | ✅ |
+| CA-5.12 | `TaskDialog`, `e2e` con el `PUT` retenido; ×10 en `webkit` | ✅ |
+| CA-5.13 | `TaskDialog`, `e2e` con la red abortada; ×10 en `webkit` | ✅ |
+| CA-5.14 | `TaskDialog`, `e2e` con borrado real, última tarea y otro foco; ×10 en `webkit` | ✅ Ver M-1 |
 
 ### Requisitos no funcionales
 
 | ID | Evidencia | Veredicto |
 |---|---|---|
-| RNF-001 | Cumple: axe sin infracciones con la tarjeta cogida, en pleno arrastre y con el detalle abierto, en los dos temas; `tokens` ≥ 3:1; asa de 44 y 32 px; movimiento reducido; WCAG 2.5.7 con «Subir» y «Bajar» y el estado del detalle. **Parcial:** anillo del botón inactivo en 2,44:1 en claro (M-1). **❓** La capa sobre «Crear tarea» en Safari (M-3) | ⚠️ |
-| RNF-002 | `e2e` en `chromium`: entre columnas, 20,4 / 21,7 / 23,7 ms; en la columna de 200, 49,6 / 50 / 47,1 ms, frente a ≤ 100 ms | ✅ |
+| RNF-001 | Cumple: axe sin infracciones (AA y AAA de texto) con la tarjeta cogida, en pleno arrastre y con el detalle abierto, en los dos temas; `tokens` ≥ 3:1; asa de 44 y 32 px; movimiento reducido; WCAG 2.5.7 con «Subir» y «Bajar» y el estado del detalle. **Parcial:** foco en `BODY` (M-1) y botón con foco fuera de la vista tras el aviso (I-2). **❓** La capa sobre «Crear tarea» en Safari (M-4). Anillo del botón inactivo, riesgo aceptado | ⚠️ |
+| RNF-002 | `e2e` en `chromium`: entre columnas, 22,3 / 19 / 21,7 ms; en la columna de 200, 22 / 22,2 / 45,3 ms, frente a ≤ 100 ms | ✅ |
 | RNF-003 | `move`, `update`, `service`: tarea ajena → 404, y el orden de su dueño no cambia | ✅ |
-| RNF-004 | Tres proyectos, con emulación táctil (D-17). `chrome` se salta los 36 tests que el plan limita a `chromium` y `webkit` o a `chromium`, y CA-4.2 no corre en `webkit` (R-6) | ✅ |
-| RNF-005 | `tokens`, `design-rules.test`, `TaskCard` (D-27). Sombra de la tarjeta cogida recortada contra la lista, sin tarea por decisión del usuario | ⚠️ |
+| RNF-004 | Tres proyectos, con emulación táctil (D-17). `chrome` se salta los 40 tests que el plan limita a `chromium` y `webkit` o a `chromium`, y CA-4.2 no corre en `webkit` (R-6) | ✅ |
+| RNF-005 | `tokens`, `design-rules.test`, `TaskCard` (D-27). Sombra de la tarjeta cogida recortada, riesgo aceptado (plan §8), sin volver a medir | ✅ |
 
 ### Casos límite
 
@@ -166,27 +167,29 @@ Leyenda: ✅ cumple · ⚠️ parcial · ❌ no cumple · ❓ no verificable. To
 | E-1 | `order`, `e2e` | ✅ |
 | E-2 | `Board` | ✅ |
 | E-3 | `Board`, `order` | ✅ |
-| E-4 | `e2e` (`chromium`), hacia abajo | ✅ |
-| E-5 | `e2e` (`chromium`, 1024 px) y `003 E-5 D-31` con el puntero en el margen | ✅ |
+| E-4 | `e2e` (`chromium`), hacia abajo; hacia arriba, solo sonda (M-5) | ✅ |
+| E-5 | `e2e` (`chromium`), hacia la derecha, y `003 E-5 D-31`; hacia la izquierda, solo sonda (M-5) | ✅ |
 | E-6 | `TaskCard`, `e2e` | ✅ |
 | E-7 | `Board`, `e2e` | ✅ |
 | E-8 | `Board`, `TaskDialog` (`location.replace`) | ✅ |
-| E-9 | `move`, `Board` | ⚠️ Sin aviso si el diálogo ya se cerró (I-1) |
-| E-10 | `move`, `service` | ✅ |
-| E-11 | `move` (en serie y a la vez) | ✅ |
+| E-9 | `move`, `Board` | ⚠️ Foco en `BODY` si la lista se queda vacía al llegar (M-1) |
+| E-10 | `service`, `move` | ✅ |
+| E-11 | `move` (en serie y a la vez) | ✅ Sin posiciones repetidas. La prueba a la vez es intermitente (I-1) |
 | E-12 | `Board`, `queries` | ✅ |
 | E-13 | `Board` | ✅ |
 | E-14 | `Board` | ✅ |
-| E-15 | `shared`, `move`, `service` | ✅ |
-| E-16 | `shared`, `Board` | ✅ |
+| E-15 | `service`, `move`, `shared` | ✅ |
+| E-16 | `Board`, `shared` | ✅ |
 | E-17 | `e2e` | ✅ |
 | E-18 | `e2e` | ✅ |
-| E-19 | Manual: nota de T-002; migración sin cambios y leída aquí | ✅ |
+| E-19 | Manual: migración real en una base temporal, 0 tareas cambian de orden | ✅ |
 | E-20 | `messages` | ✅ |
-| E-21 | `e2e`, con ratón y con el dedo; ×30 en `webkit` | ✅ |
+| E-21 | `e2e`, con ratón y con el dedo; ×10 en `webkit` | ✅ |
 | E-22 | `PrivateArea`, `e2e` | ✅ |
 | E-23 | `TaskDialog` | ✅ |
 | E-24 | `TaskDialog` | ✅ |
+| E-25 | `TaskDialog`, `e2e`; ×10 en `webkit` | ✅ |
+| E-26 | `TaskDialog`, `queries`, `e2e`; ×10 en `webkit` | ✅ |
 
 ## Problemas
 
@@ -196,79 +199,94 @@ Ninguno.
 
 ### Importantes
 
-**I-1 · Si se cierra el diálogo con «Subir» o «Bajar» en camino y falla, no sale ningún aviso.** Afecta a RF-021, RF-022 y E-9. Ya lo anotó T-048 ([tasks.md:668](tasks.md#L668), hallazgo 1) y T-049 lo dejó sin decidir. Hasta ahora, lo de `TASK_NOT_FOUND` estaba sin medir. Sin test.
+**I-1 · `pnpm test` falla de vez en cuando en las escrituras a la vez, y no se sabe por qué.** Afecta a C-19, a la DoD y, si fuera un bloqueo real, a D-2, RF-009 y E-11. Es lo que T-051 y T-053 dejaron para esta verificación.
 
-- **Dónde:** [TaskDialog.tsx:197-204](../../apps/web/src/components/TaskDialog.tsx#L197-L204). El aviso cuelga del `onError` de `mutate`, y TanStack no lo llama con el componente ya desmontado. El `onError` de `useMoveTask` sí se ejecuta, y por eso la tarjeta vuelve. El tablero evita este problema usando la promesa de `mutateAsync` ([task-move.ts:216-224](../../apps/web/src/lib/task-move.ts#L216-L224)).
-- **Medido (sonda), con «Subir», «Cancelar» y la respuesta a los 800 ms:**
+- **Medido:**
 
-| Respuesta | Resultado | `chromium` | `webkit` |
-|---|---|---|---|
-| Red caída | La tarjeta se ve subida al cerrar y vuelve a la posición 2 | 0 avisos | 0 avisos |
-| Tarea ya borrada | La tarjeta desaparece | 0 avisos, foco en `BODY` | 0 avisos, foco en `BODY` |
-
-- **Por qué importa:** es el gesto natural: subir y cerrar. El usuario cree que la tarea ha subido y, si no está mirando, no se entera de que no se guardó. En el caso de la tarea borrada, además, el foco se pierde. No se pierde nada guardado, y en uso local la ventana es muy corta; crece con un servidor lento.
-- **Propuesta:** avisar en el tablero si el diálogo ya se cerró, con `mutateAsync` y un aviso que suba a `Board`, como hace `commit`; con `TASK_NOT_FOUND`, además, el foco a «Crear tarea». RF-029 solo habla del diálogo abierto, así que hace falta una línea en la spec con `/sdd-cambiar-spec`. Y un E2E con `page.route` retrasado para cada caso.
-
-**I-2 · Pulsar «Subir» o «Bajar» con «Guardar cambios» en camino deja el diálogo abierto y oculta el error de guardar.** Afecta a RF-027 y a 002/RF-013 y 002/RF-028, que ya funcionaban. **Nuevo:** T-048 solo miró el orden contrario. Sin test.
-
-- **Dónde:** [TaskDialog.tsx:194-196](../../apps/web/src/components/TaskDialog.tsx#L194-L196). `moveWithinColumn` solo comprueba `moveTask.isPending` y llama a `updateTask.reset()`, que desengancha la mutación en curso: no llega su `onSuccess`, que cierra, ni su error a `failedSave`. `handleSubmit` ya tiene la protección que aquí falta (`if (saving) return`, [TaskDialog.tsx:138](../../apps/web/src/components/TaskDialog.tsx#L138)).
-- **Medido (sonda), con el título cambiado, el `PUT` a 1000 ms y «Subir» durante «Guardando…», 3 s después:**
-
-| `PUT` | Sin pulsar «Subir» (control) | Pulsando «Subir» |
+| Tanda | Pasadas | Fallos |
 |---|---|---|
-| Va bien | El diálogo se cierra | **Sigue abierto**, con el título ya guardado. «Cancelar» pregunta «¿Descartar los cambios?» por algo ya guardado |
-| Falla | Sale «No hemos podido guardar la tarea…» | **Sin error**, y el título no se ha guardado |
+| `pnpm test` antes de la E2E completa | 1 | 0 |
+| `pnpm test` después de la E2E completa | 5 | 0 |
+| E2E corta y justo después `pnpm test` | 3 | **1** |
+| E2E corta y justo después la suite con `--testTimeout=40000`, midiendo Postgres | 12 | 0 |
+| E2E corta y justo después solo el proyecto `api` | 6 | 0 |
 
-  Igual en `chromium` y `webkit`.
-- **Por qué importa:** si falla, el usuario no recibe ninguna señal de que no se guardó, y el botón deja de decir «Guardando…». Hay que pulsar «Subir» o «Bajar» durante el guardado, así que es poco frecuente. No se pierde el borrador.
-- **Propuesta:** en `moveWithinColumn`, `if (saving) return`, como en `handleSubmit`, con su test en `TaskDialog.test.tsx`. La spec no dice qué pasa en este caso: una frase en RF-027 («con un guardado en camino, tampoco hace nada») lo deja escrito.
+- **El fallo, ahora con la salida:** `003 RF-009 D-2 creaciones a la vez no repiten posición` ([tasks.create.test.ts:133](../../apps/api/test/tasks.create.test.ts#L133)), `Test timed out in 5000ms`. No es el de T-051 y T-053 (`003 E-11 D-2`, [tasks.move.test.ts:265](../../apps/api/test/tasks.move.test.ts#L265)), pero las dos pruebas hacen lo mismo: varias transacciones a la vez con `lockUser`.
+- **Por qué importa:** esa prueba tarda 43–47 ms en todas las demás pasadas medidas, así que no es lentitud corriente. Con T-053 ya van 3 fallos conocidos. **El plan §8 lo acepta «si `pnpm test` y `pnpm test:e2e` se lanzan a la vez» ([plan.md:695](plan.md#L695)), y aquí la E2E ya había terminado**, así que ese riesgo aceptado no lo cubre.
+- **Lo que no se sabe:** no se ha visto el bloqueo por dentro, porque la tanda con Postgres muestreado no volvió a caer. Sin evidencia a favor ni en contra quedan un bloqueo en `$transaction` con el adaptador `pg`, Postgres o la red de Docker. Por el código no se ve un interbloqueo: solo se bloquea la fila de `User`, y Postgres lo cortaría con un error, no con una espera. Si fuera real, el usuario vería como mucho un movimiento o una creación que tarda; el movimiento acabaría en el aviso de RF-021. No se ve riesgo de corromper el orden.
+- **Propuesta, a elegir:**
+  1. Una tarea corta: dejar el muestreo de `pg_stat_activity` y la salida en un script y repetir hasta que caiga. Es la única forma de saberlo.
+  2. Aceptarlo con el dato nuevo: corregir la fila del plan §8 para decir que también ocurre en serie, que la causa es desconocida y que hay que reejecutar `pnpm test` si cae ahí. Barato, pero C-19 deja de ser una señal limpia.
+
+**I-2 · El aviso de error del diálogo no se ve con el diálogo desplazado.** Afecta a RF-029 y CA-5.9 y, sobre todo, a 002/RF-028. **Nuevo.** Sin test: `toBeVisible` de Playwright no mira si está fuera del área de scroll.
+
+- **Dónde:** [TaskDialog.tsx:252-254](../../apps/web/src/components/TaskDialog.tsx#L252-L254). La alerta va arriba del formulario, y nada la trae a la vista. El diálogo mide unos 1100 px, así que casi siempre tiene scroll. El aviso está dentro del diálogo, como pide la spec, y `role="alert"` lo anuncia al lector, pero quien mira la pantalla no lo ve.
+- **Medido (sonda), en px desde arriba de la ventana. Los números son de `chromium`, y `webkit` da lo mismo con ±1 px:**
+
+| Ventana | Borde superior del diálogo | «Guardar cambios» falla: aviso en | «Subir» falla, sin desplazar: aviso en | «Subir» falla: botón con el foco en (borde inferior del diálogo) |
+|---|---|---|---|---|
+| 375 × 667 | 53 | **−355 a −253, no se ve** | 147 a 249, se ve | **744 a 788 (667), fuera de la vista** |
+| 375 × 812 | 65 | **−210 a −108, no se ve** | 159 a 261, se ve | 756 a 800 (812), se ve |
+| 1280 × 720 | 18 | **−316 a −241, no se ve** | 104 a 179, se ve | **668 a 712 (702), cortado** |
+| 1280 × 900 | 18 | **−136 a −61, no se ve** | 104 a 179, se ve | 668 a 712 (882), se ve |
+
+  Con «Subir» y el diálogo desplazado para tener el botón arriba, el aviso queda en −187 a −85 a 375 × 667 (`chromium`) y tampoco se ve.
+- **Por qué importa:**
+  - **En la 002, siempre:** para pulsar «Guardar cambios» hay que bajar, así que si falla el botón vuelve a su texto y no se ve nada. El usuario puede creer que el diálogo se ha quedado colgado, y no se entera de por qué. No se pierde lo escrito, porque el diálogo sigue abierto. Se midió sobre esta rama: el código del aviso viene de 002/D-20, y «Subir» y «Bajar» añaden algo de altura. No se midió en `main`.
+  - **En esta spec:** solo con el diálogo desplazado. El texto de la posición vuelve al de antes, sin explicación visible. Y al aparecer el aviso, empuja el botón con el foco fuera de la vista a 375 × 667 y lo corta a 1280 × 720 (C-20).
+- **Propuesta:** un efecto que, cuando aparece `actionError`, haga `scrollIntoView({ block: 'nearest' })` sobre la alerta, con su test comprobando el rectángulo contra el del diálogo. Son pocas líneas y lo arregla todo menos el foco, que se queda fuera de la vista hasta la siguiente tecla. Como es defecto de la 002, decide si entra aquí con `/sdd-cambiar-spec` o en una spec aparte. **Yo lo arreglaría aquí:** la frase de RF-029 no cambia de sentido y no merece una spec propia.
 
 ### Menores
 
-**M-1 · El anillo de foco del botón inactivo baja de 3:1 en claro.** Afecta a RNF-001, C-20 y CA-5.5. Hallazgo 2 de T-048, sin decidir.
+**M-1 · El foco se pierde si, al llegar el 404, la lista se queda vacía después.** Afecta a RF-022, RF-029, CA-5.14, E-9 y C-20. Es el hallazgo de T-050 que quedó para esta verificación. **Confirmado.** Sin test.
 
-- **Dónde:** [Button.tsx:63](../../apps/web/src/components/Button.tsx#L63). `opacity-45` también afecta al `outline`.
-- **Medido:** con los colores calculados por `chromium` y `webkit` sobre la carpeta: en claro, de 11,02:1 a **2,44:1**; en oscuro, de 10,55:1 a 3,22:1. En la captura, el anillo se ve, pero flojo.
-- **Lectura:** WCAG 1.4.11 exime a los componentes inactivos y axe no lo marca, pero CA-5.5 deja el foco ahí justo al llegar al borde: quien usa el teclado acaba exactamente en ese estado.
-- **Propuesta, a elegir:** aceptarlo y anotarlo en el plan; o bajar la opacidad solo en el contenido y no en el botón entero, lo que cambia cómo se aplica el «Deshabilitado» de `DESIGN.md` §14.
+- **Dónde:** [Board.tsx:196](../../apps/web/src/components/Board.tsx#L196) y [Board.tsx:208](../../apps/web/src/components/Board.tsx#L208). El foco va al «Crear tarea» de la cabecera; al llegar la lista vacía, ese botón se desmonta y aparece otro en el estado vacío, sin foco.
+- **Medido (sonda):** con 2 tareas borradas en otra pestaña, tras «Subir» en el detalle y tras soltar con teclado: foco en `BODY`, en `chromium` y `webkit`. Con otra tarea que sigue existiendo: en «Crear tarea».
+- **Por qué es menor:** hace falta que en otra pestaña se hayan borrado todas las demás tareas. El aviso sale, y solo se pierde la posición del teclado.
+- **Propuesta:** que `Board` devuelva el foco a `createRef` si `empty` pasa a ser cierto y el foco se ha perdido. Un test con 2 tareas borradas. O aceptarlo y anotarlo en el plan §8.
 
-**M-2 · Con clic en `webkit`, «Subir» y «Bajar» no se quedan con el foco.** Afecta a RF-027 («el foco en el botón pulsado»). Hallazgo 3 de T-048, sin decidir.
+**M-2 · Al cerrar y volver a abrir la misma tarea, otra pulsación sí sale con el movimiento en camino.** Afecta a RF-027 («otra pulsación no hace nada»). **Nuevo.** Sin test.
 
-- **Medido (sonda), tras un clic en «Bajar»:** en `chromium`, el foco en el botón y Tab va al campo siguiente. En `webkit`, el foco en el `<dialog>` y **Tab vuelve al primer campo del formulario**. Es como trata Safari los botones. Con teclado se cumple en todos los proyectos (`003 CA-5.4`).
-- **Propuesta, a elegir:** acotar RF-027 a la activación con teclado; o llamar a `focus()` en el botón, una línea y un test.
+- **Dónde:** [TaskDialog.tsx:210](../../apps/web/src/components/TaskDialog.tsx#L210). `moveTask.isPending` es de esa instancia del diálogo, y la nueva empieza sin nada en camino.
+- **Medido (sonda):** «Subir», «Cancelar», reabrir y «Bajar»: 2 peticiones `…/move` a la vez. Abortadas las dos, el orden queda el de antes, con un aviso en el tablero y otro en el diálogo, en `chromium` y `webkit`.
+- **Por qué es menor:** requiere un servidor lento y tres gestos seguidos. Lo que pinte un `from` viejo lo corrige la lista al volver a pedirse (`onSettled`).
+- **Propuesta, a elegir:** acotar RF-027 a «en ese diálogo», sin código; o mirar con `useIsMutating` si hay un movimiento en camino de esa tarea.
 
-**M-3 · La capa sobre «Crear tarea» en `webkit`: el botón se transparenta.** Afecta a RNF-001. Sigue sin Safari real. D-35 lo da por consecuencia aceptada con la medida del `webkit` de Playwright, sin haberlo mirado en Safari.
+**M-3 · Si «Subir» falla con «Guardar cambios» en camino, el aviso desaparece al cerrarse el diálogo.** Afecta a RF-021 y RF-029. **Nuevo**, el caso que le quedaba a I-1 de la cuarta verificación. Sin test.
 
-- **Medido (sonda, a 375 con la barra de Astro quitada, porque tapaba la medida):** texto de la capa frente a su fondo más común: 12,7:1 en `chromium` y 12,6:1 en `webkit` en claro, y 9,6:1 y 10,3:1 en oscuro. **No mide el peor caso.** En las capturas de `webkit`, en los dos temas, «Crear tarea» se ve a través de la capa y se cruza con el título; en `chromium`, no, porque sí aplica el blur. La segunda verificación midió 4,39:1 con la capa sobre el botón; esa medida no se ha repetido. Dura lo que el arrastre, porque la capa está en el aire.
-- **Propuesta:** mirarlo una vez en Safari real. Si se ve igual, subir la opacidad de la capa, como el respaldo de §6.3.
+- **Dónde:** el aviso se lee de `moveTask.isError` ([TaskDialog.tsx:96](../../apps/web/src/components/TaskDialog.tsx#L96)), y `onSuccess` de guardar cierra sin mirarlo ([TaskDialog.tsx:165](../../apps/web/src/components/TaskDialog.tsx#L165)). `onMoveFailedAfterClose` solo se llama si el fallo llega con el diálogo ya cerrado.
+- **Medido (sonda):** título cambiado, «Subir», «Guardar cambios», el movimiento se aborta y luego el `PUT` va bien. El aviso se ve dentro del diálogo mientras dura el `PUT`. Después el diálogo se cierra, el título se guarda, la tarjeta vuelve a su sitio y **no queda ningún aviso**, en `chromium` y `webkit`.
+- **Por qué es menor:** hace falta que falle el movimiento y no el guardado, por ejemplo con un 500. Con la red caída fallan los dos y el diálogo sigue abierto, con el error de guardar.
+- **Propuesta:** en `onSuccess` de guardar, si `moveTask.isError`, llamar a `onMoveFailedAfterClose`. O aceptarlo y anotarlo en D-36.
 
-**M-4 · Tests de escrituras a la vez que pueden agotar los 5 s, y sombra recortada.** Vienen de verificaciones anteriores y siguen sin tarea por decisión del usuario. El cuelgue (D-2) no se ha buscado aquí: `pnpm test` pasó una vez y sin E2E a la vez, lo que no añade información. La sombra de la tarjeta cogida (RNF-005) no se volvió a medir. **Propuesta:** no lanzar `pnpm test` y `pnpm test:e2e` a la vez, y si quieres cerrarlos del todo, anotarlos como riesgo aceptado en el plan.
+**M-4 · La capa sobre «Crear tarea» en `webkit`: el botón se transparenta.** Afecta a RNF-001. Es M-3 de la cuarta verificación. **No se volvió a medir** y sigue sin Safari real, así que es ❓. Dura lo que el arrastre, y D-35 lo da por consecuencia aceptada. **Propuesta:** mirarlo una vez en Safari real. Si se ve igual, subir la opacidad de la capa, como el respaldo de §6.3.
 
-**M-5 · `/signup` sin hidratar en `webkit`.** Es M-7 de la 004, ya conocido, y no es de esta spec: 3 «flaky» en la suite y 3 de 180 sin reintentos (1,7 %), todos en `signup`. Se anota porque obliga a tener `retries: 1` en `webkit`, y ese reintento podría esconder un fallo real. Sin propuesta nueva.
+**M-5 · E-4 y E-5 solo tienen test en un sentido.** La spec pide «inferior o superior» y «derecho o izquierdo», y [e2e/drag-and-drop.spec.ts:1987](../../e2e/drag-and-drop.spec.ts#L1987) y [:2009](../../e2e/drag-and-drop.spec.ts#L2009) solo prueban abajo y a la derecha. Por sonda funcionan los otros dos (ver el Resumen). **Propuesta:** dos tests, que son casi copiar los que hay.
 
-**M-6 · Restos en documentos y comentarios.** Sin efecto en el comportamiento.
+**M-6 · `/signup` sin hidratar en `webkit`.** Es M-7 de la 004, ya conocido, y no es de esta spec: 2 «flaky» en la suite y 4 de 170 sin reintentos (2,4 %), todos en `signup`. Se anota porque obliga a tener `retries: 1` en `webkit`, y ese reintento podría esconder un fallo real. Sin propuesta nueva.
 
-- [plan.md:244](plan.md#L244): el contrato de `dndProps` sigue listando `measuring`, que T-041 quitó (D-32).
-- [task-move.ts:148-149](../../apps/web/src/lib/task-move.ts#L148-L149): el comentario dice que la mutación «espera a volver a pedir la lista», y desde D-29 ya no espera.
-- [Board.tsx:28](../../apps/web/src/components/Board.tsx#L28): cita D-9 para `RemeasureOnPreview`; ahora es D-32.
-- [tasks.md:669](tasks.md#L669): T-049 sigue sin hash (`6e90cb6`); según la regla de [tasks.md:28](tasks.md#L28) se anota al empezar la siguiente tarea.
-- [roadmap.md](../roadmap.md): sigue con `actualizado: 2026-10-31`, y su historial termina en la aprobación del plan: faltan las v2.0 a v4.0 y las verificaciones. Se añaden al cerrar, según la decisión del usuario.
+**M-7 · Restos en documentos.** Sin efecto en el comportamiento.
 
-**M-7 · `9702bc2` junta cinco tareas en un commit.** Afecta a la regla de «un commit por tarea» ([tasks.md:28](tasks.md#L28)): T-041, T-044, T-045, T-042 y T-046. El mensaje las nombra y el Registro lo refleja, así que se sigue la pista. Sin propuesta: arreglarlo exigiría reescribir el historial.
+- [plan.md:579](plan.md#L579): RF-029 dice que CA-5.13 y CA-5.14 se prueban en `Board.test`, y están en `TaskDialog.test.tsx`, como explica el Registro de T-050. T-050 también lista `Board.test.tsx` en sus ficheros, y no cambió.
+- [plan.md:695](plan.md#L695): el riesgo aceptado se queda corto (I-1).
+- [tasks.md:722-725](tasks.md#L722-L725): T-050 a T-053 siguen sin hash (`a43d380` y `d4bd677`). Según [tasks.md:28](tasks.md#L28), se anotan al empezar la siguiente tarea.
+- `a43d380` junta T-050, T-051 y T-052, contra «un commit por tarea» ([tasks.md:28](tasks.md#L28)). El mensaje las nombra, así que se sigue la pista. Arreglarlo exigiría reescribir el historial.
+- [plan.md:6](plan.md#L6): `aprobado: 2026-10-31`, aunque el plan se ha cambiado hasta la v5.0 con las decisiones del usuario. La spec sí anota la fecha de su v5.0.
 
 ## Deriva spec ↔ código
 
 | Spec o plan | Código | Acción |
 |---|---|---|
-| RF-021, RF-022, E-9: aviso al fallar | Con el diálogo ya cerrado, sin aviso | I-1: corregir el código y completar RF-029 |
-| 002/RF-013, 002/RF-028: al guardar, se cierra o avisa | Pulsar «Subir» durante el guardado lo anula | I-2: corregir el código y completar RF-027 |
-| RF-027: «el foco en el botón pulsado» | Con clic en `webkit`, en el `<dialog>` | M-2: decidir |
-| Plan §4.3: `measuring` en `dndProps` | Ya no se usa | M-6: corregir el plan |
-| D-35: «`webkit` midió 4,39:1» como consecuencia aceptada | Se transparenta en `webkit`, sin mirar en Safari real | M-3: decidir tras mirarlo |
+| RF-022, RF-029: «el foco DEBE pasar a Crear tarea» | En `BODY` si la lista se queda vacía después | M-1: corregir o aceptar |
+| RF-027: «otra pulsación no hace nada» | Al reabrir el detalle, otra pulsación sale | M-2: corregir o acotar la spec |
+| RF-021: aviso al fallar | Se pierde si guardar cierra el diálogo después | M-3: corregir o aceptar en D-36 |
+| RF-029, 002/RF-028: mostrar el aviso en el diálogo | Sale, pero fuera de la vista con el diálogo desplazado | I-2: corregir |
+| Plan §8: el cuelgue, solo con las dos órdenes a la vez | También en serie | I-1: investigar o corregir el plan |
+| D-35: «`webkit` midió 4,39:1» como consecuencia aceptada | Se transparenta en `webkit`, sin mirar en Safari real | M-4: decidir tras mirarlo |
 
-**Alcance:** sin código de más; todo lo nuevo se traza a RF-026 a RF-029, D-32 y D-33. No hay nada de «Fuera de alcance» implementado. Todo lo de «Fuera de alcance» está en «Ideas sin priorizar» del roadmap; «Cambiar el estado desde la tarjeta» está con el origen de la 002.
+**Alcance:** sin código de más; lo nuevo desde la cuarta verificación se traza a RF-028, RF-029, D-36, D-37 y D-38. No hay nada de «Fuera de alcance» implementado. Los 11 puntos de la §9 de la spec están en «Ideas sin priorizar» del roadmap.
 
-**Plan:** D-32 a D-35 se corresponden con el código, salvo lo de M-6. D-34 dice que el `onError` de la llamada resuelve los errores, y eso solo vale con el diálogo abierto (I-1). Su punto «una pulsación cada vez» no contempla el guardado en camino (I-2).
+**Plan:** D-36 a D-38 se corresponden con el código. La comprobación del asa de D-36 está anotada. Los restos, en M-7.
 
 ## Constitución
 
@@ -277,40 +295,40 @@ Ninguno.
 | C-1 | ✅ | Sin `any` |
 | C-2 | ✅ | `@dnd-kit/core` 6.3.1 fijada y justificada (plan §2, R-1). Sin dependencias nuevas desde entonces |
 | C-4 | ✅ | `drag` y `landing` sin datos del servidor; el diálogo saca la posición de la lista en cada render (D-34) |
-| C-5 | ✅ | Migración nueva; ninguna aplicada se ha tocado |
+| C-5 | ✅ | Migración nueva con un solo commit; ninguna aplicada se ha tocado |
 | C-7 | ✅ | `/api/tasks/:id/move`, relativa |
-| C-8 | ✅ | Rutas → service → repository; `$queryRaw` y Prisma solo en los repositories |
+| C-8 | ✅ | Rutas → service → repository; Prisma solo en los repositories |
 | C-9 | ✅ | Sin códigos nuevos; el texto lo decide el front |
 | C-10 | ✅ | `moveTaskInputSchema` y `actualEndDateAfterMove` en `shared`, sin duplicar |
 | C-11 | ✅ | `today` como `YYYY-MM-DD` |
 | C-13 | ✅ | Tarea ajena → 404 `TASK_NOT_FOUND`, con test de `move`, y el orden del dueño no cambia |
 | C-14 | ✅ | `validateTaskId` y `validateBody(moveTaskInputSchema)` |
 | C-16 | ✅ | `position` no se expone |
-| C-17 | ⚠️ | Cada RF tiene test, 106/106. Los casos de I-1 e I-2, no |
+| C-17 | ✅ | Cada RF tiene test: 29/29. Los casos de M-1 a M-3 e I-2, no |
 | C-18 | ✅ | Vitest, Supertest con Postgres real y Playwright |
-| C-19 | ✅ | `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde |
-| C-20 | ⚠️ | Alternativas de teclado y de un solo puntero completas. Anillo del botón inactivo por debajo de 3:1 en claro (M-1); foco perdido en I-1 con la tarea borrada |
+| C-19 | ⚠️ | `pnpm lint` y `pnpm typecheck` en verde. `pnpm test`, 20 de 21 (I-1) |
+| C-20 | ⚠️ | Alternativas de teclado y de un solo puntero completas. Foco perdido en M-1 y fuera de la vista en I-2. Anillo del botón inactivo, excepción justificada en el plan §3 |
 | C-21 | ✅ | Sin nada fuera de la spec |
 | C-22 | ✅ | `useMoveTask`, `placementOf`, `stepPlacement` y `movedText` se reutilizan en el diálogo |
 | C-23 | ✅ | Identificadores en inglés y textos en castellano |
-| C-24 | ⚠️ | Formato correcto; un commit con cinco tareas (M-7) |
+| C-24 | ⚠️ | Formato correcto; dos commits con varias tareas (M-7) |
 | C-25 | ✅ | `pnpm lint` sin errores |
-| C-26 | ⚠️ | X-1 y X-2 justificadas; sombra recortada (M-4) y capa en Safari sin mirar (M-3) |
+| C-26 | ⚠️ | X-1 y X-2 justificadas; sombra aceptada; capa en Safari sin mirar (M-4) |
 
 ## Definition of Done
 
 | Punto | Estado | Nota |
 |---|---|---|
-| Todas las tareas `[x]` | ⏳ | 48 de 49. Solo falta T-037, que se cierra con la decisión sobre este informe |
-| Cada RF y CA con test que pasa | ✅ | 78/78. I-1 e I-2 son casos que esos tests no recorren |
-| Cada caso límite implementado y probado | ⚠️ | E-9 con el diálogo ya cerrado (I-1); E-19, manual |
+| Todas las tareas `[x]` | ⏳ | 52 de 53. Solo falta T-037, que se cierra con la decisión sobre este informe |
+| Cada RF y CA con test que pasa | ✅ | 81/81. I-2 y M-1 a M-3 son casos que esos tests no recorren |
+| Cada caso límite implementado y probado | ✅ | 26/26; E-19 con una prueba manual real. E-4 y E-5, en un sentido (M-5) |
 | Sin código que no se trace | ✅ | |
-| Tests, linter y tipos en verde | ✅ | También `pnpm test:e2e`. El repositorio no tiene CI |
+| Tests, linter y tipos en verde | ⚠️ | I-1. `pnpm test:e2e`, código 0. El repositorio no tiene CI |
 | Sin `console.log`, código comentado ni TODO | ✅ | |
-| Accesibilidad revisada | ⚠️ | Automática y con WCAG 2.5.7 resuelto. M-1 y M-3 abiertos; sin lector real (D-22) |
+| Accesibilidad revisada | ⚠️ | Automática y con WCAG 2.5.7 resuelto. I-2, M-1 y M-4 abiertos; sin lector real (D-22) |
 | Sin secretos ni datos personales | ✅ | |
-| `spec.md` refleja el código | ⚠️ | I-1, I-2 y M-2 |
-| Desviaciones anotadas en el plan | ⚠️ | M-6, y D-34 en lo de I-1 e I-2 |
+| `spec.md` refleja el código | ⚠️ | I-2 y M-1 a M-3 |
+| Desviaciones anotadas en el plan | ⚠️ | M-7 |
 | ADRs si hubo decisiones transversales | ✅ | No hubo; el plan no los pide |
 | Estado de la spec → `implementada` | ⏳ | Sigue en `en-implementacion`, pendiente de la decisión del usuario |
 | PR con spec, requisitos e informe | ⏳ | Pendiente |
