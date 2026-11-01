@@ -118,4 +118,45 @@ describe('Button', () => {
     await userEvent.setup().click(idle);
     expect(onClick).toHaveBeenCalledOnce();
   });
+
+  it('003 CA-5.5 RF-028 D-34 con inactive: aria-disabled sin disabled, opacidad .45, sin Spinner ni reacción al puntero, y no se activa', async () => {
+    const onClick = vi.fn();
+    render(
+      <Button variant="glass" inactive onClick={onClick}>
+        Subir
+      </Button>,
+    );
+    const button = screen.getByRole('button', { name: 'Subir' });
+
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    expect(button.hasAttribute('disabled')).toBe(false);
+    expect(button.classList).toContain('opacity-45');
+    expect(button.classList).not.toContain('motion-safe:active:scale-97');
+    expect(button.classList).not.toContain('hover:bg-raised');
+    expect(button.querySelector('svg')).toBeNull();
+    await userEvent.setup().click(button);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('003 CA-5.5 RF-028 D-34 al quedarse inactive conserva el foco y, al volver, se puede pulsar', async () => {
+    const onClick = vi.fn();
+    const button = (inactive: boolean) => (
+      <Button variant="glass" inactive={inactive} onClick={onClick}>
+        Subir
+      </Button>
+    );
+    const { rerender } = render(button(false));
+    const element = screen.getByRole('button', { name: 'Subir' });
+    expect(element.getAttribute('aria-disabled')).toBeNull();
+    expect(element.classList).not.toContain('opacity-45');
+    expect(element.classList).toContain('hover:bg-raised');
+    element.focus();
+
+    rerender(button(true));
+    expect(document.activeElement).toBe(element);
+
+    rerender(button(false));
+    await userEvent.setup().click(element);
+    expect(onClick).toHaveBeenCalledOnce();
+  });
 });

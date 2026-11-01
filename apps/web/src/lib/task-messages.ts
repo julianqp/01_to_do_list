@@ -19,6 +19,9 @@ const DELETE_ERROR = 'No hemos podido borrar la tarea. Revisa tu conexión e int
 const MOVE_ERROR = 'No hemos podido mover la tarea. Revisa tu conexión e inténtalo de nuevo.';
 const TASK_NOT_FOUND = 'Esta tarea ya no existe.';
 
+// Spec 003, RF-028: «Subir» y «Bajar» con el estado cambiado sin guardar.
+export const MOVE_NEEDS_SAVE = 'Guarda el cambio de estado para poder subirla o bajarla.';
+
 // RF-030: la tarea ya no existe o no es del usuario (C-13).
 export function isTaskNotFound(error: unknown): boolean {
   return error instanceof ApiError && error.code === 'TASK_NOT_FOUND';

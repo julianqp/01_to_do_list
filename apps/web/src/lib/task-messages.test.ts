@@ -6,6 +6,7 @@ import {
   droppedText,
   isTaskNotFound,
   loadErrorText,
+  MOVE_NEEDS_SAVE,
   movedText,
   moveErrorText,
   pickedText,
@@ -90,5 +91,11 @@ describe('003 mover', () => {
   it('003 E-20 los nombres de las columnas son los del tablero', () => {
     expect(movedText({ status: 'backlog', index: 4 }, 5)).toBe('Backlog, posición 5 de 5.');
     expect(movedText({ status: 'done', index: 0 }, 1)).toBe('Done, posición 1 de 1.');
+  });
+});
+
+describe('task-messages · Subir y Bajar', () => {
+  it('003 CA-5.8 RF-028 el texto exacto con el estado cambiado sin guardar', () => {
+    expect(MOVE_NEEDS_SAVE).toBe('Guarda el cambio de estado para poder subirla o bajarla.');
   });
 });

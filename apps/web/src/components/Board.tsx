@@ -237,6 +237,7 @@ export function Board({ tasks }: BoardProps) {
         <TaskDialog
           key={dialog.kind === 'edit' ? dialog.task.id : 'new'}
           mode={dialog}
+          tasks={tasks}
           onClose={handleClose}
         />
       )}

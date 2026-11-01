@@ -9,10 +9,19 @@ import {
 } from 'react';
 import { TASK_STATUSES, type Task, type TaskStatus } from '@todo/shared';
 import { ClockAlert } from 'lucide-react';
+import { groupByStatus, placementOf, stepPlacement, type Placement } from '../lib/board-order';
 import { formatShortDate, isOverdue, todayLocal } from '../lib/dates';
 import { TASK_FIELD_IDS, useTaskForm, type TaskFormMode } from '../lib/task-form';
-import { deleteErrorText, isTaskNotFound, saveErrorText, STATUS_NAMES } from '../lib/task-messages';
-import { useCreateTask, useDeleteTask, useUpdateTask } from '../lib/task-queries';
+import {
+  deleteErrorText,
+  isTaskNotFound,
+  MOVE_NEEDS_SAVE,
+  moveErrorText,
+  movedText,
+  saveErrorText,
+  STATUS_NAMES,
+} from '../lib/task-messages';
+import { useCreateTask, useDeleteTask, useMoveTask, useUpdateTask } from '../lib/task-queries';
 import { Alert } from './Alert';
 import { Button } from './Button';
 import { FolderCard } from './FolderCard';
@@ -29,7 +38,12 @@ export type DialogResult =
   // RF-030: la tarea ya no existe; el aviso sale en el tablero (D-20).
   | { kind: 'notFound'; message: string };
 
-export type TaskDialogProps = { mode: TaskFormMode; onClose: (result: DialogResult) => void };
+export type TaskDialogProps = {
+  mode: TaskFormMode;
+  // Spec 003, D-34: la lista viva, para la posición y el sitio de destino de «Subir» y «Bajar».
+  tasks: Task[];
+  onClose: (result: DialogResult) => void;
+};
 
 // X-7, D-12: las confirmaciones sustituyen el contenido del mismo diálogo.
 type View = 'form' | 'discard' | 'confirmDelete';
@@ -52,7 +66,7 @@ const ACTIONS = 'flex flex-wrap justify-end gap-3';
 
 // DESIGN.md §14 Dialog, D-12, D-22: <dialog> nativo con showModal (capa superior, fondo inerte, foco
 // atrapado y ::backdrop). Lo pinta Board con `key` = id de la tarea o 'new' (D-13).
-export function TaskDialog({ mode, onClose }: TaskDialogProps) {
+export function TaskDialog({ mode, tasks, onClose }: TaskDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   // El formulario no se desmonta durante una confirmación: al volver, el foco vuelve a donde estaba.
@@ -62,6 +76,7 @@ export function TaskDialog({ mode, onClose }: TaskDialogProps) {
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const moveTask = useMoveTask();
   const saving = createTask.isPending || updateTask.isPending;
   // D-20: errores al guardar (RF-028) o al borrar (RF-029), dentro del diálogo. Al volver a enviar, la
   // mutación se reinicia. TASK_NOT_FOUND no se queda aquí: cierra el diálogo (RF-030).
@@ -72,7 +87,9 @@ export function TaskDialog({ mode, onClose }: TaskDialogProps) {
     ? saveErrorText(failedSave.error)
     : deleteTask.isError && !isTaskNotFound(deleteTask.error)
       ? deleteErrorText(deleteTask.error)
-      : undefined;
+      : moveTask.isError && !isTaskNotFound(moveTask.error)
+        ? moveErrorText(moveTask.error)
+        : undefined;
   const formTitleId = useId();
   const confirmTitleId = useId();
 
@@ -121,8 +138,9 @@ export function TaskDialog({ mode, onClose }: TaskDialogProps) {
     if (saving) return;
     const result = form.submit(event.currentTarget);
     if (!result) return;
-    // Solo se ve el error de la última acción.
+    // Solo se ve el error de la última acción. Un movimiento en camino sigue su curso (RF-027).
     deleteTask.reset();
+    if (moveTask.isError) moveTask.reset();
     // D-7: la mutación termina cuando ya está la lista nueva; entonces se cierra (RF-011, RF-013).
     if (result.kind === 'create') {
       createTask.mutate(result.input, { onSuccess: (task) => onClose({ kind: 'created', task }) });
@@ -144,6 +162,7 @@ export function TaskDialog({ mode, onClose }: TaskDialogProps) {
   function confirmDelete(task: Task) {
     if (deleteTask.isPending) return;
     updateTask.reset();
+    if (moveTask.isError) moveTask.reset();
     deleteTask.mutate(task.id, {
       onSuccess: () => onClose({ kind: 'deleted' }),
       onError: (error) => {
@@ -157,6 +176,33 @@ export function TaskDialog({ mode, onClose }: TaskDialogProps) {
   // RF-033, D-18: con la tarea guardada y la fecha local de hoy.
   const today = todayLocal();
   const late = mode.kind === 'edit' && isOverdue(mode.task, today) ? mode.task : undefined;
+
+  // Spec 003, D-34: de la lista, no de mode.task, que es la foto del borrador (C-4). Sin la tarea en la
+  // lista, no hay bloque. Con el estado cambiado sin guardar, no hay adónde ir (RF-028).
+  const saved = mode.kind === 'edit' ? tasks.find(({ id }) => id === mode.task.id) : undefined;
+  const place = saved && placementOf(tasks, saved.id);
+  const groups = groupByStatus(tasks);
+  const statusChanged = saved !== undefined && form.draft.status !== saved.status;
+  const stepTo = (key: 'ArrowUp' | 'ArrowDown') =>
+    place && !statusChanged ? stepPlacement(groups, place, key) : undefined;
+  const upTo = stepTo('ArrowUp');
+  const downTo = stepTo('ArrowDown');
+
+  // RF-027: al momento y sin tocar el borrador. Una pulsación cada vez, porque con un fallo la tarjeta
+  // volvería a un `from` viejo (D-12). RF-029: si ya no existe, se cierra y avisa el tablero.
+  function moveWithinColumn(to: Placement) {
+    if (!saved || !place || moveTask.isPending) return;
+    updateTask.reset();
+    deleteTask.reset();
+    moveTask.mutate(
+      { task: saved, from: place, to, today },
+      {
+        onError: (error) => {
+          if (isTaskNotFound(error)) onClose({ kind: 'notFound', message: moveErrorText(error) });
+        },
+      },
+    );
+  }
 
   return (
     <dialog
@@ -221,6 +267,31 @@ export function TaskDialog({ mode, onClose }: TaskDialogProps) {
                 value={form.draft.status}
                 onChange={(value) => form.setStatus(value as TaskStatus)}
               />
+            )}
+            {/* Spec 003, D-34: la región viva del tablero queda inerte detrás de showModal. */}
+            {place && (
+              <div className="flex flex-col gap-2">
+                <p aria-live="polite" aria-atomic="true" className="ps-5 text-sm text-2">
+                  {movedText(place, groups[place.status].length)}
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    variant="glass"
+                    inactive={!upTo}
+                    onClick={() => upTo && moveWithinColumn(upTo)}
+                  >
+                    Subir
+                  </Button>
+                  <Button
+                    variant="glass"
+                    inactive={!downTo}
+                    onClick={() => downTo && moveWithinColumn(downTo)}
+                  >
+                    Bajar
+                  </Button>
+                </div>
+                {statusChanged && <p className="ps-5 text-xs text-3">{MOVE_NEEDS_SAVE}</p>}
+              </div>
             )}
           </FolderCard>
           {/* D-17: se escriben a mano, «14/11/2026», con el ejemplo en la ayuda. */}
