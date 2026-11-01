@@ -1,6 +1,7 @@
 import { expect, test, type Page, type Request } from '@playwright/test';
 import {
   boardColumn,
+  createTaskButton,
   createTaskViaApi,
   dragCard,
   expectNoAxeViolations,
@@ -89,6 +90,15 @@ async function expectCount(page: Page, column: ColumnName, count: number) {
 async function expectNoNotice(page: Page) {
   await expect(page.getByText(MOVE_ERROR)).toHaveCount(0);
   await expect(page.locator('[data-tone]')).toHaveCount(0);
+}
+
+// CA-1.10, CA-3.12: «borrada en otra pestaña», de verdad, por la API y sin que esta pestaña se entere.
+async function deleteTaskViaApi(page: Page, title: string) {
+  const listed = await page.request.get('/api/tasks');
+  const { tasks } = (await listed.json()) as { tasks: { id: string; title: string }[] };
+  const id = tasks.find((task) => task.title === title)!.id;
+  const deleted = await page.request.delete(`/api/tasks/${id}`, { data: {} });
+  expect(deleted.ok()).toBe(true);
 }
 
 const isMove = (request: Request) =>
@@ -309,6 +319,37 @@ test.describe('ratón: entre columnas', () => {
 
     await expectNoNotice(page);
     expect(moves).toHaveLength(0);
+  });
+
+  test('003 E-21 RF-005 soltar fuera en el mismo instante en que sale de la columna: vuelve a su sitio, sin guardar', async ({
+    page,
+    channel,
+  }) => {
+    test.skip(channel === 'chrome', 'T-029: chromium y webkit');
+    await openBoard(page);
+    await seedBoard(page);
+    const moves = trackMoves(page);
+    const card = taskCard(page, 'Preparar la demo');
+    const outside = await pointIn(boardTitle(page));
+
+    for (let i = 1; i <= 6; i++) {
+      await test.step(`vez ${i}`, async () => {
+        await dragCard(page, card, taskCard(boardColumn(page, 'In progress'), IN_PROGRESS[0]!), {
+          drop: false,
+        });
+        await expect(boardColumn(page, 'In progress').locator('li').first()).toContainText(
+          'Preparar la demo',
+        );
+
+        // Sin esperar entre los dos: se suelta antes de que se pinte el movimiento (D-25).
+        await Promise.all([page.mouse.move(outside.x, outside.y), page.mouse.up()]);
+
+        await expect(dragOverlay(page, 'Preparar la demo')).toHaveCount(0);
+        await expectOrder(page, 'To do', TODO);
+        await expectOrder(page, 'In progress', IN_PROGRESS);
+        expect(moves).toHaveLength(0);
+      });
+    }
   });
 
   test('003 CA-1.8 RF-006 un clic sin desplazar el puntero abre el detalle; arrastrar no lo abre', async ({
@@ -723,6 +764,29 @@ test.describe('móvil con teclado', () => {
   });
 });
 
+test.describe('teclado: la tarea ya no existe', () => {
+  test.skip(({ channel }) => channel === 'chrome', 'T-030: chromium y webkit');
+
+  test('003 CA-3.12 RF-022 borrada en otra pestaña: al soltar con teclado, aviso, la tarjeta desaparece y el foco pasa a «Crear tarea»', async ({
+    page,
+  }) => {
+    await openBoard(page);
+    await seedBoard(page);
+    const handle = moveHandle(page, 'Preparar la demo');
+    await tabTo(page, handle);
+    await deleteTaskViaApi(page, 'Preparar la demo');
+
+    await page.keyboard.press('Space');
+    await page.keyboard.press('ArrowRight');
+    await expect(liveRegion(page)).toHaveText('In progress, posición 1 de 4.');
+    await page.keyboard.press('Space');
+
+    await expect(page.getByText('Esta tarea ya no existe.')).toBeVisible();
+    await expect(taskCard(page, 'Preparar la demo')).toHaveCount(0);
+    await expect(createTaskButton(page)).toBeFocused();
+  });
+});
+
 test.describe('teclado: la tarjeta cogida sigue a la vista', () => {
   test.skip(({ channel }) => channel === 'chrome', 'T-027: chromium y webkit');
 
@@ -826,6 +890,34 @@ test.describe('teclado: la tarjeta cogida sigue a la vista', () => {
       await expectInView(page, 'Preparar la demo', 'ul', 'dos veces Flecha derecha');
       await page.keyboard.press('Escape');
     });
+  });
+});
+
+test.describe('móvil con teclado: falla el guardado', () => {
+  test.skip(({ channel }) => channel === 'chrome', 'T-031: chromium y webkit');
+
+  test('003 CA-3.13 RF-023 RF-021 a 375, sin conexión al soltar en In progress: se ve To do, con la tarjeta en su sitio, el foco en el asa y el aviso', async ({
+    page,
+  }) => {
+    await openBoard(page, MOBILE);
+    await seedBoard(page);
+    await columnPicker(page, 'To do').check();
+    await page.route('**/api/tasks/*/move', (route) => route.abort('internetdisconnected'));
+    const handle = moveHandle(page, 'Preparar la demo');
+
+    await tabTo(page, handle);
+    await page.keyboard.press('Space');
+    await page.keyboard.press('ArrowRight');
+    await expect(columnPicker(page, 'In progress')).toBeChecked();
+    await page.keyboard.press('Space');
+
+    await expect(page.getByText(MOVE_ERROR)).toBeVisible();
+    await expect(columnPicker(page, 'To do')).toBeChecked();
+    await expect(boardColumn(page, 'To do')).toBeVisible();
+    await expect(boardColumn(page, 'In progress')).toBeHidden();
+    await expectOrder(page, 'To do', TODO);
+    await expect(handle).toBeVisible();
+    await expect(handle).toBeFocused();
   });
 });
 

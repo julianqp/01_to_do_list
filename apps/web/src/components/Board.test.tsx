@@ -467,6 +467,10 @@ const MOVE_ERROR = 'No hemos podido mover la tarea. Revisa tu conexión e intén
 const TODO_ORDER = ['Comprar pan', 'Preparar la demo', 'Llamar al banco'];
 
 const notice = () => screen.getByRole('alert').querySelector('[data-tone]');
+const failWith = (tasks: Task[], title: string, handler: () => Promise<Response>) => {
+  browser.routes[`POST /api/tasks/${tasks.find((task) => task.title === title)!.id}/move`] =
+    handler;
+};
 
 describe('Board · guardar el movimiento', () => {
   const originalTz = process.env.TZ;
@@ -481,10 +485,6 @@ describe('Board · guardar el movimiento', () => {
   const atDate = (iso: string) => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(iso));
-  };
-  const failWith = (tasks: Task[], title: string, handler: () => Promise<Response>) => {
-    browser.routes[`POST /api/tasks/${tasks.find((task) => task.title === title)!.id}/move`] =
-      handler;
   };
 
   it('003 CA-1.4 RF-003 E-13 una retrasada de In progress soltada en Done pierde «Retrasada» y muestra la fecha de hoy, sin abrir el detalle', async () => {
@@ -653,6 +653,65 @@ describe('Board · guardar el movimiento', () => {
     expect(titles('In progress')).not.toContain('Preparar la demo');
   });
 
+  const createTask = () => screen.getByRole('button', { name: 'Crear tarea' });
+
+  it('003 CA-3.12 RF-022 con 404 al soltar con teclado, el foco acaba en «Crear tarea»', async () => {
+    const tasks = boardTasks();
+    const { user } = await renderLive(tasks);
+    failWith(tasks, 'Preparar la demo', () => {
+      browser.routes['GET /api/tasks'] = () =>
+        json(200, { tasks: tasks.filter(({ title }) => title !== 'Preparar la demo') });
+      return apiError(404, 'TASK_NOT_FOUND');
+    });
+
+    await user.keyboard(' {ArrowRight} ');
+
+    await waitFor(() => expect(notice()?.textContent).toBe('Esta tarea ya no existe.'));
+    await waitFor(() => expect(document.activeElement).toBe(createTask()));
+  });
+
+  it('003 CA-3.12 RF-022 si era la última tarea, el foco va al «Crear tarea» del estado vacío', async () => {
+    const tasks = tasksIn([['Preparar la demo', 'todo']]);
+    const { user } = await renderLive(tasks);
+    failWith(tasks, 'Preparar la demo', () => {
+      browser.routes['GET /api/tasks'] = () => json(200, { tasks: [] });
+      return apiError(404, 'TASK_NOT_FOUND');
+    });
+
+    await user.keyboard(' {ArrowRight} ');
+
+    await screen.findByText('Todavía no tienes tareas. Crea la primera y empieza a organizarte.');
+    await waitFor(() => expect(document.activeElement).toBe(createTask()));
+  });
+
+  it('003 RF-022 D-26 si el foco ya salió del asa, no se mueve', async () => {
+    const tasks = boardTasks();
+    const { user } = await renderLive(tasks);
+    let fail!: (response: Response) => void;
+    failWith(
+      tasks,
+      'Preparar la demo',
+      () =>
+        new Promise<Response>((resolve) => {
+          fail = resolve;
+        }),
+    );
+
+    await user.keyboard(' {ArrowRight} ');
+    await waitFor(() =>
+      expect(browser.callsTo('POST', `/api/tasks/${tasks[2]!.id}/move`)).toHaveLength(1),
+    );
+    await user.tab();
+    const elsewhere = document.activeElement;
+    expect(elsewhere).not.toBe(handleOf('Preparar la demo'));
+
+    fail(await apiError(404, 'TASK_NOT_FOUND'));
+
+    await waitFor(() => expect(notice()?.textContent).toBe('Esta tarea ya no existe.'));
+    await waitFor(() => expect(titles('In progress')).not.toContain('Preparar la demo'));
+    expect(document.activeElement).toBe(elsewhere);
+  });
+
   it('003 E-8 con 401 SESSION_EXPIRED va al inicio de sesión con el aviso, sin aviso en el tablero', async () => {
     const tasks = boardTasks();
     serve(tasks);
@@ -745,6 +804,47 @@ describe('Board · mover con teclado en móvil', () => {
     expect(hiddenOnMobile('In progress')).toBe(true);
     expect(live()).toBe(CANCELLED);
     expect(titles('To do')).toEqual(TODO_ORDER);
+  });
+
+  it('003 CA-3.13 RF-023 con NetworkError tras pasar a In progress y soltar, el selector y la columna visible vuelven a To do', async () => {
+    const { user, tasks } = await grabInTodo();
+    failWith(tasks, 'Preparar la demo', () => Promise.reject(new TypeError('Failed to fetch')));
+
+    await user.keyboard('{ArrowRight}');
+    expect(picker('In progress')).toHaveProperty('checked', true);
+    await user.keyboard(' ');
+
+    await waitFor(() => expect(notice()?.textContent).toBe(MOVE_ERROR));
+    await waitFor(() => expect(picker('To do')).toHaveProperty('checked', true));
+    expect(hiddenOnMobile('To do')).toBe(false);
+    expect(hiddenOnMobile('In progress')).toBe(true);
+    expect(document.activeElement).toBe(handleOf('Preparar la demo'));
+  });
+
+  it('003 RF-023 D-26 si el foco ya salió del asa, la columna visible no cambia', async () => {
+    const { user, tasks } = await grabInTodo();
+    let fail!: (error: Error) => void;
+    failWith(
+      tasks,
+      'Preparar la demo',
+      () =>
+        new Promise<Response>((_resolve, reject) => {
+          fail = reject;
+        }),
+    );
+
+    await user.keyboard('{ArrowRight} ');
+    await waitFor(() =>
+      expect(browser.callsTo('POST', `/api/tasks/${tasks[2]!.id}/move`)).toHaveLength(1),
+    );
+    await user.tab();
+    expect(document.activeElement).not.toBe(handleOf('Preparar la demo'));
+
+    fail(new TypeError('Failed to fetch'));
+
+    await waitFor(() => expect(notice()?.textContent).toBe(MOVE_ERROR));
+    expect(picker('In progress')).toHaveProperty('checked', true);
+    expect(hiddenOnMobile('In progress')).toBe(false);
   });
 
   it('003 RF-023 RF-017 que el foco salga del asa también vuelve a la columna de partida', async () => {

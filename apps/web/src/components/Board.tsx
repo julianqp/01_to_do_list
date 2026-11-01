@@ -51,19 +51,23 @@ export function Board({ tasks }: BoardProps) {
   const [dialog, setDialog] = useState<TaskFormMode | null>(null);
   // D-20: aviso del tablero (RF-030; spec 003, RF-021 y RF-022, D-12). Se vacía al abrir otro diálogo.
   const [notice, setNotice] = useState<BoardNotice>();
+  // D-14: adónde va el foco al cerrar el diálogo: una tarjeta (en el estado en que tiene que estar)
+  // o «Crear tarea».
+  const focusTarget = useRef<FocusTarget | null>(null);
   // Spec 003, D-8: la lista con la vista previa del movimiento en curso.
   const { displayTasks, drag, draggedTask, announcement, handleProps, dndProps } = useTaskMove({
     tasks,
     onMobileColumn: setMobileColumn,
     onNotice: setNotice,
+    // D-26, RF-022: el mismo destino que al borrarla desde el detalle.
+    onTaskGone: (id) => {
+      focusTarget.current = { kind: 'create', removedId: id };
+    },
   });
   const groups = groupByStatus(displayTasks);
   const empty = tasks.length === 0;
   const createRef = useRef<HTMLButtonElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
-  // D-14: adónde va el foco al cerrar el diálogo: una tarjeta (en el estado en que tiene que estar)
-  // o «Crear tarea».
-  const focusTarget = useRef<FocusTarget | null>(null);
 
   // D-14: se aplica después de pintar; la restauración nativa del <dialog> volvería a un elemento que
   // puede haber desaparecido (R-2). El diálogo se cierra antes de que llegue el render con la lista

@@ -462,6 +462,7 @@ El resto sigue `DESIGN.md` tal cual:
   - *Alternativas descartadas:* mantener el comportamiento con un texto visible (con el dedo seguiría sin poder moverse); ignorar el clic (parece un botón que no responde).
 - **D-25 (añadida en la spec v2.0)** E-21, RF-005: al soltar con el puntero, `onDragEnd` comprueba el destino real antes de llamar a `commit`, porque `drag.current` puede ir un fotograma por detrás.
   - Primero se prueba con `over` del evento. Si la medición de la verificación M-1 sigue guardando (`over` también se actualiza en el render), se usa la posición real del puntero al soltar, guardada con un oyente mientras dura el arrastre, y se comprueba si cae en una columna visible. La opción que quede se anota en el Registro de T-029.
+  - *Resultado (T-029):* `over` no basta (el E2E sigue fallando 12 de 12), así que queda la posición real del puntero: un oyente en la captura de `window` para `mouseup` y `touchend`, solo durante el arrastre con puntero, y una comparación con el rectángulo de cada `[data-board-column]`.
   - *Alcance:* solo «fuera de toda columna». Soltar en una columna justo al entrar en otra sigue usando la última vista previa.
   - *Alternativas descartadas:* retrasar el guardado un fotograma (RF-020 pide que la tarjeta se vea en su sitio al soltar).
 - **D-26 (añadida en la spec v2.0)** RF-022, RF-023, CA-3.12, CA-3.13: al fallar un guardado, `commit` mira si `focusedHandle` sigue siendo el asa de esa tarea. Si lo es:

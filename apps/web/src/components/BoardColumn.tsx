@@ -101,6 +101,7 @@ export function BoardColumn({
   return (
     <section
       ref={setNodeRef}
+      data-board-column
       aria-label={`${name}, ${tasksCount(tasks.length)}`}
       className={`flex min-w-0 flex-col gap-4 rounded-xl border border-contrast bg-glass p-5 shadow-(--shadow-glass) backdrop-glass md:min-h-0 md:p-6 ${hiddenOnMobile ? 'max-md:hidden' : ''}`}
     >

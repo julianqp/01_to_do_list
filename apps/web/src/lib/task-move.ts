@@ -91,15 +91,27 @@ const collisionDetection: CollisionDetection = (args) => {
 
 const handleOf = (id: string) => document.querySelector<HTMLElement>(`[data-task-handle="${id}"]`);
 
+type Point = { clientX: number; clientY: number };
+
+// D-25: como `pointerWithin`. D-13: en móvil, las columnas ocultas miden 0 × 0 y no contienen nada.
+const inVisibleColumn = ({ clientX, clientY }: Point) =>
+  [...document.querySelectorAll('[data-board-column]')].some((column) => {
+    const { left, right, top, bottom } = column.getBoundingClientRect();
+    return clientX >= left && clientX < right && clientY >= top && clientY < bottom;
+  });
+
 export function useTaskMove({
   tasks,
   onMobileColumn,
   onNotice,
+  onTaskGone,
 }: {
   tasks: Task[];
   // D-13, RF-023: con el teclado, la columna visible en móvil sigue a la tarjeta.
   onMobileColumn: (status: TaskStatus) => void;
   onNotice: (notice: BoardNotice) => void;
+  // D-26, RF-022: el foco seguía en el asa de una tarea que ya no existe.
+  onTaskGone: (id: string) => void;
 }) {
   const [drag, setDrag] = useState<DragState | null>(null);
   // D-18: la actualización optimista llega un instante después de soltar: sin esto habría un render
@@ -148,6 +160,26 @@ export function useTaskMove({
     }
   });
 
+  // D-25: dónde se suelta de verdad. En la fase de captura de `window`, antes de que dnd-kit lo trate.
+  const releasedAt = useRef<Point | null>(null);
+  const pointerDragging = drag?.mode === 'pointer';
+  useLayoutEffect(() => {
+    if (!pointerDragging) return;
+    releasedAt.current = null;
+    const onMouseUp = (event: globalThis.MouseEvent) => {
+      releasedAt.current = event;
+    };
+    const onTouchEnd = (event: TouchEvent) => {
+      releasedAt.current = event.changedTouches[0] ?? null;
+    };
+    window.addEventListener('mouseup', onMouseUp, true);
+    window.addEventListener('touchend', onTouchEnd, true);
+    return () => {
+      window.removeEventListener('mouseup', onMouseUp, true);
+      window.removeEventListener('touchend', onTouchEnd, true);
+    };
+  }, [pointerDragging]);
+
   function commit({ taskId, origin, current }: DragState) {
     if (samePlacement(origin, current)) return; // RF-011, E-3
     const task = tasks.find(({ id }) => id === taskId);
@@ -166,6 +198,14 @@ export function useTaskMove({
           tone: isTaskNotFound(error) ? 'info' : 'offline',
           text: moveErrorText(error),
         });
+        // D-26: solo si el foco seguía en su asa; si no, el usuario ya está con otra cosa.
+        if (focusedHandle.current !== taskId) return;
+        if (isTaskNotFound(error)) {
+          focusedHandle.current = null;
+          onTaskGone(taskId);
+        } else {
+          onMobileColumn(origin.status);
+        }
       })
       // D-18: por si la lista no llegó a cambiar. Sin tocar el `landing` de un movimiento posterior.
       .finally(() => setLanding((latest) => (latest === next ? null : latest)));
@@ -288,7 +328,8 @@ export function useTaskMove({
     onDragEnd() {
       if (drag?.mode !== 'pointer') return;
       setDrag(null);
-      commit(drag);
+      // D-25, E-21: `drag.current` y el `over` de dnd-kit pueden ir un fotograma por detrás.
+      if (!releasedAt.current || inVisibleColumn(releasedAt.current)) commit(drag);
     },
     onDragCancel() {
       setDrag(null);
