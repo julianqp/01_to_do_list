@@ -1,14 +1,17 @@
+import { DndContext, DragOverlay } from '@dnd-kit/core';
 import { TASK_STATUSES, type Task, type TaskStatus } from '@todo/shared';
 import { ListTodo } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { groupByStatus } from '../lib/board-order';
 import { tasksCount, todayLocal } from '../lib/dates';
 import type { TaskFormMode } from '../lib/task-form';
+import { useTaskMove, type BoardNotice } from '../lib/task-move';
 import { Alert } from './Alert';
 import { BoardColumn, STATUS_NAMES } from './BoardColumn';
 import { Button } from './Button';
 import { Icon } from './Icon';
 import { SegmentedControl } from './SegmentedControl';
+import { TaskCard } from './TaskCard';
 import { TaskDialog, type DialogResult } from './TaskDialog';
 
 export type BoardProps = { tasks: Task[] };
@@ -17,6 +20,9 @@ export type BoardProps = { tasks: Task[] };
 // el del estado vacío.
 type FocusTarget =
   { kind: 'card'; id: string; status: TaskStatus } | { kind: 'create'; removedId?: string };
+
+// D-10: la capa no abre nada: es `inert`.
+const noop = () => undefined;
 
 // §12 «Vacío (primera vez)»: círculo glass de 72 px con icono 26, el mensaje y un primario.
 function EmptyBoard({ createButton }: { createButton: ReactNode }) {
@@ -41,12 +47,18 @@ export function Board({ tasks }: BoardProps) {
   const today = todayLocal();
   // RF-034: en móvil se empieza por Backlog.
   const [mobileColumn, setMobileColumn] = useState<TaskStatus>('backlog');
-  const groups = groupByStatus(tasks);
-  const empty = tasks.length === 0;
   // D-12: un solo diálogo, el de crear o el detalle de una tarea.
   const [dialog, setDialog] = useState<TaskFormMode | null>(null);
-  // D-20: aviso del tablero (RF-030). Se vacía al abrir otro diálogo.
-  const [notice, setNotice] = useState<string>();
+  // D-20: aviso del tablero (RF-030; spec 003, RF-021 y RF-022, D-12). Se vacía al abrir otro diálogo.
+  const [notice, setNotice] = useState<BoardNotice>();
+  // Spec 003, D-8: la lista con la vista previa del movimiento en curso.
+  const { displayTasks, drag, announcement, handleProps, dndProps } = useTaskMove({
+    tasks,
+    onMobileColumn: setMobileColumn,
+    onNotice: setNotice,
+  });
+  const groups = groupByStatus(displayTasks);
+  const empty = tasks.length === 0;
   const createRef = useRef<HTMLButtonElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   // D-14: adónde va el foco al cerrar el diálogo: una tarjeta (en el estado en que tiene que estar)
@@ -75,10 +87,12 @@ export function Board({ tasks }: BoardProps) {
     focusTarget.current = null;
   });
 
-  function openDialog(mode: TaskFormMode) {
+  // Spec 003, D-21: estable, para que el `memo` de las tarjetas sirva (RNF-002).
+  const openDialog = useCallback((mode: TaskFormMode) => {
     setNotice(undefined);
     setDialog(mode);
-  }
+  }, []);
+  const openTask = useCallback((task: Task) => openDialog({ kind: 'edit', task }), [openDialog]);
 
   // D-14: adónde va el foco según cómo se cerró el diálogo.
   function handleClose(result: DialogResult) {
@@ -93,7 +107,7 @@ export function Board({ tasks }: BoardProps) {
       case 'notFound':
         // RF-027, RF-030: a «Crear tarea», que puede ser el del estado vacío (CA-5.5), cuando la
         // tarjeta ya no está (la lista se volvió a pedir, D-7).
-        if (result.kind === 'notFound') setNotice(result.message);
+        if (result.kind === 'notFound') setNotice({ tone: 'info', text: result.message });
         focusTarget.current = {
           kind: 'create',
           removedId: dialog?.kind === 'edit' ? dialog.task.id : undefined,
@@ -132,8 +146,13 @@ export function Board({ tasks }: BoardProps) {
       </div>
       {/* D-20: siempre presente y vacía hasta que hay un aviso (004 D-14). */}
       <div role="alert" className="empty:sr-only">
-        {notice && <Alert tone="info">{notice}</Alert>}
+        {notice && <Alert tone={notice.tone}>{notice.text}</Alert>}
       </div>
+      {/* Spec 003, D-7: siempre presente, para que el lector anuncie cada paso. `assertive`, porque cada
+          flecha sustituye el anuncio anterior. */}
+      <p className="sr-only" aria-live="assertive" aria-atomic="true">
+        {announcement}
+      </p>
       {empty ? (
         <EmptyBoard createButton={createButton} />
       ) : (
@@ -153,18 +172,32 @@ export function Board({ tasks }: BoardProps) {
           </div>
           {/* D-16: dos columnas visibles de 768 a 1023 px y cuatro desde 1024; si no caben, el scroll
               horizontal es del tablero, no de la página (RNF-002). */}
-          <div className="grid gap-4 md:min-h-0 md:flex-1 md:grid-rows-1 md:overflow-x-auto md:board-columns-two lg:board-columns">
-            {TASK_STATUSES.map((status) => (
-              <BoardColumn
-                key={status}
-                status={status}
-                tasks={groups[status]}
-                today={today}
-                hiddenOnMobile={status !== mobileColumn}
-                onOpen={(task) => openDialog({ kind: 'edit', task })}
-              />
-            ))}
-          </div>
+          <DndContext {...dndProps}>
+            <div className="grid gap-4 md:min-h-0 md:flex-1 md:grid-rows-1 md:overflow-x-auto md:board-columns-two lg:board-columns">
+              {TASK_STATUSES.map((status) => (
+                <BoardColumn
+                  key={status}
+                  status={status}
+                  tasks={groups[status]}
+                  today={today}
+                  hiddenOnMobile={status !== mobileColumn}
+                  onOpen={openTask}
+                  handleProps={handleProps}
+                  dragTaskId={drag?.task.id}
+                  dragMode={drag?.mode}
+                />
+              ))}
+            </div>
+            {/* D-10: el contenedor deja la capa interna de DragOverlay dentro de --z-popover (§7). X-2:
+                sin animación al soltar. */}
+            <div className="pointer-events-none fixed inset-0 z-(--z-popover)">
+              <DragOverlay dropAnimation={null}>
+                {drag?.mode === 'pointer' && (
+                  <TaskCard task={drag.task} today={today} onOpen={noop} variant="overlay" />
+                )}
+              </DragOverlay>
+            </div>
+          </DndContext>
         </>
       )}
       {dialog && (

@@ -120,7 +120,7 @@ export function displayDate(iso: string) {
 // D-11: cada columna es una región con nombre «Estado, n tareas» (RF-009).
 export const boardColumn = (page: Page, name: 'Backlog' | 'To do' | 'In progress' | 'Done') =>
   page.getByRole('region', { name: new RegExp(`^${name}, \\d+ tareas?$`) });
-// D-10: la tarjeta es un botón con `data-task-id`.
+// 003/D-11: el botón de abrir de la tarjeta lleva `data-task-id` (el asa, `data-task-handle`).
 export const taskCard = (scope: Page | Locator, title: string) =>
   scope.locator('button[data-task-id]').filter({ hasText: title });
 // El «Crear tarea» del tablero (o del estado vacío), no el del diálogo de crear.

@@ -10,6 +10,11 @@ export type MoveKey = 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight';
 
 export type Over = { kind: 'card'; id: string } | { kind: 'column'; status: TaskStatus };
 
+// D-9: cada columna es un droppable con este id; cada tarjeta, con el id de la tarea.
+export const columnDropId = (status: TaskStatus) => `column:${status}`;
+export const columnDropStatus = (id: string | number) =>
+  TASK_STATUSES.find((status) => columnDropId(status) === id);
+
 // 002/D-7: el orden lo da el servidor; aquí solo se reparte por estado, sin reordenar.
 export function groupByStatus(tasks: Task[]) {
   const groups = Object.fromEntries(TASK_STATUSES.map((status) => [status, [] as Task[]]));

@@ -35,8 +35,8 @@ const TODO = ['Comprar pan', 'Preparar la demo', 'Llamar al banco'];
 const IN_PROGRESS = ['Revisar el correo', 'Escribir el informe', 'Pagar el alquiler'];
 
 const boardTitle = (page: Page) => page.getByRole('heading', { level: 1, name: 'Tablero' });
-// D-7: la región viva del tablero.
-const liveRegion = (page: Page) => page.locator('[aria-live="assertive"]');
+// D-7: la región viva del tablero (dnd-kit monta la suya, un <div> que siempre está vacío, D-6).
+const liveRegion = (page: Page) => page.locator('p[aria-live="assertive"]');
 // D-10: la capa que sigue al puntero es la única tarjeta `inert`.
 const dragOverlay = (page: Page, title: string) =>
   page.locator('[inert]').filter({ hasText: title });
@@ -284,7 +284,9 @@ test.describe('ratón: entre columnas', () => {
       await dragCard(page, card, taskCard(boardColumn(page, 'In progress'), IN_PROGRESS[0]!), {
         drop: false,
       });
-      await expect(dragOverlay(page, 'Preparar la demo')).toBeVisible();
+      await expect(boardColumn(page, 'In progress').locator('li').first()).toContainText(
+        'Preparar la demo',
+      );
       const outside = await pointIn(boardTitle(page));
       await page.mouse.move(outside.x, outside.y, { steps: 10 });
       await page.mouse.up();
@@ -296,7 +298,9 @@ test.describe('ratón: entre columnas', () => {
       await dragCard(page, card, taskCard(boardColumn(page, 'In progress'), IN_PROGRESS[0]!), {
         drop: false,
       });
-      await expect(dragOverlay(page, 'Preparar la demo')).toBeVisible();
+      await expect(boardColumn(page, 'In progress').locator('li').first()).toContainText(
+        'Preparar la demo',
+      );
       await page.keyboard.press('Escape');
       await page.mouse.up();
       await expectOrder(page, 'To do', TODO);
@@ -365,9 +369,10 @@ test.describe('ratón: entre columnas', () => {
     );
     await expect(dragOverlay(page, 'Preparar la demo')).toBeVisible();
     await page.setViewportSize({ width: 1024, height: 900 });
-    await page.mouse.up();
 
+    // Se cancela solo, antes de soltar.
     await expect(dragOverlay(page, 'Preparar la demo')).toHaveCount(0);
+    await page.mouse.up();
     await expectOrder(page, 'To do', TODO);
     await expectOrder(page, 'In progress', IN_PROGRESS);
     expect(moves).toHaveLength(0);
@@ -445,17 +450,36 @@ test.describe('ratón: dentro de una columna', () => {
     await seedBoard(page);
     const moves = trackMoves(page);
     const card = taskCard(page, 'Preparar la demo');
-    const { x, y } = await pointIn(card);
+    const origin = await pointIn(card);
 
-    await page.mouse.move(x, y);
-    await page.mouse.down();
-    await page.mouse.move(x, y + 15, { steps: 5 });
-    await expect(dragOverlay(page, 'Preparar la demo')).toBeVisible();
-    await page.mouse.move(x, y, { steps: 5 });
-    await page.mouse.up();
+    await test.step('sin salir de su hueco', async () => {
+      await page.mouse.move(origin.x, origin.y);
+      await page.mouse.down();
+      await page.mouse.move(origin.x, origin.y + 15, { steps: 5 });
+      await expect(dragOverlay(page, 'Preparar la demo')).toBeVisible();
+      await page.mouse.move(origin.x, origin.y, { steps: 5 });
+      await page.mouse.up();
+      await expect(dragOverlay(page, 'Preparar la demo')).toHaveCount(0);
+      await expectOrder(page, 'To do', TODO);
+    });
 
-    await expect(dragOverlay(page, 'Preparar la demo')).toHaveCount(0);
-    await expectOrder(page, 'To do', TODO);
+    await test.step('saliendo a otra columna y volviendo', async () => {
+      await dragCard(page, card, taskCard(boardColumn(page, 'In progress'), IN_PROGRESS[0]!), {
+        drop: false,
+      });
+      await expect(boardColumn(page, 'In progress').locator('li').first()).toContainText(
+        'Preparar la demo',
+      );
+      // Un poco por encima del centro: al volver, «Llamar al banco» ocupa el hueco, y justo en su centro
+      // daría igual antes que después (D-9).
+      await page.mouse.move(origin.x, origin.y - 8, { steps: 15 });
+      await page.mouse.move(origin.x + 1, origin.y - 8);
+      await expect(boardColumn(page, 'To do').locator('li')).toHaveCount(3);
+      await page.mouse.up();
+      await expect(dragOverlay(page, 'Preparar la demo')).toHaveCount(0);
+      await expectOrder(page, 'To do', TODO);
+    });
+
     await expectNoNotice(page);
     expect(moves).toHaveLength(0);
   });
@@ -465,7 +489,7 @@ test.describe('dedo', () => {
   // R-6: CDP en los proyectos Chromium y `TouchEvent` sintéticos en WebKit.
   test.use({ hasTouch: true });
 
-  test('003 CA-4.1 RF-018 a 1280, mantener el dedo sobre «Preparar la demo» y soltarla en In progress: como con el ratón', async ({
+  test('003 CA-4.1 RF-018 RNF-004 a 1280, mantener el dedo sobre «Preparar la demo» y soltarla en In progress: como con el ratón', async ({
     page,
   }) => {
     await openBoard(page);
@@ -565,7 +589,7 @@ test.describe('dedo', () => {
       });
     }
 
-    await expect(columnPicker(page, 'In progress')).toHaveAccessibleName('In progress · 0');
+    await expect(columnPicker(page, 'In progress')).toHaveAccessibleName('In progress · 3');
     await expectNoNotice(page);
     expect(moves).toHaveLength(0);
   });

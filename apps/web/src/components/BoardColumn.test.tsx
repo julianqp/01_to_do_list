@@ -28,6 +28,35 @@ function renderColumn(
 }
 
 describe('BoardColumn', () => {
+  it.each([
+    ['pointer', 'bg-sunken'],
+    ['keyboard', 'shadow-(--shadow-float)'],
+  ] as const)(
+    '003 RF-002 D-10 la tarjeta que se mueve con %s se pinta como hueco o levantada; el resto, en reposo',
+    (dragMode, expected) => {
+      const tasks = ['Preparar la demo', 'Comprar pan'].map((title) =>
+        taskFixture({ title, status: 'todo' }),
+      );
+      render(
+        <BoardColumn
+          status="todo"
+          tasks={tasks}
+          today={TODAY}
+          hiddenOnMobile={false}
+          onOpen={vi.fn()}
+          dragTaskId={tasks[0]!.id}
+          dragMode={dragMode}
+        />,
+      );
+      const [moving, other] = screen
+        .getAllByRole('listitem')
+        .map((item) => item.firstElementChild!);
+
+      expect(moving!.className).toContain(expected);
+      expect(other!.className).toContain('shadow-(--shadow-pill)');
+    },
+  );
+
   it('CA-1.7 RF-009 D-11 es una <section> con nombre «In progress, 3 tareas»', () => {
     renderColumn('in_progress', ['Uno', 'Dos', 'Tres']);
 
@@ -56,7 +85,10 @@ describe('BoardColumn', () => {
     const { tasks, onOpen } = renderColumn('backlog', ['Preparar la demo', 'Comprar pan']);
 
     const list = screen.getByRole('list');
-    const cards = within(list).getAllByRole('button');
+    // 003/D-16: cada tarjeta tiene dos botones; aquí, los de abrir.
+    const cards = within(list)
+      .getAllByRole('button')
+      .filter((button) => button.dataset.taskId);
     expect(list.tagName).toBe('UL');
     expect(cards.map((card) => card.textContent)).toEqual(['Preparar la demo', 'Comprar pan']);
 
