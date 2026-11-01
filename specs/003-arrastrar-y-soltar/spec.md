@@ -2,10 +2,10 @@
 id: 003
 titulo: Arrastrar y soltar
 estado: en-implementacion # borrador | aprobada | en-implementacion | implementada | obsoleta
-version: 2.0
+version: 3.0
 autor: Julian Querol Polo
 creada: 2026-10-31
-aprobada: 2026-11-01 (v2.0), Julian Querol Polo   # AAAA-MM-DD, por quién; v1.0 el 2026-10-31
+aprobada: 2026-11-01 (v3.0), Julian Querol Polo   # AAAA-MM-DD, por quién; v1.0 el 2026-10-31
 ticket:
 ---
 
@@ -53,6 +53,7 @@ Como usuario, quiero arrastrar una tarjeta a otra columna, para cambiar el estad
 - **CA-1.9** Dado que el servidor no responde, cuando el usuario suelta «Preparar la demo» en In progress, entonces la tarjeta vuelve a To do, a su posición de antes, los recuentos vuelven a los de antes y debajo de la cabecera aparece «No hemos podido mover la tarea. Revisa tu conexión e inténtalo de nuevo.».
 - **CA-1.10** Dada «Preparar la demo» borrada en otra pestaña, cuando el usuario la arrastra a In progress en esta, entonces aparece «Esta tarea ya no existe.» y la tarjeta desaparece del tablero (002/RF-030).
 - **CA-1.11** *(v2.0)* Dada la tarjeta «Preparar la demo», cuando el usuario hace clic en su asa sin desplazar el puntero, entonces se abre su detalle, como en CA-1.8, y la tarjeta no se coge.
+- **CA-1.12** *(v3.0)* Dado que el servidor está caído del todo, cuando el usuario suelta «Preparar la demo» en In progress, entonces la tarjeta vuelve a To do, a su posición de antes, los recuentos vuelven a los de antes y aparece el aviso de CA-1.9 sin esperar a ninguna otra respuesta; pasados unos segundos, el tablero y el aviso siguen a la vista.
 
 ### HU-2 · Ordenar las tareas de una columna arrastrando (P1)
 
@@ -144,8 +145,9 @@ Por debajo de 768 px solo se ve una columna (002/RF-034): allí el arrastre solo
 **Guardar y errores**
 
 - **RF-020** CUANDO el usuario suelte una tarjeta en un sitio nuevo, el sistema DEBE mostrarla ahí antes de que el servidor confirme el cambio. *(HU-1, HU-2, HU-3)*
-- **RF-021** SI al guardar un movimiento no se puede contactar con el servidor o este responde con un error inesperado, ENTONCES el sistema DEBE devolver la tarjeta a su columna y posición de antes, restaurar los recuentos y mostrar debajo de la cabecera «No hemos podido mover la tarea. Revisa tu conexión e inténtalo de nuevo.». *(HU-1, HU-2)*
+- **RF-021** SI al guardar un movimiento no se puede contactar con el servidor o este responde con un error inesperado, ENTONCES el sistema DEBE devolver la tarjeta a su columna y posición de antes, restaurar los recuentos y mostrar debajo de la cabecera «No hemos podido mover la tarea. Revisa tu conexión e inténtalo de nuevo.», sin esperar a ninguna otra respuesta del servidor *(v3.0)*. *(HU-1, HU-2)*
 - **RF-022** SI el usuario mueve una tarea que ya no existe o no es suya, ENTONCES el sistema DEBE mostrar «Esta tarea ya no existe.» y quitar la tarjeta del tablero (002/RF-030). Si el foco seguía en su asa, DEBE pasar a «Crear tarea» *(v2.0)*. *(HU-1, HU-2, HU-3)*
+- **RF-025** *(v3.0)* SI, con el tablero ya a la vista, no se puede volver a obtener la lista de tareas, ENTONCES el sistema DEBE seguir mostrando el tablero con lo que ya tenía y NO DEBE sustituirlo por el error de carga de 002/RF-008. Acota 002/RF-008. *(HU-1, HU-2, HU-3)*
 
 ## 6. Requisitos no funcionales
 
@@ -180,6 +182,7 @@ Por debajo de 768 px solo se ve una columna (002/RF-034): allí el arrastre solo
 | E-19 | Tareas creadas antes de esta spec | Conservan el orden que tenían (de la más reciente a la más antigua) hasta que el usuario las mueva |
 | E-20 | Idioma | Solo español de España; anuncios y avisos con la voz de §15 |
 | E-21 | *(v2.0)* Se suelta la tarjeta fuera de cualquier columna en el mismo instante en que sale de ella | La tarjeta vuelve a su sitio de antes y no se guarda nada (RF-005), aunque la vista previa aún la mostrara en la columna |
+| E-22 | *(v3.0)* No se puede volver a obtener la lista con el tablero a la vista, tras un movimiento o por cualquier otra causa | El tablero sigue con lo que ya tenía, sin error de carga (RF-025) y sin aviso propio; la lista se actualiza la próxima vez que se pida |
 
 ## 8. Entidades y glosario
 
@@ -208,7 +211,7 @@ Por debajo de 768 px solo se ve una columna (002/RF-034): allí el arrastre solo
 ## 10. Dependencias y supuestos
 
 - **Depende de:** spec 002 (`implementada`), por el tablero, las tarjetas, el detalle y sus reglas de estado y fecha real de fin; spec 004 (`implementada`), por el catálogo de valores visuales; spec 001 (`implementada`), por la sesión.
-- **Modifica la spec 002:** RF-008 sustituye a 002/RF-002 (orden por momento de creación), y con él a 002/CA-1.8, 002/E-22 y 002/E-24; RF-010 completa 002/RF-024 (dónde entra la tarjeta al cambiar de estado desde el detalle). Se propone añadir en el Registro de cambios de la spec 002 una fila «Modificada por la spec 003». `DESIGN.md` §11.3 («Las tarjetas van de la creada más recientemente a la más antigua») tendrá que actualizarse en el plan.
+- **Modifica la spec 002:** RF-008 sustituye a 002/RF-002 (orden por momento de creación), y con él a 002/CA-1.8, 002/E-22 y 002/E-24; RF-010 completa 002/RF-024 (dónde entra la tarjeta al cambiar de estado desde el detalle); RF-025 acota 002/RF-008 y 002/CA-1.6 a cuando no hay tablero que enseñar *(v3.0)*. Se propone añadir en el Registro de cambios de la spec 002 una fila «Modificada por la spec 003». `DESIGN.md` §11.3 («Las tarjetas van de la creada más recientemente a la más antigua») tendrá que actualizarse en el plan.
 - **Supuestos:**
   - Con ratón, la tarjeta se arrastra desde cualquier punto; el asa es el punto de entrada para el teclado. Un clic sin desplazar el puntero abre el detalle, también en el asa (RF-006). Solo Espacio, Enter o la activación de un lector de pantalla cogen la tarjeta *(v2.0)*.
   - Con el dedo, el arrastre empieza al mantener el dedo sobre la tarjeta; el tiempo exacto lo fija el plan.
@@ -237,6 +240,7 @@ Historial de preguntas resueltas durante `/sdd-clarificar`.
 | 2026-11-01 | Si se suelta fuera de una columna en el mismo instante en que se sale, ¿se guarda? | No: se corrige para que se cumpla RF-005 también en ese caso | E-21 |
 | 2026-11-01 | Con teclado, al soltar una tarea que ya no existe, ¿adónde va el foco? | A «Crear tarea», como en el detalle de la 002 | CA-3.12, RF-022 |
 | 2026-11-01 | A 375 px con teclado, si falla el guardado, ¿qué columna se muestra? | La de origen, con el foco en el asa, igual que al cancelar | CA-3.13, RF-023 |
+| 2026-11-01 | Con el servidor caído del todo, ¿cuándo sale el aviso de mover y qué pasa con el tablero? | El aviso y la vuelta de la tarjeta, al momento, y el tablero sigue a la vista: el error de carga solo sale si no hay nada que enseñar. Si solo falla un refresco en segundo plano, no hay aviso | RF-021, RF-025, CA-1.12, E-22 |
 
 ## 12. Registro de cambios
 
@@ -246,3 +250,4 @@ Historial de preguntas resueltas durante `/sdd-clarificar`.
 | 0.2     | 2026-10-31 | Resueltas 5 aclaraciones: fecha real de fin automática al soltar en Done (CA-1.4, RF-003); al cambiar de estado desde el detalle, la tarjeta entra la primera (CA-2.4, RF-010); teclado desde el asa (HU-3); por debajo de 768 px el arrastre solo ordena la columna visible (HU-4, RF-019, CA-4.5) y el teclado sí cambia de columna mostrando la nueva (RF-023, CA-3.9, CA-3.10). Dos puntos nuevos en «Fuera de alcance» | `/sdd-clarificar` |
 | 1.0     | 2026-10-31 | Spec aprobada | Aprobación del usuario tras `/sdd-clarificar` |
 | 2.0     | 2026-11-01 | Nuevos RF-024, CA-1.11, CA-3.11, CA-3.12, CA-3.13, CA-4.6 y E-21. Cambian RF-006 (un clic o un toque en el asa abre el detalle), RF-022 (foco a «Crear tarea») y RF-023 (volver a la columna de partida si falla el guardado), además del glosario y §10 | `/sdd-verificar` NO APTO (`verificacion.md`: B-1, I-1, M-1, M-2); decisiones del usuario con `/sdd-cambiar-spec` |
+| 3.0     | 2026-11-01 | Nuevos RF-025, CA-1.12 y E-22. Cambia RF-021 (sin esperar a otra respuesta del servidor), además de §10 | Hallazgo de T-031: con la API caída no se cumplían RF-021, RF-023, CA-1.9, CA-2.6 ni CA-3.13; decisión del usuario con `/sdd-cambiar-spec` |

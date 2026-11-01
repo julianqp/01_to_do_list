@@ -1,7 +1,7 @@
 ---
 spec: 003
 plan_aprobado: 2026-10-31
-progreso: 31/37
+progreso: 31/39
 ---
 
 # Tareas · Spec 003 · Arrastrar y soltar
@@ -317,9 +317,9 @@ Todas tocan `Board.tsx`, `BoardColumn.tsx`, `TaskCard.tsx` o `task-move.ts`: van
   - Cubre: todos
   - Hecho cuando: el informe está escrito; si sale APTO, la spec pasa a `implementada` con la confirmación del usuario
 
-## Fase 6 · Correcciones de la verificación (spec v2.0)
+## Fase 6 · Correcciones de la verificación (spec v2.0 y v3.0)
 
-Resuelven `verificacion.md` (T-025, NO APTO), con las decisiones del usuario del 2026-11-01. Van en orden: casi todas tocan `task-move.ts`. Cada una, test primero, termina con `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde; los E2E que nombra tienen que pasar.
+Resuelven `verificacion.md` (T-025, NO APTO), con las decisiones del usuario del 2026-11-01. T-038 y T-039 (spec v3.0) salen del hallazgo de T-031 y van antes de T-032. Van en orden: casi todas tocan `task-move.ts`. Cada una, test primero, termina con `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde; los E2E que nombra tienen que pasar.
 
 - [x] **T-026** Guardar `drag` y `landing` por id, sin copias de la lista
   - Ficheros: `apps/web/src/lib/task-move.ts`, `apps/web/src/components/Board.tsx` (la capa usa `draggedTask`), `apps/web/src/components/Board.test.tsx` si hace falta
@@ -381,8 +381,29 @@ Resuelven `verificacion.md` (T-025, NO APTO), con las decisiones del usuario del
     - `003 CA-3.13` E2E a 375 con `page.route` abortando `…/move`: se ve To do, el foco está en el asa y sale el aviso, en `chromium` y `webkit`. Hace falta el E2E porque jsdom no aplica `display: none`.
   - Hecho cuando: los casos fallan primero; después, `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde
 
-- [ ] **T-032** Dar estados de hover y press al asa
+- [ ] **T-038** Avisar y volver a la columna sin esperar a la lista
   - Depende de: T-031
+  - Ficheros: `apps/web/src/lib/task-queries.ts` (D-29), `apps/web/src/lib/task-queries.test.tsx`, `e2e/drag-and-drop.spec.ts`
+  - Cubre: RF-021, RF-023, CA-1.9, CA-1.12 (el aviso), CA-2.6, CA-3.13, D-29 (hallazgo de T-031)
+  - Casos (test primero):
+    - `003 RF-021 D-29` en `task-queries.test`: con `GET /api/tasks` pendiente, `mutateAsync` de un movimiento fallido ya ha rechazado;
+    - `003 CA-1.12 RF-021` E2E con `page.route` abortando `**/api/**`: al soltar con ratón, en menos de 1 s, la tarjeta en su sitio, los recuentos de antes y el aviso;
+    - `003 CA-3.13 RF-023` E2E a 375 con la API caída: en menos de 1 s, se ve To do, el foco está en el asa y sale el aviso.
+    - Los E2E, en `chromium` y `webkit`.
+  - Hecho cuando: los casos fallan primero; después, `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde; `003 D-12` y `003 RF-021 D-18` siguen en verde sin cambiarlos
+
+- [ ] **T-039** Mantener el tablero si falla volver a pedir la lista
+  - Depende de: T-038
+  - Ficheros: `apps/web/src/components/PrivateArea.tsx` (D-30), `apps/web/src/components/PrivateArea.test.tsx`, `e2e/drag-and-drop.spec.ts`, `specs/002-tablero-de-tareas/spec.md` (solo el Registro de cambios)
+  - Cubre: RF-025, E-22, CA-1.12 (el tablero), D-30 (hallazgo de T-031)
+  - Casos (test primero):
+    - `003 RF-025 E-22` en `PrivateArea.test`: con el tablero cargado, falla el refresco de `tasks` (500, sin reintentos): sigue el tablero, sin el error de carga;
+    - lo mismo si falla el refresco de `me`, y la cabecera sigue con el email;
+    - `003 CA-1.12 RF-025` E2E con `page.route` abortando `**/api/**`: pasados los reintentos (unos 7 s), el tablero y el aviso de mover siguen a la vista y no aparece «Reintentar», en `chromium` y `webkit`.
+  - Hecho cuando: los casos fallan primero; después, `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde; los tests de la 002 (CA-1.6, RF-008 y D-8) siguen en verde **sin cambiarlos**: si alguno cuenta con el comportamiento actual, **parar y avisar**; el Registro de cambios de la 002 tiene una fila «Modificada por la spec 003»: RF-025 acota RF-008 y CA-1.6 a cuando no hay tablero que enseñar (`git diff` solo en esa tabla)
+
+- [ ] **T-032** Dar estados de hover y press al asa
+  - Depende de: T-039
   - Ficheros: `apps/web/src/components/TaskCard.tsx` (D-27), `TaskCard.test.tsx`, `apps/web/src/styles/tokens.test.ts`
   - Cubre: RNF-005, RNF-001, C-26, D-27 (verificación M-3)
   - Casos (test primero):
@@ -416,15 +437,15 @@ Resuelven `verificacion.md` (T-025, NO APTO), con las decisiones del usuario del
   - Hecho cuando: el resultado se anota en el Registro. Si se reproduce, se busca la causa y se **avisa** antes de cambiar nada en `apps/web`. Si no, queda anotado como no reproducido, con el número de repeticiones
 
 - [ ] **T-036** Comprobar la trazabilidad de los IDs nuevos y la suite completa
-  - Depende de: T-026 a T-035
+  - Depende de: T-026 a T-035, T-038 y T-039
   - Ficheros: tests existentes (solo si falta alguno)
-  - Cubre: C-17, C-19, RF-024, CA-1.11, CA-3.11, CA-3.12, CA-3.13, CA-4.6, E-21
-  - Hecho cuando: hay un test cuyo título empieza por `003 ` para cada ID nuevo, con el criterio de T-024 (85 IDs en total, sin contar E-19); `pnpm test`, `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` en verde en los tres proyectos; el Registro tiene el recuento
+  - Cubre: C-17, C-19, RF-024, RF-025, CA-1.11, CA-1.12, CA-3.11, CA-3.12, CA-3.13, CA-4.6, E-21, E-22
+  - Hecho cuando: hay un test cuyo título empieza por `003 ` para cada ID nuevo, con el criterio de T-024 (88 IDs en total, sin contar E-19); `pnpm test`, `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` en verde en los tres proyectos; el Registro tiene el recuento
 
 - [ ] **T-037** Volver a ejecutar `/sdd-verificar`
   - Depende de: T-036
   - Ficheros: `specs/003-arrastrar-y-soltar/verificacion.md`
-  - Cubre: todos (spec v2.0)
+  - Cubre: todos (spec v3.0)
   - Hecho cuando: el informe está escrito, en una sesión nueva si es posible; si sale APTO, la spec pasa a `implementada` con la confirmación del usuario
 
 ## Registro
@@ -461,6 +482,7 @@ Resuelven `verificacion.md` (T-025, NO APTO), con las decisiones del usuario del
 | T-026 | 7ba0189 | `drag` y `landing` guardan el id y `draggedTask` se busca en `tasks` en cada render; fuera `seenTasks` (M-5). Test primero: `003 C-4 D-8` fallaba con el título viejo («Preparar la demo» en vez de «Demo renombrada»). **Desviación de D-18, anotada en el plan:** `landing` también se vacía en cuanto la tarea sale de `before`, porque la mutación espera a volver a pedir la lista y, al fallar, la tarjeta reaparecería en su sitio nuevo durante esa petición. Test añadido que la tarea no listaba: `003 RF-021 D-18` (ya pasaba antes del cambio; protege este riesgo). `pnpm test` (882), `pnpm lint` y `pnpm typecheck` en verde. `pnpm test:e2e e2e/drag-and-drop.spec.ts` en `chromium` y `webkit`: 50 pasan, 4 saltados según lo previsto, ninguno «flaky». **RNF-002: 41,5 ms** |
 | T-027 | 70144d8 | D-23: `scrollIntoView` de la tarjeta en el efecto de layout de D-7, solo con `mode: 'keyboard'`, y `max-md:scroll-pb-24` en `main`. E2E primero, 4 tests en `chromium` y `webkit`: 7 de 8 fallaban y pasaba el de otra columna en `webkit`. A 1280 × 900, la tarjeta se recortaba desde la 7.ª pulsación (posición 8, 13,9 px); la tarea decía 8.ª porque este test exige la tarjeta entera. A 1280 × 720, desde la 5.ª; a 375, «Crear tarea» tapaba el asa desde la 6.ª. **Fichero fuera de la lista, imprescindible:** `test-utils.tsx`, porque jsdom no tiene `scrollIntoView` (doble mínimo, como el de `<dialog>`). Una pasada de CA-3.11 tuvo 1 fallo de `toBeVisible` sin elemento, que no se repitió (compatible con M-7, sin confirmar). `pnpm test` (882), `pnpm lint` y `pnpm typecheck` en verde. `pnpm test:e2e e2e/drag-and-drop.spec.ts` en `chromium` y `webkit`: 58 pasan, 4 saltados |
 | T-028 | 35f03c1 | D-24 en `TaskCard`: `detail` 0 coge o suelta; 1 o más abre el detalle. Test primero: fallaban CA-1.11 y `003 RF-017 D-24` en unitario, y CA-1.11, CA-4.6 y `003 RF-017 D-24` en E2E, por no abrirse el detalle; «arrastrar desde el asa» ya pasaba, porque describe lo que no cambia. **Parada y decisión del usuario (opción A):** D-24 no preveía dos fallos con la tarjeta ya pasada a otra columna: (1) el detalle abría con el estado de la vista previa y (2) en `webkit` el foco se iba a `BODY` al pulsar y no se abría el detalle. Se resuelven con `Board.openTask` (tarea real) y `handleProps.onMouseDown` (`preventDefault` solo con esa tarjeta cogida con teclado); ajuste anotado en plan D-24 y en el contrato de §4.3. **Causa de la sonda:** dnd-kit 6.3.1 no arranca si el `mousedown` llega con `defaultPrevented`, así que con la tarjeta cogida con teclado no se puede arrastrar con el ratón desde su propia asa (consecuencia aceptada, en D-24). **Fichero fuera de la lista, imprescindible:** `Board.tsx`, además de `task-move.ts`. Test nuevo que la tarea no listaba: `003 RF-017 D-24` del `mousedown`, y `003 RF-013 D-24` separa el caso `detail` 0. `pnpm test` (886), `pnpm lint` y `pnpm typecheck` en verde. `pnpm test:e2e e2e/drag-and-drop.spec.ts` en `chromium` y `webkit`, incluidos D-15 y CA-3.1: 66 pasan, 4 saltados, ninguno «flaky» |
-| T-029 | | **Opción de D-25 que queda: la posición real del puntero.** E2E primero: 6/6 en `chromium` y 6/6 en `webkit` con `--repeat-each=6`. Con `over` del evento seguía fallando 12/12, porque también se actualiza en el render. Queda un oyente en la captura de `window` para `mouseup` y `touchend`, solo durante el arrastre con puntero, y `inVisibleColumn` compara con el rectángulo de las columnas, como `pointerWithin`. **Fichero fuera de la lista, imprescindible:** `BoardColumn.tsx`, para el atributo `data-board-column`, el nombre que el plan no fijaba. Con `--repeat-each=5`: 10 de 10 en `chromium` y `webkit`. `pnpm test` (886), `pnpm lint` y `pnpm typecheck` en verde. `pnpm test:e2e e2e/drag-and-drop.spec.ts` en los tres proyectos: 94 pasan, 14 saltados |
-| T-030 | | D-26 con `onTaskGone`: `Board` reutiliza `focusTarget = { kind: 'create', removedId }`, que espera a que la tarjeta ya no esté y sirve con el «Crear tarea» del estado vacío. `focusTarget` sube por encima de `useTaskMove`. Test primero: fallaban los dos `003 CA-3.12` unitarios y el E2E en `chromium` y `webkit`, con el foco en `BODY` o fuera del botón; `003 RF-022 D-26` ya pasaba, porque describe lo que no cambia. Ayuda nueva en el E2E, `deleteTaskViaApi`: el `DELETE` exige cuerpo JSON (`requireJson`). `pnpm test` (889), `pnpm lint` y `pnpm typecheck` en verde; E2E de CA-3.12, CA-1.10, D-15 y CA-3.1 en `chromium` y `webkit` en verde |
-| T-031 | | D-26 con `onMobileColumn(origin.status)` al fallar, si el foco seguía en el asa. Test primero: con el cambio quitado, fallaban `003 CA-3.13` en `Board.test` y el E2E en `chromium` y `webkit` (el selector no volvía a To do); `003 RF-023 D-26` ya pasaba, porque describe lo que no cambia. `failWith` sube al módulo de `Board.test`. `pnpm test` (891), `pnpm lint` y `pnpm typecheck` en verde; `pnpm test:e2e e2e/drag-and-drop.spec.ts` en `chromium` y `webkit`: 72 pasan, 4 saltados. **Hallazgo, lote parado:** el E2E de la tarea solo aborta `…/move`, y la lista se vuelve a pedir antes de que `mutateAsync` rechace (nota de D-18). Sonda temporal a 375, ya borrada, en `chromium` y `webkit`: sin conexión, aviso y columna en 30–33 ms; con `GET /api/tasks` lento 1500 ms, unos 1800 ms; **con la API caída y el navegador con red, unos 7 s en In progress sin la tarjeta, sin aviso y con el foco en `BODY`, y después el tablero se sustituye por el error de carga («Reintentar»), así que el aviso de mover no llega a verse.** No cumple RF-021, RF-023, CA-1.9, CA-2.6 ni CA-3.13 en ese caso. No es de esta tarea: viene de `onSettled` (T-012) y de `PrivateArea` (002/D-8). Pendiente de la decisión del usuario |
+| T-029 | 9b6eb86 | **Opción de D-25 que queda: la posición real del puntero.** E2E primero: 6/6 en `chromium` y 6/6 en `webkit` con `--repeat-each=6`. Con `over` del evento seguía fallando 12/12, porque también se actualiza en el render. Queda un oyente en la captura de `window` para `mouseup` y `touchend`, solo durante el arrastre con puntero, y `inVisibleColumn` compara con el rectángulo de las columnas, como `pointerWithin`. **Fichero fuera de la lista, imprescindible:** `BoardColumn.tsx`, para el atributo `data-board-column`, el nombre que el plan no fijaba. Con `--repeat-each=5`: 10 de 10 en `chromium` y `webkit`. `pnpm test` (886), `pnpm lint` y `pnpm typecheck` en verde. `pnpm test:e2e e2e/drag-and-drop.spec.ts` en los tres proyectos: 94 pasan, 14 saltados |
+| T-030 | 9b6eb86 | D-26 con `onTaskGone`: `Board` reutiliza `focusTarget = { kind: 'create', removedId }`, que espera a que la tarjeta ya no esté y sirve con el «Crear tarea» del estado vacío. `focusTarget` sube por encima de `useTaskMove`. Test primero: fallaban los dos `003 CA-3.12` unitarios y el E2E en `chromium` y `webkit`, con el foco en `BODY` o fuera del botón; `003 RF-022 D-26` ya pasaba, porque describe lo que no cambia. Ayuda nueva en el E2E, `deleteTaskViaApi`: el `DELETE` exige cuerpo JSON (`requireJson`). `pnpm test` (889), `pnpm lint` y `pnpm typecheck` en verde; E2E de CA-3.12, CA-1.10, D-15 y CA-3.1 en `chromium` y `webkit` en verde |
+| T-031 | 9b6eb86 | D-26 con `onMobileColumn(origin.status)` al fallar, si el foco seguía en el asa. Test primero: con el cambio quitado, fallaban `003 CA-3.13` en `Board.test` y el E2E en `chromium` y `webkit` (el selector no volvía a To do); `003 RF-023 D-26` ya pasaba, porque describe lo que no cambia. `failWith` sube al módulo de `Board.test`. `pnpm test` (891), `pnpm lint` y `pnpm typecheck` en verde; `pnpm test:e2e e2e/drag-and-drop.spec.ts` en `chromium` y `webkit`: 72 pasan, 4 saltados. **Hallazgo, lote parado:** el E2E de la tarea solo aborta `…/move`, y la lista se vuelve a pedir antes de que `mutateAsync` rechace (nota de D-18). Sonda temporal a 375, ya borrada, en `chromium` y `webkit`: sin conexión, aviso y columna en 30–33 ms; con `GET /api/tasks` lento 1500 ms, unos 1800 ms; **con la API caída y el navegador con red, unos 7 s en In progress sin la tarjeta, sin aviso y con el foco en `BODY`, y después el tablero se sustituye por el error de carga («Reintentar»), así que el aviso de mover no llega a verse.** No cumple RF-021, RF-023, CA-1.9, CA-2.6 ni CA-3.13 en ese caso. No es de esta tarea: viene de `onSettled` (T-012) y de `PrivateArea` (002/D-8). Pendiente de la decisión del usuario |
+| — | | 2026-11-01, `/sdd-cambiar-spec` tras el hallazgo de T-031, con la decisión del usuario: corregir las dos causas. Spec v3.0 (RF-021 cambia; nuevos RF-025, CA-1.12 y E-22), plan D-29 y D-30, y tareas T-038 y T-039 antes de T-032. Ninguna tarea `[x]` se rehace: T-031 sigue valiendo y T-038 completa CA-3.13. Por la lectura, ningún test de la 002 cuenta con el comportamiento actual: se confirma en T-039. T-029, T-030 y T-031 comparten el commit 9b6eb86 |

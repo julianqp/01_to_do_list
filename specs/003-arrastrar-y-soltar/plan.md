@@ -1,6 +1,6 @@
 ---
 spec: 003
-spec_version: 2.0        # versión de la spec sobre la que se planifica
+spec_version: 3.0        # versión de la spec sobre la que se planifica
 estado: aprobado         # borrador | aprobado
 creado: 2026-10-31
 aprobado: 2026-10-31, Julian Querol Polo
@@ -401,7 +401,7 @@ El resto sigue `DESIGN.md` tal cual:
   - **`onError`:**
     - Con `TASK_NOT_FOUND`, se quita la tarea de la caché (RF-022).
     - Con cualquier otro error, la tarea original vuelve a `from` con `placeTask` sobre la caché **actual**, así que los demás movimientos no se tocan (RF-021, E-12).
-  - **`onSettled`:** invalidar `['tasks']` solo si `isMutating({ mutationKey: ['moveTask'] }) === 1`.
+  - **`onSettled`:** invalidar `['tasks']` solo si `isMutating({ mutationKey: ['moveTask'] }) === 1`, sin devolver su promesa desde la spec v3.0 (D-29).
   - **Avisos en `Board`:** el `onError` de la llamada pone el aviso en la zona de alerta del tablero: `moveErrorText(error)`, con tono `offline` para el error de red e `info` para `TASK_NOT_FOUND`, como en 002. `notice` pasa de `string` a `{ tone, text }`.
   - Sin reintentos (las mutaciones no se reintentan, 002/D-10).
   - *Por qué:* RF-020 pide que la tarjeta se vea en su sitio antes de la respuesta. 002/D-7 (sin optimismo) sigue valiendo para el diálogo, cuya spec pide lo contrario (002/CA-4.4).
@@ -431,6 +431,7 @@ El resto sigue `DESIGN.md` tal cual:
   - *Alternativas descartadas:* cambiar el planificador global de TanStack (`notifyManager`), que afectaría a toda la app; leer la caché directamente en `useTaskMove` (C-4: una sola fuente, la consulta).
   - *Cambiada en la spec v2.0 (T-026):* `landing = { taskId, to, before }` guarda posiciones, no datos, y solo vale mientras la tarea siga en `before`. Cuando llega la actualización optimista, la tarea ya no está ahí y `landing` deja de aplicarse sin hacer nada, así que sobra `seenTasks`. Se vacía al terminar la mutación, para que no reaparezca si la tarjeta vuelve a `before` al fallar.
   - *Ajustada en T-026:* además, `landing` se vacía durante el render en cuanto la tarea sale de `before`, y `before` es dónde está la tarea en `tasks` al soltar. Vaciarla solo al terminar la mutación no basta: `onSettled` de `useMoveTask` devuelve la promesa de volver a pedir la lista y la mutación la espera, así que al fallar la tarjeta reaparecería en su sitio nuevo durante esa petición. El vaciado al terminar se mantiene para el caso en que la lista no llega a cambiar, y no toca el `landing` de un movimiento posterior. Lo protege el test `003 RF-021 D-18`.
+  - *Desde la spec v3.0 (D-29):* `onSettled` ya no devuelve esa promesa, así que la mutación termina antes. El vaciado durante el render se mantiene: no depende de cuánto tarde la lista.
 - **D-19 (añadida en T-016)** `useMoveTask` lleva `networkMode: 'always'`.
   - *Por qué:* por defecto, TanStack **pausa** las mutaciones sin conexión hasta recuperarla. La tarjeta se quedaría en su sitio nuevo sin aviso, y E-7 y RF-021 piden que vuelva y salga el aviso. Con `always`, la petición se intenta, `fetch` falla y se deshace.
   - *Alternativas descartadas:* comprobar `navigator.onLine` antes de mover (duplica lo que ya resuelve el fallo de `fetch`).
@@ -475,6 +476,15 @@ El resto sigue `DESIGN.md` tal cual:
   - X-2 de la 002 no se aplica: limita el hover de la tarjeta porque su texto necesita 7:1, y aquí solo hay un icono, que necesita 3:1. Solo cambia el fondo del asa.
 - **D-28 (añadida en la spec v2.0)** `STATUS_NAMES` pasa de `BoardColumn.tsx` a `lib/task-messages.ts`, el sitio de los textos del tablero (002/D-19). `BoardColumn`, `Board` y `TaskDialog` lo importan de ahí.
   - *Por qué:* `lib/` no debe depender de un componente; hoy un módulo de textos arrastra `BoardColumn` y dnd-kit (verificación M-8). Sin cambio de comportamiento.
+- **D-29 (añadida en la spec v3.0)** RF-021, RF-023, CA-1.12: `onSettled` de `useMoveTask` lanza `invalidateQueries` sin devolver su promesa, con la misma condición de `isMutating`.
+  - *Por qué:* `mutateAsync` esperaba a la lista, que con la API caída se reintenta 3 veces (unos 7 s), y el aviso y la vuelta a la columna de D-26 van detrás de esa promesa (sonda de T-031). La tarjeta ya volvía en `onError`, pero sin aviso, con la columna equivocada y con el foco en `BODY`.
+  - Sin cambios en 002/D-7: el diálogo sí espera a la lista, porque su botón sigue en «Guardando…» hasta tenerla.
+  - *Alternativas descartadas:* avisar desde el `onError` del hook (`useMoveTask` tendría que conocer los avisos, el foco y la columna, que son de `useTaskMove`); no reintentar esa petición (los reintentos de la 002 siguen sirviendo para un fallo pasajero).
+- **D-30 (añadida en la spec v3.0)** RF-025, E-22, CA-1.12: `PrivateArea` pinta el tablero si hay datos (`tasks.data`, no `tasks.isSuccess`) y el error de carga solo si no los hay. Cambia 002/D-8, que sigue valiendo para la primera carga (002/CA-1.6).
+  - `meFailed` y `tasksFailed` solo cuentan sin datos, también para la cabecera. `useTasks` pasa a `enabled: Boolean(me.data)`, para que un fallo al volver a pedir `me` no apague la lista.
+  - *Por qué:* en TanStack, una consulta que falla al volver a pedirse pasa a `status: 'error'` aunque conserve `data`, así que `isSuccess` quitaba un tablero válido, y con él el aviso de mover (sonda de T-031).
+  - *Consecuencia aceptada, decidida con el usuario:* si solo falla un refresco en segundo plano, no hay aviso y la lista puede quedar desactualizada hasta que se vuelva a pedir (E-22).
+  - *Alternativas descartadas:* un aviso propio al fallar el refresco (más alcance y un texto nuevo); dejar el error de carga, con el aviso de D-29 unos segundos (el tablero seguiría desapareciendo con los datos ya cargados).
 
 ## 6. Trazabilidad
 
@@ -500,10 +510,11 @@ El resto sigue `DESIGN.md` tal cual:
 | RF-018 | `TouchSensor` `{ delay: 250, tolerance: 5 }` (D-6) | e2e táctil (CA-4.1, CA-4.2, CA-4.3; R-6) |
 | RF-019 | Columnas ocultas sin medidas (D-13) | e2e a 375 px: soltar sobre el selector o fuera de la columna no guarda (CA-4.5); reordenar la columna visible (CA-4.3); lo mismo con ratón |
 | RF-020 | `onMutate` con `setQueryData` (D-12) | unit `task-queries.test` (la tarjeta está en su sitio nuevo antes de que responda el `fetch`, que queda pendiente) |
-| RF-021 | `onError` deshace solo esa tarjeta; aviso `offline` (D-12, D-14) | unit `task-queries.test` y `Board.test` (`NetworkError` y 500: posición y recuentos de antes y el aviso, CA-1.9, CA-2.6) |
+| RF-021 | `onError` deshace solo esa tarjeta; aviso `offline` (D-12, D-14) | unit `task-queries.test` y `Board.test` (`NetworkError` y 500: posición y recuentos de antes y el aviso, CA-1.9, CA-2.6); sin esperar a la lista (D-29): unit `task-queries.test` y e2e con toda la API caída (CA-1.12) |
 | RF-022 | 404 → se quita de la caché; aviso `info` (D-12); foco a «Crear tarea» (D-26) | api (mover una tarea borrada, ajena o con id mal formado → 404); unit `Board.test` (CA-1.10, CA-3.12); e2e con la tarea borrada de verdad (CA-3.12) |
 | RF-023 | `onMobileColumn` en cada paso, al cancelar (D-13) y al fallar (D-26) | unit `Board.test` (el selector marca la columna nueva y vuelve a la de partida al cancelar, CA-3.9, CA-3.10, y al fallar, CA-3.13); e2e a 375 px, con `page.route` abortando `…/move` en CA-3.13 (jsdom no aplica `display: none`) |
 | RF-024 | `scrollIntoView` sobre la tarjeta tras cada paso; `scroll-padding` de `main` (D-23) | e2e con columna con scroll, a 1280 y 375 px: en cada flecha, la tarjeta dentro de la lista o de la ventana y el asa sin tapar (CA-3.11) |
+| RF-025 | `PrivateArea` pinta el tablero si hay datos (D-30) | unit `PrivateArea.test` (falla el refresco de `tasks` o de `me` con datos: sigue el tablero; sin datos, el error de carga de 002/CA-1.6); e2e con toda la API caída, pasados los reintentos (CA-1.12) |
 | RNF-001 | Asa con nombre, foco global y 44/32 px (D-11); región viva (D-7); anillo del hueco (X-1); `motion-safe:` en la escala (X-2); foco siempre a la vista (D-23) y nunca perdido (D-26) | `tokens.test` (`--ring-drop` sobre la columna ≥ 3:1 y el icono del asa sobre la tarjeta ≥ 3:1, en N, SB y C+, claro y oscuro); axe en el tablero con una tarjeta cogida con teclado y en pleno arrastre con puntero, en los dos temas; e2e (tamaño del asa a 375 y 1280; con `reducedMotion: 'reduce'`, la capa no tiene `scale`); checklist §21 |
 | RNF-002 | Optimista en el mismo render (D-12); `placeTask` O(n) | e2e (solo `chromium`): 500 tareas, 200 en To do; arrastre con ratón; desde el `pointerup` hasta el primer frame con la tarjeta en su sitio y sin hueco (`MutationObserver` + `requestAnimationFrame` en la página) ≤ 100 ms |
 | RNF-003 | `where userId` en la lectura, el desplazamiento y la escritura (D-2, D-5); `position` no se expone | api: mover una tarea ajena → 404, y el orden de Luis no cambia cuando Ana mueve y crea (C-13) |
@@ -530,6 +541,7 @@ El resto sigue `DESIGN.md` tal cual:
 | E-19 | Relleno de la migración (§4.2) | manual: en la base de desarrollo con tareas de la 002, el orden de cada columna es el mismo antes y después de `pnpm db:migrate` (se anota en la tarea) |
 | E-20 | Textos de D-14; anuncios de dnd-kit vacíos (D-6) | unit `task-messages.test` (textos exactos) |
 | E-21 | `onDragEnd` comprueba el destino real (D-25) | e2e: tras dejar la vista previa en In progress, mover fuera y soltar sin esperar, varias veces: ninguna petición `move` |
+| E-22 | RF-025, D-30 | unit `PrivateArea.test`; e2e con toda la API caída |
 
 ## 7. Estrategia de pruebas
 
@@ -580,6 +592,7 @@ El resto sigue `DESIGN.md` tal cual:
      - CA-1.11, CA-4.6 y E-21;
      - RF-019 con ratón a 375 px y axe en pleno arrastre, en los dos temas;
      - CA-1.4, CA-1.5, CA-1.10 y CA-2.6 arrastrando con ratón.
+  9. **Spec v3.0 (T-038, T-039):** CA-1.12 y CA-3.13 con toda la API caída (`page.route` sobre `**/api/**`), porque cortar solo `…/move` no lo detecta; el aviso en menos de 1 s y el tablero aún a la vista pasados los reintentos.
 
   Las ayudas nuevas van a `e2e/helpers.ts`:
   - `dragCard`: `page.mouse` con pasos intermedios, porque dnd-kit necesita varios `mousemove`;
