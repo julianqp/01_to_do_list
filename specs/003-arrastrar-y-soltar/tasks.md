@@ -1,7 +1,7 @@
 ---
 spec: 003
 plan_aprobado: 2026-10-31
-progreso: 25/25
+progreso: 25/37
 ---
 
 # Tareas · Spec 003 · Arrastrar y soltar
@@ -25,6 +25,7 @@ progreso: 25/25
 > - **Valores visuales:** solo de `tokens.css` (ADR-0003); sin `style=` ni transformaciones en línea (D-9, D-10).
 > - **Postgres:** `pnpm test` (proyecto `api`) y `pnpm test:e2e` necesitan `pnpm db:up`.
 > - **Riesgo primero (D-15):** el E2E del teclado entre columnas pasa en T-015 y el táctil en los tres proyectos se comprueba en T-018. Si alguno no se cumple, **parar y avisar** como cambio del plan.
+> - **Commits, desde T-026 (verificación M-6):** un commit por tarea. Los commits los hace el usuario, así que el hash de cada tarea se anota en el Registro al empezar la siguiente. Las filas anteriores a T-026 se quedan sin hash, por decisión del usuario.
 
 ## Fase 1 · Preparación
 
@@ -200,7 +201,7 @@ Todas tocan `Board.tsx`, `BoardColumn.tsx`, `TaskCard.tsx` o `task-move.ts`: van
   - Cubre: RF-002 (aspecto), RF-006, RF-012, CA-1.8 (unitario), CA-3.1 (unitario), CA-3.8, RNF-001, RNF-005, D-10, D-11, D-16
   - Casos (test primero):
     - la tarjeta no es un `<button>`: contiene el botón de abrir, con `data-task-id` y el nombre accesible de siempre, y el asa, con `data-task-handle`, nombre «Mover «Preparar la demo»» (`003 CA-3.1 RF-012`) e icono `GripVertical`;
-    - clic y Enter en el botón de abrir llaman a `onOpen` (`003 CA-3.8 RF-006`); clic en el asa no;
+    - clic y Enter en el botón de abrir llaman a `onOpen` (`003 CA-3.8 RF-006`); clic en el asa no; *(spec v2.0: el clic de puntero en el asa sí abre el detalle; este caso lo sustituye T-028)*
     - el asa es `size-11 lg:size-8`, `rounded-pill` y `cursor-grab`; el orden de tabulación es abrir → asa;
     - variantes: `placeholder` con `bg-sunken`, el anillo `--ring-drop`, sin sombra y contenido `invisible`; `lifted` y `overlay` con `--shadow-float` y `motion-safe:scale-102`; `overlay` con `aria-hidden` e `inert`.
   - Hecho cuando: los casos fallan primero; después, `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde; `pnpm test:e2e e2e/board.spec.ts e2e/design-system.spec.ts` en verde en `chromium`, `chrome` y `webkit` (riesgo de plan §8)
@@ -316,6 +317,116 @@ Todas tocan `Board.tsx`, `BoardColumn.tsx`, `TaskCard.tsx` o `task-move.ts`: van
   - Cubre: todos
   - Hecho cuando: el informe está escrito; si sale APTO, la spec pasa a `implementada` con la confirmación del usuario
 
+## Fase 6 · Correcciones de la verificación (spec v2.0)
+
+Resuelven `verificacion.md` (T-025, NO APTO), con las decisiones del usuario del 2026-11-01. Van en orden: casi todas tocan `task-move.ts`. Cada una, test primero, termina con `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde; los E2E que nombra tienen que pasar.
+
+- [ ] **T-026** Guardar `drag` y `landing` por id, sin copias de la lista
+  - Ficheros: `apps/web/src/lib/task-move.ts`, `apps/web/src/components/Board.tsx` (la capa usa `draggedTask`), `apps/web/src/components/Board.test.tsx` si hace falta
+  - Cubre: C-4, D-7, D-8, D-18 (verificación M-5). Sin cambio de comportamiento
+  - Pasos:
+    - `DragState` lleva `taskId`; la tarea se busca en `tasks` en cada render;
+    - si la tarea ya no está, `drag` se borra durante el render, sin anuncio (D-7);
+    - `landing = { taskId, to, before }` solo se aplica mientras la tarea siga en `before`, y se vacía al terminar la mutación;
+    - fuera `seenTasks`.
+  - Casos (test primero): `003 C-4 D-8` en pleno movimiento, si llega un título nuevo en la lista, la vista previa y el anuncio de soltar usan el título nuevo. Falla hoy, porque `drag` guarda una copia. El resto lo protegen los tests actuales.
+  - Hecho cuando: el caso falla primero; después, `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde; `pnpm test:e2e e2e/drag-and-drop.spec.ts` en verde en `chromium` y `webkit`, y RNF-002 sigue en ≤ 100 ms (el tiempo se anota en el Registro). Si no, **parar y avisar**
+
+- [ ] **T-027** Mantener a la vista la tarjeta cogida con teclado
+  - Depende de: T-026
+  - Ficheros: `e2e/drag-and-drop.spec.ts`, `apps/web/src/lib/task-move.ts` (D-23), `apps/web/src/components/PrivateArea.tsx` (`scroll-padding` de `main`)
+  - Cubre: RF-024, CA-3.11, RNF-001, C-20, D-23 (verificación B-1)
+  - Casos (E2E primero, porque jsdom no calcula posiciones), en `chromium` y `webkit`:
+    - `003 CA-3.11 RF-024` a 1280 × 900 y 1280 × 720, con 12 tarjetas: en cada Flecha abajo hasta el final y Flecha arriba hasta el principio, la tarjeta está dentro de la lista y el asa tiene el foco;
+    - lo mismo a 375 × 812: la tarjeta está dentro de la ventana y en el centro del asa está el asa (`elementFromPoint`), no «Crear tarea»;
+    - al pasar a otra columna, la tarjeta también queda a la vista.
+  - Hecho cuando: los casos fallan primero, a 1280 × 900 desde la 8.ª flecha; después pasan; `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde
+
+- [ ] **T-028** Abrir el detalle con un clic o un toque en el asa
+  - Depende de: T-027
+  - Ficheros: `apps/web/src/components/TaskCard.tsx` (D-24), `TaskCard.test.tsx`, `Board.test.tsx`, `e2e/drag-and-drop.spec.ts`
+  - Cubre: RF-006, RF-013, CA-1.11, CA-4.6, D-24 (verificación I-1)
+  - Casos (test primero):
+    - `003 CA-1.11 RF-006` en `TaskCard.test`: clic con `detail: 1` en el asa llama a `onOpen` y no a `handleProps.onClick`; con `detail: 0`, al revés. Sustituye el caso «clic en el asa, no» de T-014;
+    - `003 CA-1.11` E2E: clic en el asa abre el detalle, no se levanta la tarjeta y la región viva sigue vacía;
+    - `003 CA-4.6` E2E a 375 con `tap`: abre el detalle como panel inferior;
+    - `003 RF-006` E2E: arrastrar desde el asa mueve la tarjeta y no abre el detalle;
+    - `003 RF-017 D-24` con la tarjeta cogida con teclado, un clic en su asa abre el detalle, sin guardar, y el movimiento se cancela.
+  - Hecho cuando: los casos fallan primero; después, `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde; los E2E de D-15 y CA-3.1 siguen en verde en `chromium` y `webkit` (Espacio y Enter siguen cogiendo). Si no, **parar y avisar**: es el riesgo de D-24
+
+- [ ] **T-029** No guardar si se suelta fuera justo al salir de la columna
+  - Depende de: T-028
+  - Ficheros: `e2e/drag-and-drop.spec.ts`, `apps/web/src/lib/task-move.ts` (D-25)
+  - Cubre: E-21, RF-005, CA-1.7, D-25 (verificación M-1)
+  - Casos (E2E primero): `003 E-21 RF-005` con la vista previa en In progress, mover el ratón fuera de toda columna y soltar sin esperar (`Promise.all`), 6 veces: ninguna petición a `…/move` y la tarjeta en su sitio, en `chromium` y `webkit`.
+  - Hecho cuando: el caso falla primero (6/6 en `chromium` antes del cambio); después pasa; repetido con `--repeat-each=5` sigue en verde; la opción de D-25 que quede se anota en el Registro; `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde
+
+- [ ] **T-030** Llevar el foco a «Crear tarea» si la tarea ya no existe
+  - Depende de: T-029
+  - Ficheros: `apps/web/src/lib/task-move.ts` (`onTaskGone`, D-26), `apps/web/src/components/Board.tsx`, `Board.test.tsx`, `e2e/drag-and-drop.spec.ts`
+  - Cubre: RF-022, CA-3.12, D-26 (verificación M-2)
+  - Casos (test primero):
+    - `003 CA-3.12 RF-022` en `Board.test`: con 404 al soltar con teclado, el foco acaba en «Crear tarea»; si era la última tarea, en el del estado vacío;
+    - `003 RF-022 D-26` si el foco ya salió del asa, no se mueve;
+    - `003 CA-3.12` E2E con la tarea borrada de verdad por la API, en `chromium` y `webkit`.
+  - Hecho cuando: los casos fallan primero; después, `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde
+
+- [ ] **T-031** Volver a la columna de origen si falla el guardado en móvil
+  - Depende de: T-030
+  - Ficheros: `apps/web/src/lib/task-move.ts` (D-26), `Board.test.tsx`, `e2e/drag-and-drop.spec.ts`
+  - Cubre: RF-023, RF-021, CA-3.13, D-26 (verificación M-2)
+  - Casos (test primero):
+    - `003 CA-3.13 RF-023` en `Board.test`: con `NetworkError` tras pasar a In progress y soltar, el selector vuelve a To do y la columna visible también;
+    - `003 RF-023 D-26` si el foco ya salió del asa, la columna visible no cambia;
+    - `003 CA-3.13` E2E a 375 con `page.route` abortando `…/move`: se ve To do, el foco está en el asa y sale el aviso, en `chromium` y `webkit`. Hace falta el E2E porque jsdom no aplica `display: none`.
+  - Hecho cuando: los casos fallan primero; después, `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde
+
+- [ ] **T-032** Dar estados de hover y press al asa
+  - Depende de: T-031
+  - Ficheros: `apps/web/src/components/TaskCard.tsx` (D-27), `TaskCard.test.tsx`, `apps/web/src/styles/tokens.test.ts`
+  - Cubre: RNF-005, RNF-001, C-26, D-27 (verificación M-3)
+  - Casos (test primero):
+    - `003 RNF-005 D-27`: el asa lleva `transition`, `hover:bg-raised-hover` y `motion-safe:active:scale-94`;
+    - `003 RNF-001 D-27`: el icono (`--text-2`) sobre `--surface-raised-hover` ≥ 3:1 en N, SB y C+, claro y oscuro.
+  - Hecho cuando: los casos fallan primero; después, `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde; `design-rules.test.ts` en verde sin cambiarlo. Si la pareja no llega a 3:1, **parar y avisar**
+
+- [ ] **T-033** [P] Mover `STATUS_NAMES` a `lib` y quitar la idea duplicada del roadmap
+  - Ficheros: `apps/web/src/lib/task-messages.ts`, `apps/web/src/components/BoardColumn.tsx`, `Board.tsx`, `TaskDialog.tsx`, `specs/roadmap.md` (líneas 77 y 79, «Animar…»: queda una, con los dos orígenes)
+  - Cubre: D-28 (verificación M-8). Sin cambio de comportamiento
+  - Hecho cuando: `lib/task-messages.ts` no importa nada de `components/`; `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde
+
+- [ ] **T-034** Cubrir con E2E lo que solo se probaba con teclado o sin test
+  - Depende de: T-032
+  - Ficheros: `e2e/drag-and-drop.spec.ts`
+  - Cubre: RF-019, RNF-001, CA-1.4, CA-1.5, CA-1.10, CA-2.6 (verificación M-7)
+  - Casos, en los tres proyectos:
+    - `003 RF-019` con ratón a 375: reordena la columna visible, y soltar sobre el selector no guarda;
+    - `003 RNF-001` axe sin infracciones en pleno arrastre con puntero, con la capa y el hueco a la vista, en claro y oscuro;
+    - `003 CA-1.4 RF-003` arrastrar con ratón una retrasada a Done: sin «Retrasada» y con la fecha de hoy, sin abrir el detalle;
+    - `003 CA-1.5 RF-004` arrastrar con ratón de Done a To do: sin fecha real de fin;
+    - `003 CA-1.10 RF-022` con la tarea borrada de verdad, arrastrar con ratón: «Esta tarea ya no existe.» y la tarjeta desaparece;
+    - `003 CA-2.6 RF-021` con `page.route` abortando `…/move`, reordenar con ratón: vuelve al orden de antes, con el aviso.
+  - Hecho cuando: los casos pasan. Si alguno falla, es un fallo real: se anota y se **avisa** antes de corregir
+
+- [ ] **T-035** Intentar reproducir el fallo de CA-2.5 en `webkit`
+  - Depende de: T-034
+  - Ficheros: `e2e/drag-and-drop.spec.ts` solo si se encuentra la causa
+  - Cubre: CA-2.5, RNF-004 (verificación M-7; nota de T-024)
+  - Pasos: `pnpm test:e2e e2e/drag-and-drop.spec.ts --project=webkit -g "003 CA-2.5" --repeat-each=100 --retries=0`, y el fichero completo en `webkit` 5 veces, para ver si solo falla con carga.
+  - Hecho cuando: el resultado se anota en el Registro. Si se reproduce, se busca la causa y se **avisa** antes de cambiar nada en `apps/web`. Si no, queda anotado como no reproducido, con el número de repeticiones
+
+- [ ] **T-036** Comprobar la trazabilidad de los IDs nuevos y la suite completa
+  - Depende de: T-026 a T-035
+  - Ficheros: tests existentes (solo si falta alguno)
+  - Cubre: C-17, C-19, RF-024, CA-1.11, CA-3.11, CA-3.12, CA-3.13, CA-4.6, E-21
+  - Hecho cuando: hay un test cuyo título empieza por `003 ` para cada ID nuevo, con el criterio de T-024 (85 IDs en total, sin contar E-19); `pnpm test`, `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` en verde en los tres proyectos; el Registro tiene el recuento
+
+- [ ] **T-037** Volver a ejecutar `/sdd-verificar`
+  - Depende de: T-036
+  - Ficheros: `specs/003-arrastrar-y-soltar/verificacion.md`
+  - Cubre: todos (spec v2.0)
+  - Hecho cuando: el informe está escrito, en una sesión nueva si es posible; si sale APTO, la spec pasa a `implementada` con la confirmación del usuario
+
 ## Registro
 
 | Tarea | Commit | Notas |
@@ -346,3 +457,4 @@ Todas tocan `Board.tsx`, `BoardColumn.tsx`, `TaskCard.tsx` o `task-move.ts`: van
 | T-023 | | `DESIGN.md` a 1.4.0-todo.1 (`--ring-drop` en §1.4 y §6.2, con el mismo valor que `tokens.css`, revisado con `grep`; §8 con X-1 y X-2; §11.3 con el orden, el asa, el movimiento y el aviso; fila en el Historial). Checklist §21 repasada con 36 capturas de la tarjeta levantada, el hueco y el asa a 375, 768 y 1280, en los dos temas y con «aumentar contraste». **Hallazgo y corrección:** la tarjeta levantada era translúcida y el texto de debajo se transparentaba a través del suyo (se veía a 375 en oscuro); lleva `backdrop-glass` (§6.3), con su test. En `specs/roadmap.md`, «Ideas sin priorizar»: animar las tarjetas (X-2) y quitar el aviso de mover tras un movimiento correcto. **Sin prueba con VoiceOver** (plan D-22): el usuario ya lo decidió en 001/RNF-001 y este plan lo había vuelto a incluir sin tenerlo en cuenta. Los anuncios solo se comprueban con tests automáticos: riesgo aceptado, como 001/I-2 |
 | T-024 | | El `grep` de los tests que empiezan por `003 ` encuentra los **78 IDs** pedidos: RF-001…RF-023 (23), CA-1.1…CA-1.10, CA-2.1…CA-2.6, CA-3.1…CA-3.10 y CA-4.1…CA-4.5 (31), E-1…E-20 salvo E-19 (19; E-19 se comprueba con la nota de T-002) y RNF-001…RNF-005 (5). La tarea decía 79, pero la suma de su propia lista es 78. Faltaba RNF-004, añadido al nombre del E2E de CA-4.1, que corre con el dedo en los tres proyectos. El `grep` también tiene que mirar los títulos que Prettier parte en otra línea, tras `it.each(…)(`. Pasada final: `pnpm test` (880), `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` en verde (252 pasan, 11 saltados según lo previsto, 1 «flaky» en `webkit` por hidratación, M-7). Un fallo de `toHaveText` en CA-2.5 en `webkit` se vio una vez y pasó al reintentar; no se ha reproducido en 42 repeticiones ni en 3 pasadas del fichero: queda sin explicar |
 | T-025 | | `verificacion.md`: **NO APTO**, por un bloqueante (B-1: al bajar una tarjeta con teclado en una columna con scroll, sale de la vista). Además, I-1 (clic o toque en el asa frente a RF-006, pendiente de decidir) y ocho menores. La spec sigue en `en-implementacion`. Hechos en una sesión nueva: `pnpm test` (880), `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` (252 pasan, 11 saltados, 1 «flaky» en `webkit`). Se usó una sonda E2E temporal, ya borrada |
+| — | | 2026-11-01, `/sdd-cambiar-spec` tras T-025 (NO APTO), con las decisiones del usuario. Spec v2.0, plan D-23 a D-28 y fase 6 (T-026 a T-037). **B-1, I-1, M-1, M-2, M-3, M-5, M-7 y M-8** pasan a tareas. **M-4** queda resuelta en este cambio: el plan ya recoge `backdrop-glass` (D-10), `focusedHandle` (D-7), `onDragMove` y `columnDropId` (§4.3). **M-6:** un commit por tarea desde T-026; el historial no se reescribe y las filas anteriores se quedan sin hash. Riesgo aceptado: D-24 con lectores de pantalla (D-22) |

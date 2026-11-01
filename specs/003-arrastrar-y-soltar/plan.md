@@ -1,6 +1,6 @@
 ---
 spec: 003
-spec_version: 1.0        # versión de la spec sobre la que se planifica
+spec_version: 2.0        # versión de la spec sobre la que se planifica
 estado: aprobado         # borrador | aprobado
 creado: 2026-10-31
 aprobado: 2026-10-31, Julian Querol Polo
@@ -63,7 +63,7 @@ aprobado: 2026-10-31, Julian Querol Polo
 | C-1 | ✅ | `strict`, sin `any`. `Placement` y `MoveTaskInput` tipados en `shared` y en `web` |
 | C-2 | ✅ | Una dependencia nueva, justificada en §2 y R-1 |
 | C-3 | ✅ | Sin cambios |
-| C-4 | ✅ | Todo sigue en la isla `PrivateArea`. El estado del arrastre (`drag`, D-8) es estado de interfaz: un id y dos posiciones, no una copia de los datos del servidor. La vista previa se calcula en cada render a partir de la caché. La actualización optimista va **en la caché de TanStack Query** (`setQueryData`), no en estado local. Los únicos efectos sincronizan con el DOM: devolver el foco al asa (D-7) |
+| C-4 | ✅ | Todo sigue en la isla `PrivateArea`. El estado del arrastre (`drag`, D-8) es estado de interfaz: un id y dos posiciones, no una copia de los datos del servidor. La vista previa se calcula en cada render a partir de la caché. La actualización optimista va **en la caché de TanStack Query** (`setQueryData`), no en estado local. Los únicos efectos sincronizan con el DOM: devolver el foco al asa (D-7) y mantener la tarjeta a la vista (D-23). *(T-026 lo hace cierto: hasta entonces, `drag`, `landing` y `seenTasks` copiaban datos; verificación M-5)* |
 | C-5 | ✅ | Migración nueva `task_position`, creada con `--create-only` y completada con el relleno de E-19 antes de aplicarla por primera vez. No se toca ninguna migración ya aplicada |
 | C-6 | ✅ | Solo local |
 | C-7 | ✅ | `/api/tasks/:id/move`, relativa |
@@ -219,8 +219,10 @@ export function placeTask(tasks: Task[], task: Task, to: Placement): Task[]; // 
 export function samePlacement(a: Placement, b: Placement): boolean;
 export type MoveKey = 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight';
 export function stepPlacement(groups: Record<TaskStatus, Task[]>, at: Placement, key: MoveKey): Placement | undefined; // RF-014, RF-015
-export function placementFromOver(groups, activeId: string,
-  over: { kind: 'card'; id: string } | { kind: 'column'; status: TaskStatus }, below: boolean): Placement; // D-9
+export type Over = { kind: 'card'; id: string } | { kind: 'column'; status: TaskStatus };
+export function placementFromOver(groups, activeId: string, over: Over, below: boolean): Placement; // D-9
+export const columnDropId: (status: TaskStatus) => string;                // D-9: id del droppable de la columna
+export const columnDropStatus: (id: string | number) => TaskStatus | undefined;
 
 // apps/web/src/lib/task-queries.ts (añadido)
 export type MoveVariables = { task: Task; from: Placement; to: Placement; today: IsoDate };
@@ -231,15 +233,18 @@ export function useTaskMove(options: {
   tasks: Task[];
   onMobileColumn(status: TaskStatus): void;  // RF-023
   onNotice(notice: BoardNotice): void;       // RF-021, RF-022
+  onTaskGone(id: string): void;              // D-26, RF-022: el foco seguía en el asa de una tarea que ya no existe
 }): {
   displayTasks: Task[];                          // con la vista previa aplicada
   drag: DragState | null;
+  draggedTask: Task | undefined;                 // D-8: la tarea de `drag`, buscada en la lista (para la capa)
   announcement: string;                          // texto de la región viva
   dndProps: Pick<DndContextProps, 'sensors' | 'collisionDetection' | 'measuring' | 'accessibility'
-    | 'onDragStart' | 'onDragOver' | 'onDragEnd' | 'onDragCancel'>;
+    | 'onDragStart' | 'onDragOver' | 'onDragMove' | 'onDragEnd' | 'onDragCancel'>; // onDragMove: D-20
   handleProps: HandleProps;                      // D-21: un solo objeto estable, con onClick, onKeyDown y onBlur
 };
-type DragState = { task: Task; origin: Placement; current: Placement; mode: 'pointer' | 'keyboard' };
+type DragState = { taskId: string; origin: Placement; current: Placement; mode: 'pointer' | 'keyboard' }; // D-8
+type Landing = { taskId: string; to: Placement; before: Placement };                                      // D-18
 
 // apps/web/src/lib/task-messages.ts (añadidos, D-14)
 moveErrorText(error: unknown): string                     // RF-021 / RF-022
@@ -247,6 +252,7 @@ pickedText(title, place: Placement, total): string        // RF-013
 movedText(place, total): string                           // RF-014
 droppedText(title, place, total): string                  // RF-016
 cancelledText(title, place, total): string                // RF-017
+export const STATUS_NAMES: Record<TaskStatus, string>     // D-28: se mueve aquí desde BoardColumn.tsx
 ```
 
 **Web, componentes** (props):
@@ -349,16 +355,17 @@ El resto sigue `DESIGN.md` tal cual:
   - La tarjeta lleva `select-none`, para que mantener el dedo no seleccione el texto.
   - *Alternativas descartadas:* las de R-1.
 - **D-7** Teclado propio desde el asa (R-2):
-  - **Coger y soltar:** el `onClick` del asa coge la tarjeta o, si ya está cogida, la suelta. Espacio y Enter en un `<button>` producen un `click`, y la activación de los lectores de pantalla (VO + Espacio) también (RF-013, RF-016).
+  - **Coger y soltar:** el `onClick` del asa coge la tarjeta o, si ya está cogida, la suelta. Espacio y Enter en un `<button>` producen un `click`, y la activación de los lectores de pantalla (VO + Espacio) también (RF-013, RF-016). *Desde la spec v2.0, solo el `click` sin puntero: ver D-24.*
   - **`onKeyDown`:** las flechas llaman a `stepPlacement` (con `preventDefault`, para que la página no haga scroll) y Escape cancela.
   - **Columna vecina:** con izquierda y derecha, la tarjeta entra la primera de la columna vecina. En los bordes no se mueve y no se anuncia nada (RF-015).
-  - **Foco:** tras cada paso, un efecto de layout vuelve a enfocar `[data-task-handle="<id>"]`. RF-017 («el foco sale del asa») se comprueba en diferido con `setTimeout(0)`, y solo cancela si el foco no ha vuelto a esa asa (R-4).
+  - **Foco:** tras cada paso, un efecto de layout vuelve a enfocar `[data-task-handle="<id>"]`. La referencia `focusedHandle` guarda qué asa tiene que conservar el foco, también después de soltar y si la tarjeta vuelve atrás al fallar, y se vacía cuando el foco sale de verdad (T-015). RF-017 («el foco sale del asa») se comprueba en diferido con `setTimeout(0)`, y solo cancela si el foco no ha vuelto a esa asa (R-4).
   - **Región viva:** un `<p className="sr-only" aria-live="assertive" aria-atomic="true">` siempre presente en el tablero. `assertive`, porque cada flecha sustituye el anuncio anterior.
   - Si mientras está cogida la tarea desaparece de la lista (por ejemplo, la borró otra mutación), el estado `drag` se borra sin anuncio.
   - *Alternativas descartadas:* `KeyboardSensor` de dnd-kit (R-2); que el asa solo responda a `keydown` (la activación de VoiceOver no la cogería).
-- **D-8** Un solo estado de movimiento en `useTaskMove`: `drag = { task, origin, current, mode }`, para el puntero y para el teclado.
+- **D-8** *(cambiada en la spec v2.0, T-026)* Un solo estado de movimiento en `useTaskMove`: `drag = { taskId, origin, current, mode }`, para el puntero y para el teclado. Guarda el id, no la tarea (C-4; verificación M-5): la tarea se busca en `tasks` en cada render.
   - La lista que se pinta es `placeTask(tasks, { ...task, status: current.status }, current)`, calculada en cada render.
-  - Al soltar, las dos formas llaman a la misma función, `commit(drag)`, que no hace nada si `samePlacement(origin, current)` (RF-011, E-3) y, si no, llama a `useMoveTask`.
+  - Si la tarea ya no está en `tasks`, `drag` se borra durante el render, sin anuncio (D-7), sin necesidad de guardar la lista anterior.
+  - Al soltar, las dos formas llaman a la misma función, `commit(drag)`, que no hace nada si `samePlacement(origin, current)` (RF-011, E-3) y, si no, llama a `useMoveTask`. Las variables de la mutación sí llevan la tarea: es la foto que necesita deshacer (D-12) y dura lo que la mutación.
   - *Por qué:* C-4 (estado de interfaz, no datos de servidor) y C-22 (`placeTask` tiene tres usos: vista previa, actualización optimista y deshacer).
   - *Alternativas descartadas:* dos estados separados para el puntero y el teclado (duplicaría el guardado y la vista previa).
 - **D-9** Destino con el puntero. Cada columna es un droppable `column:<status>`, y cada tarjeta, draggable y droppable con su id.
@@ -372,11 +379,11 @@ El resto sigue `DESIGN.md` tal cual:
   - *Por qué:* sin `@dnd-kit/sortable` ni transformaciones en línea (ADR-0003): la vista previa reordena la lista de verdad.
 - **D-10** Aspecto mientras se mueve:
   - **Con el puntero:**
-    - La capa que sigue al puntero es un `DragOverlay` con un `TaskCard variant="overlay"`: `--shadow-float`, `motion-safe:scale-102`, `aria-hidden` e `inert`, para que sus botones no se dupliquen para el teclado ni para el lector.
+    - La capa que sigue al puntero es un `DragOverlay` con un `TaskCard variant="overlay"`: `--shadow-float`, `motion-safe:scale-102`, `backdrop-glass` (§6.3: flota sobre otras tarjetas y, sin blur, su texto se transparentaría; T-023), `aria-hidden` e `inert`, para que sus botones no se dupliquen para el teclado ni para el lector.
     - El `DragOverlay` va dentro de un contenedor `pointer-events-none fixed inset-0 z-(--z-popover)`. Así su capa interna (999) solo cuenta dentro de `--z-popover` (§7), sin escribir números.
     - `dropAnimation={null}` (X-2).
     - En la lista, la tarjeta arrastrada se pinta como `variant="placeholder"`, que es el hueco: `bg-sunken`, el anillo de X-1, sin sombra y con el contenido `invisible`, así que conserva su altura (E-6).
-  - **Con el teclado:** la tarjeta se queda en la lista con `variant="lifted"`: `--shadow-float`, `motion-safe:scale-102` y `relative z-(--z-popover)` (CA-3.2). No hay hueco.
+  - **Con el teclado:** la tarjeta se queda en la lista con `variant="lifted"`: `--shadow-float`, `motion-safe:scale-102`, `backdrop-glass` y `relative z-(--z-popover)` (CA-3.2). No hay hueco.
   - *Alternativas descartadas:* `transform` en línea sobre la tarjeta original (prohibido por ADR-0003); leer `--z-popover` con `getComputedStyle` para pasarlo a `zIndex` (más código que el contenedor).
 - **D-11** La tarjeta deja de ser un `<button>`: un `<button>` dentro de otro no es HTML válido. Pasa a ser un contenedor (`div`, con la superficie raised, el radio, la sombra y el hover de 002/D-10, X-2) con:
   - **Botón de abrir:**
@@ -422,6 +429,7 @@ El resto sigue `DESIGN.md` tal cual:
 - **D-18 (añadida en T-015)** Al soltar, la vista previa sigue en pantalla (`landing`) hasta que cambia la lista que llega a `useTaskMove`.
   - *Por qué:* `onMutate` es asíncrono y TanStack avisa a los suscriptores en un `setTimeout(0)`. Si `drag` se borrara sin más, habría un render con la tarjeta en su sitio de antes y, al cambiar de columna, se perdería el foco del asa (RF-016, RF-020).
   - *Alternativas descartadas:* cambiar el planificador global de TanStack (`notifyManager`), que afectaría a toda la app; leer la caché directamente en `useTaskMove` (C-4: una sola fuente, la consulta).
+  - *Cambiada en la spec v2.0 (T-026):* `landing = { taskId, to, before }` guarda posiciones, no datos, y solo vale mientras la tarea siga en `before`. Cuando llega la actualización optimista, la tarea ya no está ahí y `landing` deja de aplicarse sin hacer nada, así que sobra `seenTasks`. Se vacía al terminar la mutación, para que no reaparezca si la tarjeta vuelve a `before` al fallar.
 - **D-19 (añadida en T-016)** `useMoveTask` lleva `networkMode: 'always'`.
   - *Por qué:* por defecto, TanStack **pausa** las mutaciones sin conexión hasta recuperarla. La tarjeta se quedaría en su sitio nuevo sin aviso, y E-7 y RF-021 piden que vuelva y salga el aviso. Con `always`, la petición se intenta, `fetch` falla y se deshace.
   - *Alternativas descartadas:* comprobar `navigator.onLine` antes de mover (duplica lo que ya resuelve el fallo de `fetch`).
@@ -435,6 +443,31 @@ El resto sigue `DESIGN.md` tal cual:
 - **D-22 (añadida en T-023)** No se hace prueba manual con VoiceOver ni con otro lector de pantalla; los anuncios se comprueban solo con los tests automáticos.
   - *Por qué:* lo decidió el usuario en la spec 001 v1.2 (2026-10-29, aclaración de RNF-001) y este plan lo volvió a incluir sin tenerlo en cuenta. RNF-001 de esta spec ya dice que se comprueba con pruebas automáticas y con la checklist de §21, así que la spec no cambia. Los requisitos RF-012 a RF-017 y C-20 tampoco cambian.
   - *Riesgo aceptado:* como en 001/I-2, los tests comprueban el texto de la región viva, no lo que dice el lector.
+- **D-23 (añadida en la spec v2.0)** RF-024: tras cada paso con el teclado, el efecto de layout de D-7 llama a `scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' })` sobre la tarjeta, no solo sobre el asa, para que se vea entera.
+  - *Por qué:* al bajar, el asa conserva el foco y el navegador no hace scroll; las flechas llevan `preventDefault`, así que tampoco lo puede hacer el usuario (verificación B-1). `instant`: responde bien a flechas seguidas y no pide un caso aparte para movimiento reducido.
+  - *Tapada por otro elemento:* por debajo de 768 px, `main` hace scroll y «Crear tarea» va fijo abajo: `main` lleva un `scroll-padding` inferior con la misma medida que su `pb-24`. El E2E comprueba con `elementFromPoint` que en el centro del asa está el asa.
+  - *Solo con `mode: 'keyboard'`:* con el puntero, el scroll es de dnd-kit (E-4, E-5).
+  - *Alternativas descartadas:* `behavior: 'smooth'` (se queda atrás con flechas seguidas); `block: 'center'` (mueve la columna aunque la tarjeta ya se vea); dejar de hacer `preventDefault` (la página se movería con cada flecha).
+- **D-24 (añadida en la spec v2.0)** RF-006, CA-1.11, CA-4.6: `TaskCard` decide qué hace el `click` del asa por `event.detail`. Con `0` (teclado o tecnología de asistencia) llama a `handleProps.onClick`, como en D-7; con `1` o más (puntero) llama a `onOpen`. Cambia D-7.
+  - Con la tarjeta cogida con teclado, un clic de puntero en su asa abre el detalle. El diálogo se lleva el foco y el movimiento se cancela por RF-017, sin guardar.
+  - Arrastrar desde el asa no cambia: dnd-kit suprime el `click` al soltar (R-1).
+  - *Por qué:* un clic o un toque dejaban la tarjeta levantada sin ninguna indicación visible y, con el dedo, sin forma de moverla (verificación I-1).
+  - *Riesgo aceptado:* si un lector envía su activación como un clic de puntero (`detail >= 1`), abriría el detalle en lugar de coger la tarjeta. Según D-22 no se prueba con un lector real. Los E2E de teclado de D-15 siguen comprobando que Espacio y Enter cogen la tarjeta en `chromium` y `webkit`.
+  - *Alternativas descartadas:* mantener el comportamiento con un texto visible (con el dedo seguiría sin poder moverse); ignorar el clic (parece un botón que no responde).
+- **D-25 (añadida en la spec v2.0)** E-21, RF-005: al soltar con el puntero, `onDragEnd` comprueba el destino real antes de llamar a `commit`, porque `drag.current` puede ir un fotograma por detrás.
+  - Primero se prueba con `over` del evento. Si la medición de la verificación M-1 sigue guardando (`over` también se actualiza en el render), se usa la posición real del puntero al soltar, guardada con un oyente mientras dura el arrastre, y se comprueba si cae en una columna visible. La opción que quede se anota en el Registro de T-029.
+  - *Alcance:* solo «fuera de toda columna». Soltar en una columna justo al entrar en otra sigue usando la última vista previa.
+  - *Alternativas descartadas:* retrasar el guardado un fotograma (RF-020 pide que la tarjeta se vea en su sitio al soltar).
+- **D-26 (añadida en la spec v2.0)** RF-022, RF-023, CA-3.12, CA-3.13: al fallar un guardado, `commit` mira si `focusedHandle` sigue siendo el asa de esa tarea. Si lo es:
+  - con `TASK_NOT_FOUND`, vacía `focusedHandle` y llama a `onTaskGone(id)`. `Board` reutiliza `focusTarget = { kind: 'create', removedId: id }` (002/D-14), que espera a que la tarjeta ya no esté y también sirve con el «Crear tarea» del estado vacío;
+  - con cualquier otro error, llama a `onMobileColumn(from.status)`, y el efecto de D-7 devuelve el foco al asa cuando ya se ve. Desde 768 px no tiene efecto visible (D-13).
+
+  Si el foco ya salió del asa (el usuario sigue con otra cosa), no se toca ni el foco ni la columna.
+  - *Alternativas descartadas:* la tarjeta o columna vecina (una regla nueva, con más casos, para un solo uso).
+- **D-27 (añadida en la spec v2.0)** RNF-005, §8: el asa gana `transition duration-(--dur-fast) ease-out`, `hover:bg-raised-hover` y `motion-safe:active:scale-94` (verificación M-3). `tokens.test` añade la pareja del icono (`--text-2`) sobre `--surface-raised-hover` ≥ 3:1 en N, SB y C+, en claro y oscuro.
+  - X-2 de la 002 no se aplica: limita el hover de la tarjeta porque su texto necesita 7:1, y aquí solo hay un icono, que necesita 3:1. Solo cambia el fondo del asa.
+- **D-28 (añadida en la spec v2.0)** `STATUS_NAMES` pasa de `BoardColumn.tsx` a `lib/task-messages.ts`, el sitio de los textos del tablero (002/D-19). `BoardColumn`, `Board` y `TaskDialog` lo importan de ahí.
+  - *Por qué:* `lib/` no debe depender de un componente; hoy un módulo de textos arrastra `BoardColumn` y dnd-kit (verificación M-8). Sin cambio de comportamiento.
 
 ## 6. Trazabilidad
 
@@ -445,7 +478,7 @@ El resto sigue `DESIGN.md` tal cual:
 | RF-003 | `actualEndDateAfterMove` (D-4); `today = todayLocal()` | shared (entra en Done → hoy); api (Done con `today`; `today` > UTC + 1 → 400); unit `task-queries.test` (tarjeta optimista con fecha y sin «Retrasada», CA-1.4) |
 | RF-004 | Ídem (sale de Done → `null`) | shared; api (CA-1.5) |
 | RF-005 | `over === null` → vuelve al origen; Esc del sensor (D-9, R-1) | e2e (soltar fuera y Esc: mismo sitio, ninguna petición `move`, sin aviso, CA-1.7) |
-| RF-006 | `distance: 5`; botón de abrir (D-6, D-11) | unit `TaskCard.test` (clic abre); e2e (clic sin mover abre el detalle; arrastrar no lo abre, CA-1.8) |
+| RF-006 | `distance: 5`; botón de abrir (D-6, D-11); `click` del asa por `event.detail` (D-24) | unit `TaskCard.test` (clic abre; clic en el asa abre y con `detail` 0 coge); e2e (clic sin mover abre el detalle; arrastrar no lo abre, CA-1.8; clic en el asa, CA-1.11; toque en el asa, CA-4.6) |
 | RF-007 | `index` en la misma columna (D-2, D-3) | api (reordenar dentro de To do: el orden relativo del resto se mantiene, CA-2.1); unit con teclado; e2e con ratón |
 | RF-008 | `position` + orden de lectura (D-1) | api `tasks.list.test` (el orden sale de `position`; dos sesiones ven el mismo orden, CA-2.2); e2e (volver a cargar, CA-1.3) |
 | RF-009 | `createTask` con `makeRoom(backlog, 0)` | api `tasks.create.test` (entra la primera de Backlog y las demás columnas no cambian, CA-2.3) |
@@ -458,16 +491,17 @@ El resto sigue `DESIGN.md` tal cual:
 | RF-016 | `commit`; foco en el asa; `droppedText` (D-7, D-8) | unit `Board.test` (petición, foco y anuncio, CA-3.5); e2e en Chromium y WebKit (D-15) |
 | RF-017 | Esc y `blur` en diferido; `cancelledText` (D-7, R-4) | unit `Board.test` (Esc y Tab fuera del asa, CA-3.6); e2e (D-15) |
 | RF-018 | `TouchSensor` `{ delay: 250, tolerance: 5 }` (D-6) | e2e táctil (CA-4.1, CA-4.2, CA-4.3; R-6) |
-| RF-019 | Columnas ocultas sin medidas (D-13) | e2e a 375 px: soltar sobre el selector o fuera de la columna no guarda (CA-4.5); reordenar la columna visible (CA-4.3) |
+| RF-019 | Columnas ocultas sin medidas (D-13) | e2e a 375 px: soltar sobre el selector o fuera de la columna no guarda (CA-4.5); reordenar la columna visible (CA-4.3); lo mismo con ratón |
 | RF-020 | `onMutate` con `setQueryData` (D-12) | unit `task-queries.test` (la tarjeta está en su sitio nuevo antes de que responda el `fetch`, que queda pendiente) |
 | RF-021 | `onError` deshace solo esa tarjeta; aviso `offline` (D-12, D-14) | unit `task-queries.test` y `Board.test` (`NetworkError` y 500: posición y recuentos de antes y el aviso, CA-1.9, CA-2.6) |
-| RF-022 | 404 → se quita de la caché; aviso `info` (D-12) | api (mover una tarea borrada, ajena o con id mal formado → 404); unit `Board.test` (CA-1.10) |
-| RF-023 | `onMobileColumn` en cada paso y al cancelar (D-13) | unit `Board.test` (el selector marca la columna nueva y vuelve a la de partida al cancelar, CA-3.9, CA-3.10); e2e a 375 px |
-| RNF-001 | Asa con nombre, foco global y 44/32 px (D-11); región viva (D-7); anillo del hueco (X-1); `motion-safe:` en la escala (X-2) | `tokens.test` (`--ring-drop` sobre la columna ≥ 3:1 y el icono del asa sobre la tarjeta ≥ 3:1, en N, SB y C+, claro y oscuro); axe en el tablero con una tarjeta cogida con teclado, en los dos temas; e2e (tamaño del asa a 375 y 1280; con `reducedMotion: 'reduce'`, la capa no tiene `scale`); checklist §21 |
+| RF-022 | 404 → se quita de la caché; aviso `info` (D-12); foco a «Crear tarea» (D-26) | api (mover una tarea borrada, ajena o con id mal formado → 404); unit `Board.test` (CA-1.10, CA-3.12); e2e con la tarea borrada de verdad (CA-3.12) |
+| RF-023 | `onMobileColumn` en cada paso, al cancelar (D-13) y al fallar (D-26) | unit `Board.test` (el selector marca la columna nueva y vuelve a la de partida al cancelar, CA-3.9, CA-3.10, y al fallar, CA-3.13); e2e a 375 px, con `page.route` abortando `…/move` en CA-3.13 (jsdom no aplica `display: none`) |
+| RF-024 | `scrollIntoView` sobre la tarjeta tras cada paso; `scroll-padding` de `main` (D-23) | e2e con columna con scroll, a 1280 y 375 px: en cada flecha, la tarjeta dentro de la lista o de la ventana y el asa sin tapar (CA-3.11) |
+| RNF-001 | Asa con nombre, foco global y 44/32 px (D-11); región viva (D-7); anillo del hueco (X-1); `motion-safe:` en la escala (X-2); foco siempre a la vista (D-23) y nunca perdido (D-26) | `tokens.test` (`--ring-drop` sobre la columna ≥ 3:1 y el icono del asa sobre la tarjeta ≥ 3:1, en N, SB y C+, claro y oscuro); axe en el tablero con una tarjeta cogida con teclado y en pleno arrastre con puntero, en los dos temas; e2e (tamaño del asa a 375 y 1280; con `reducedMotion: 'reduce'`, la capa no tiene `scale`); checklist §21 |
 | RNF-002 | Optimista en el mismo render (D-12); `placeTask` O(n) | e2e (solo `chromium`): 500 tareas, 200 en To do; arrastre con ratón; desde el `pointerup` hasta el primer frame con la tarjeta en su sitio y sin hueco (`MutationObserver` + `requestAnimationFrame` en la página) ≤ 100 ms |
 | RNF-003 | `where userId` en la lectura, el desplazamiento y la escritura (D-2, D-5); `position` no se expone | api: mover una tarea ajena → 404, y el orden de Luis no cambia cuando Ana mueve y crea (C-13) |
 | RNF-004 | Proyectos `chromium`, `chrome` y `webkit`; táctil según R-6 | e2e en los tres proyectos (CA-4.2 solo en Chromium y Chrome, R-6) |
-| RNF-005 | Solo tokens; `GripVertical`; `--z-popover`, `--shadow-float` (D-10, D-11) | `design-rules.test` (revisa los componentes modificados sin tocarlo); `tokens.test` |
+| RNF-005 | Solo tokens; `GripVertical`; `--z-popover`, `--shadow-float` (D-10, D-11); hover y press del asa (D-27) | `design-rules.test` (revisa los componentes modificados sin tocarlo); `tokens.test`; unit `TaskCard.test` (clases del asa) |
 | E-1 | Droppable de la columna vacía → al final = primera (D-9) | e2e (CA-1.6); unit `board-order.test` (`placementFromOver` con columna vacía) |
 | E-2 | La vista previa deja la columna sin tarjetas → frase de columna vacía (002/RF-005) | unit `Board.test` (mover con teclado la única tarjeta de To do: aparece «Nada por hacer») |
 | E-3 | RF-011 | unit `board-order.test` (con una sola tarjeta, arriba y abajo no la mueven) |
@@ -488,6 +522,7 @@ El resto sigue `DESIGN.md` tal cual:
 | E-18 | `showModal` deja inerte el resto (002/D-12) | e2e (con el detalle abierto, ni el ratón ni el Tab llegan a una tarjeta o a un asa) |
 | E-19 | Relleno de la migración (§4.2) | manual: en la base de desarrollo con tareas de la 002, el orden de cada columna es el mismo antes y después de `pnpm db:migrate` (se anota en la tarea) |
 | E-20 | Textos de D-14; anuncios de dnd-kit vacíos (D-6) | unit `task-messages.test` (textos exactos) |
+| E-21 | `onDragEnd` comprueba el destino real (D-25) | e2e: tras dejar la vista previa en In progress, mover fuera y soltar sin esperar, varias veces: ninguna petición `move` |
 
 ## 7. Estrategia de pruebas
 
@@ -533,6 +568,11 @@ El resto sigue `DESIGN.md` tal cual:
   5. **axe:** con una tarjeta cogida con teclado, en claro y oscuro.
   6. **Movimiento reducido** (RNF-001).
   7. **Solo en `chromium`:** RNF-002, E-4 y E-5, con las tareas creadas por la API (`createTaskViaApi`).
+  8. **Spec v2.0 (T-027 a T-031, T-034):**
+     - CA-3.11 a 1280 y 375 px, CA-3.12 con la tarea borrada de verdad y CA-3.13 con `page.route`;
+     - CA-1.11, CA-4.6 y E-21;
+     - RF-019 con ratón a 375 px y axe en pleno arrastre, en los dos temas;
+     - CA-1.4, CA-1.5, CA-1.10 y CA-2.6 arrastrando con ratón.
 
   Las ayudas nuevas van a `e2e/helpers.ts`:
   - `dragCard`: `page.mouse` con pasos intermedios, porque dnd-kit necesita varios `mousemove`;
@@ -555,6 +595,8 @@ El resto sigue `DESIGN.md` tal cual:
 | La variante con retícula (SB) deja el anillo por debajo de 3:1 | Baja | Medio | `--ink-500` en claro da ≈ 4.3:1 (R-5); `tokens.test` lo mide en N, SB y C+ |
 | Una edición en otra pestaña se cruza con la lectura del service (D-5) | Baja | Bajo | La spec acepta que gane el último (E-11); no se añade control de versiones |
 | Deuda de la 004: WebKit intermitente con el servidor de desarrollo (M-7) | Alta | Bajo | `retries: 1` en WebKit, como hasta ahora (004/D-20) |
+| Un lector de pantalla envía su activación como clic de puntero y abre el detalle en vez de coger la tarjeta (D-24) | Desconocida | Medio | Riesgo aceptado: sin prueba con lector real (D-22). Espacio y Enter siguen cubiertos por los E2E de D-15 |
+| El refactor de `drag` y `landing` por id rompe el foco o la vista previa (D-8, D-18) | Media | Alto | Va el primero (T-026), sin cambio de comportamiento y protegido por los tests actuales de `Board` y los E2E de teclado y ratón |
 
 ## 9. Despliegue y operación
 

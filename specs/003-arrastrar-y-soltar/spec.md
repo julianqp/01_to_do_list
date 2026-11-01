@@ -2,10 +2,10 @@
 id: 003
 titulo: Arrastrar y soltar
 estado: en-implementacion # borrador | aprobada | en-implementacion | implementada | obsoleta
-version: 1.0
+version: 2.0
 autor: Julian Querol Polo
 creada: 2026-10-31
-aprobada: 2026-10-31, Julian Querol Polo   # AAAA-MM-DD, por quién
+aprobada: 2026-11-01 (v2.0), Julian Querol Polo   # AAAA-MM-DD, por quién; v1.0 el 2026-10-31
 ticket:
 ---
 
@@ -52,6 +52,7 @@ Como usuario, quiero arrastrar una tarjeta a otra columna, para cambiar el estad
 - **CA-1.8** Dada la tarjeta «Preparar la demo», cuando el usuario hace clic en ella sin desplazar el puntero, entonces se abre su detalle, como en 002/CA-3.1, y no empieza ningún arrastre.
 - **CA-1.9** Dado que el servidor no responde, cuando el usuario suelta «Preparar la demo» en In progress, entonces la tarjeta vuelve a To do, a su posición de antes, los recuentos vuelven a los de antes y debajo de la cabecera aparece «No hemos podido mover la tarea. Revisa tu conexión e inténtalo de nuevo.».
 - **CA-1.10** Dada «Preparar la demo» borrada en otra pestaña, cuando el usuario la arrastra a In progress en esta, entonces aparece «Esta tarea ya no existe.» y la tarjeta desaparece del tablero (002/RF-030).
+- **CA-1.11** *(v2.0)* Dada la tarjeta «Preparar la demo», cuando el usuario hace clic en su asa sin desplazar el puntero, entonces se abre su detalle, como en CA-1.8, y la tarjeta no se coge.
 
 ### HU-2 · Ordenar las tareas de una columna arrastrando (P1)
 
@@ -84,6 +85,9 @@ Se mueve desde el asa de la tarjeta: Espacio o Enter para cogerla, flechas para 
 - **CA-3.8** Dada la tarjeta «Preparar la demo» con el foco en la tarjeta (no en el asa), cuando el usuario pulsa Enter, entonces se abre su detalle, como en 002/CA-3.1.
 - **CA-3.9** *(v0.2)* Dada una ventana de 375 px con To do visible y «Preparar la demo» cogida con teclado en la posición 2 de 3, cuando el usuario pulsa Flecha derecha, entonces el tablero muestra In progress, el selector de estados marca In progress, la tarjeta queda la primera y el lector anuncia «In progress, posición 1 de 4.».
 - **CA-3.10** *(v0.2)* Dada la situación de CA-3.9, cuando el usuario pulsa Esc, entonces la tarjeta vuelve a la posición 2 de To do, el tablero vuelve a mostrar To do, el selector marca To do y el lector anuncia el mensaje de CA-3.6.
+- **CA-3.11** *(v2.0)* Dada To do con 12 tarjetas, más de las que caben a la vista, y la primera cogida con teclado, cuando el usuario pulsa Flecha abajo hasta llevarla a la última posición, entonces en cada paso la columna se desplaza lo justo y sin animación para que la tarjeta y el foco de su asa sigan a la vista, sin quedar tapados por otro elemento. Lo mismo con Flecha arriba, y a 375 px, donde se desplaza la página.
+- **CA-3.12** *(v2.0)* Dada «Preparar la demo» borrada en otra pestaña, cuando el usuario la coge con teclado, la pasa a In progress y la suelta, entonces aparece «Esta tarea ya no existe.», la tarjeta desaparece y el foco pasa a «Crear tarea».
+- **CA-3.13** *(v2.0)* Dada una ventana de 375 px, con «Preparar la demo» pasada con teclado de To do a In progress y soltada, cuando el servidor no responde, entonces la tarjeta vuelve a la posición 2 de To do, el tablero vuelve a mostrar To do, el selector marca To do, el foco sigue en su asa y aparece el aviso de CA-1.9.
 
 ### HU-4 · Arrastrar con el dedo (P2)
 
@@ -98,6 +102,7 @@ Por debajo de 768 px solo se ve una columna (002/RF-034): allí el arrastre solo
 - **CA-4.3** Dada una ventana de 375 px con To do visible y 3 tarjetas, cuando el usuario mantiene el dedo sobre la tercera y la suelta encima de la primera, entonces pasa a ser la primera de To do, como en CA-2.1.
 - **CA-4.4** Dada una ventana de 375 px, cuando el usuario toca una tarjeta sin mantener el dedo, entonces se abre su detalle como panel inferior (002/CA-7.2).
 - **CA-4.5** *(v0.2)* Dada una ventana de 375 px con To do visible, cuando el usuario arrastra con el dedo «Preparar la demo» y la suelta sobre el selector de estados o fuera de la columna, entonces la tarjeta vuelve a su sitio de antes, no se guarda nada y no aparece ningún aviso (RF-005).
+- **CA-4.6** *(v2.0)* Dada una ventana de 375 px, cuando el usuario toca el asa de una tarjeta sin mantener el dedo, entonces se abre su detalle como panel inferior, como en CA-4.4, y la tarjeta no se coge.
 
 > Prioridades: **P1** imprescindible (sin esto no se publica) · **P2** importante · **P3** deseable.
 
@@ -110,7 +115,7 @@ Por debajo de 768 px solo se ve una columna (002/RF-034): allí el arrastre solo
 - **RF-003** CUANDO el usuario suelte en Done una tarea que no estaba en Done, el sistema DEBE ponerle como fecha real de fin la fecha de hoy del navegador, sin abrir el detalle; el usuario puede cambiarla después desde el detalle (002/RF-038). *(HU-1)*
 - **RF-004** CUANDO el usuario suelte fuera de Done una tarea que estaba en Done, el sistema DEBE dejarla sin fecha real de fin (002/RF-041). *(HU-1)*
 - **RF-005** SI el usuario suelta la tarjeta fuera de cualquier columna o pulsa Esc durante el arrastre, ENTONCES el sistema DEBE devolverla a su sitio de antes sin guardar nada. *(HU-1)*
-- **RF-006** CUANDO el usuario haga clic o toque una tarjeta sin arrastrarla, el sistema DEBE abrir su detalle como en 002/RF-012. *(HU-1, HU-4)*
+- **RF-006** CUANDO el usuario haga clic o toque una tarjeta sin arrastrarla, también en su asa *(v2.0)*, el sistema DEBE abrir su detalle como en 002/RF-012. *(HU-1, HU-4)*
 
 **Orden dentro de la columna**
 
@@ -128,18 +133,19 @@ Por debajo de 768 px solo se ve una columna (002/RF-034): allí el arrastre solo
 - **RF-015** SI no hay posición o columna en la dirección de la flecha, ENTONCES el sistema DEBE dejar la tarjeta donde está. *(HU-3)*
 - **RF-016** CUANDO el usuario pulse Espacio o Enter con una tarjeta cogida, el sistema DEBE soltarla en su posición actual, guardarla como en RF-001 o RF-007, mantener el foco en su asa y anunciar «Has soltado «<título>» en <columna>, posición <n> de <total>.». *(HU-3)*
 - **RF-017** CUANDO el usuario pulse Esc con una tarjeta cogida, o el foco salga de su asa, el sistema DEBE devolverla a su sitio de antes sin guardar nada y anunciar «Movimiento cancelado. «<título>» sigue en <columna>, posición <n> de <total>.». *(HU-3)*
+- **RF-024** *(v2.0)* MIENTRAS haya una tarjeta cogida con teclado, tras cada paso el sistema DEBE mantener a la vista la tarjeta y el foco de su asa, desplazando la columna o la página lo justo y sin animación, y sin que queden tapados por otro elemento. *(HU-3)*
 
 **Táctil**
 
 - **RF-018** CUANDO el usuario mantenga el dedo sobre una tarjeta y lo desplace sin levantarlo, el sistema DEBE empezar a arrastrarla; un deslizamiento sin mantener antes el dedo DEBE hacer scroll y no arrastrar. *(HU-4)*
 - **RF-019** MIENTRAS la ventana mida menos de 768 px, el arrastre (con el dedo o con el ratón) DEBE limitarse a ordenar las tarjetas de la columna visible; soltar la tarjeta fuera de esa columna, incluido el selector de estados, cuenta como soltarla fuera de cualquier columna (RF-005). *(HU-4)*
-- **RF-023** *(v0.2)* MIENTRAS la ventana mida menos de 768 px y haya una tarjeta cogida con teclado, CUANDO Flecha izquierda o Flecha derecha la pasen a otra columna, el sistema DEBE mostrar esa columna y marcarla en el selector de estados; SI el movimiento se cancela (RF-017), ENTONCES DEBE volver a mostrar la columna de partida. *(HU-3, HU-4)*
+- **RF-023** *(v0.2)* MIENTRAS la ventana mida menos de 768 px y haya una tarjeta cogida con teclado, CUANDO Flecha izquierda o Flecha derecha la pasen a otra columna, el sistema DEBE mostrar esa columna y marcarla en el selector de estados; SI el movimiento se cancela (RF-017) o falla al guardarse (RF-021) *(v2.0)*, ENTONCES DEBE volver a mostrar la columna de partida y, al fallar, mantener el foco en su asa. *(HU-3, HU-4)*
 
 **Guardar y errores**
 
 - **RF-020** CUANDO el usuario suelte una tarjeta en un sitio nuevo, el sistema DEBE mostrarla ahí antes de que el servidor confirme el cambio. *(HU-1, HU-2, HU-3)*
 - **RF-021** SI al guardar un movimiento no se puede contactar con el servidor o este responde con un error inesperado, ENTONCES el sistema DEBE devolver la tarjeta a su columna y posición de antes, restaurar los recuentos y mostrar debajo de la cabecera «No hemos podido mover la tarea. Revisa tu conexión e inténtalo de nuevo.». *(HU-1, HU-2)*
-- **RF-022** SI el usuario mueve una tarea que ya no existe o no es suya, ENTONCES el sistema DEBE mostrar «Esta tarea ya no existe.» y quitar la tarjeta del tablero (002/RF-030). *(HU-1, HU-2)*
+- **RF-022** SI el usuario mueve una tarea que ya no existe o no es suya, ENTONCES el sistema DEBE mostrar «Esta tarea ya no existe.» y quitar la tarjeta del tablero (002/RF-030). Si el foco seguía en su asa, DEBE pasar a «Crear tarea» *(v2.0)*. *(HU-1, HU-2, HU-3)*
 
 ## 6. Requisitos no funcionales
 
@@ -173,13 +179,14 @@ Por debajo de 768 px solo se ve una columna (002/RF-034): allí el arrastre solo
 | E-18 | Hay un diálogo abierto (detalle, crear o confirmación) | No se puede arrastrar: el diálogo es modal (§11.4) |
 | E-19 | Tareas creadas antes de esta spec | Conservan el orden que tenían (de la más reciente a la más antigua) hasta que el usuario las mueva |
 | E-20 | Idioma | Solo español de España; anuncios y avisos con la voz de §15 |
+| E-21 | *(v2.0)* Se suelta la tarjeta fuera de cualquier columna en el mismo instante en que sale de ella | La tarjeta vuelve a su sitio de antes y no se guarda nada (RF-005), aunque la vista previa aún la mostrara en la columna |
 
 ## 8. Entidades y glosario
 
 - **Tarea**: la de 002 §8, con un dato nuevo: su **posición** dentro de su columna.
 - **Posición**: lugar de una tarjeta dentro de su columna, contando desde arriba (1 es la primera). Se guarda con la tarea y ordena las tarjetas en lugar del momento de creación.
 - **Arrastrar y soltar**: coger una tarjeta con el ratón o el dedo, llevarla a otra columna o posición y soltarla allí.
-- **Asa**: parte de la tarjeta (icono `grip-vertical`, §9) desde la que se coge la tarjeta con teclado.
+- **Asa**: parte de la tarjeta (icono `grip-vertical`, §9) desde la que se coge la tarjeta con teclado. Con el ratón o el dedo se comporta como el resto de la tarjeta: arrastra o abre el detalle *(v2.0)*.
 - **Tarjeta cogida**: tarjeta que el usuario ha cogido con teclado y aún no ha soltado ni cancelado.
 - **Hueco de destino**: espacio que muestra la columna, mientras se arrastra, donde caerá la tarjeta.
 
@@ -203,7 +210,7 @@ Por debajo de 768 px solo se ve una columna (002/RF-034): allí el arrastre solo
 - **Depende de:** spec 002 (`implementada`), por el tablero, las tarjetas, el detalle y sus reglas de estado y fecha real de fin; spec 004 (`implementada`), por el catálogo de valores visuales; spec 001 (`implementada`), por la sesión.
 - **Modifica la spec 002:** RF-008 sustituye a 002/RF-002 (orden por momento de creación), y con él a 002/CA-1.8, 002/E-22 y 002/E-24; RF-010 completa 002/RF-024 (dónde entra la tarjeta al cambiar de estado desde el detalle). Se propone añadir en el Registro de cambios de la spec 002 una fila «Modificada por la spec 003». `DESIGN.md` §11.3 («Las tarjetas van de la creada más recientemente a la más antigua») tendrá que actualizarse en el plan.
 - **Supuestos:**
-  - Con ratón, la tarjeta se arrastra desde cualquier punto; el asa es el punto de entrada para el teclado. Un clic sin desplazar el puntero abre el detalle (RF-006).
+  - Con ratón, la tarjeta se arrastra desde cualquier punto; el asa es el punto de entrada para el teclado. Un clic sin desplazar el puntero abre el detalle, también en el asa (RF-006). Solo Espacio, Enter o la activación de un lector de pantalla cogen la tarjeta *(v2.0)*.
   - Con el dedo, el arrastre empieza al mantener el dedo sobre la tarjeta; el tiempo exacto lo fija el plan.
   - Al soltar en Done no se pregunta la fecha real de fin: se pone la de hoy y se corrige en el detalle si hace falta (RF-003).
   - La tarjeta aparece en su sitio nuevo al soltarla, sin esperar al servidor, y vuelve atrás si falla (RF-020, RF-021).
@@ -225,6 +232,11 @@ Historial de preguntas resueltas durante `/sdd-clarificar`.
 | 2026-10-31 | ¿Cómo se mueve y ordena con teclado (C-20)? | Desde el asa: Espacio o Enter para coger y soltar, flechas para mover, Esc para cancelar, con anuncios. Sin acciones «Subir»/«Bajar» en el detalle | HU-3, §9 |
 | 2026-10-31 | Por debajo de 768 px (una sola columna visible), ¿qué permite el arrastre? | Solo ordenar la columna visible; para cambiar de columna, el detalle o el teclado. Soltar sobre el selector de estados no mueve la tarea | HU-4, CA-4.5, RF-019, §9 |
 | 2026-10-31 | Por debajo de 768 px, con una tarjeta cogida con teclado, ¿qué hacen Flecha izquierda y derecha? | Pasan la tarjeta a la columna anterior o siguiente, y el tablero muestra esa columna; si se cancela, vuelve a la de partida | CA-3.9, CA-3.10, RF-023 |
+| 2026-11-01 | Al mover con teclado en una columna con scroll, ¿cómo se mantiene la tarjeta a la vista? | Con un desplazamiento instantáneo, solo lo justo en cada paso | CA-3.11, RF-024 |
+| 2026-11-01 | ¿Qué hace un clic o un toque en el asa? | Abre el detalle, como en el resto de la tarjeta. Solo Espacio, Enter o la activación de un lector cogen la tarjeta | CA-1.11, CA-4.6, RF-006, §8, §10 |
+| 2026-11-01 | Si se suelta fuera de una columna en el mismo instante en que se sale, ¿se guarda? | No: se corrige para que se cumpla RF-005 también en ese caso | E-21 |
+| 2026-11-01 | Con teclado, al soltar una tarea que ya no existe, ¿adónde va el foco? | A «Crear tarea», como en el detalle de la 002 | CA-3.12, RF-022 |
+| 2026-11-01 | A 375 px con teclado, si falla el guardado, ¿qué columna se muestra? | La de origen, con el foco en el asa, igual que al cancelar | CA-3.13, RF-023 |
 
 ## 12. Registro de cambios
 
@@ -233,3 +245,4 @@ Historial de preguntas resueltas durante `/sdd-clarificar`.
 | 0.1     | 2026-10-31 | Borrador inicial | Spec 003 del roadmap |
 | 0.2     | 2026-10-31 | Resueltas 5 aclaraciones: fecha real de fin automática al soltar en Done (CA-1.4, RF-003); al cambiar de estado desde el detalle, la tarjeta entra la primera (CA-2.4, RF-010); teclado desde el asa (HU-3); por debajo de 768 px el arrastre solo ordena la columna visible (HU-4, RF-019, CA-4.5) y el teclado sí cambia de columna mostrando la nueva (RF-023, CA-3.9, CA-3.10). Dos puntos nuevos en «Fuera de alcance» | `/sdd-clarificar` |
 | 1.0     | 2026-10-31 | Spec aprobada | Aprobación del usuario tras `/sdd-clarificar` |
+| 2.0     | 2026-11-01 | Nuevos RF-024, CA-1.11, CA-3.11, CA-3.12, CA-3.13, CA-4.6 y E-21. Cambian RF-006 (un clic o un toque en el asa abre el detalle), RF-022 (foco a «Crear tarea») y RF-023 (volver a la columna de partida si falla el guardado), además del glosario y §10 | `/sdd-verificar` NO APTO (`verificacion.md`: B-1, I-1, M-1, M-2); decisiones del usuario con `/sdd-cambiar-spec` |
