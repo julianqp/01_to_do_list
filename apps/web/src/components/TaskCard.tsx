@@ -84,7 +84,7 @@ export const TaskCard = memo(function TaskCard({
         type="button"
         data-task-id={overlay ? undefined : task.id}
         onClick={onOpen}
-        className={`flex w-full flex-col items-start gap-2 rounded-lg p-4 pe-11 text-start md:p-5 md:pe-11 lg:pe-10 ${content}`}
+        className={`flex w-full flex-col items-start gap-2 rounded-lg p-4 pe-11 text-start md:p-5 md:pe-12 lg:pe-10 ${content}`}
       >
         {/* E-4: una palabra de 200 caracteres se parte en varias líneas. */}
         <span className="text-body text-1 wrap-anywhere">{task.title}</span>
@@ -110,12 +110,13 @@ export const TaskCard = memo(function TaskCard({
         )}
       </button>
       {/* RF-012, RNF-001: 44 px por debajo de 1024 y 32 desde ahí; el orden de tabulación es el visual.
+          C-20: desde 768 la lista recorta, y el anillo de foco necesita 4 px dentro de ella.
           D-27, §8: hover y press de botón de icono. */}
       <button
         type="button"
         data-task-handle={overlay ? undefined : task.id}
         aria-label={`Mover «${task.title}»`}
-        className={`absolute end-0 top-0 flex size-11 cursor-grab items-center justify-center rounded-pill text-2 transition duration-(--dur-fast) ease-out hover:bg-raised-hover motion-safe:active:scale-94 lg:end-1 lg:top-1 lg:size-8 ${content}`}
+        className={`absolute end-0 top-0 flex size-11 cursor-grab items-center justify-center rounded-pill text-2 transition duration-(--dur-fast) ease-out hover:bg-raised-hover motion-safe:active:scale-94 md:end-1 md:top-1 lg:size-8 ${content}`}
         {...handleProps}
         // D-24: `detail` 0 es teclado o tecnología de asistencia, que coge o suelta (D-7). Con puntero
         // (1 o más) abre el detalle, como el resto de la tarjeta (RF-006).

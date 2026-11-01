@@ -94,6 +94,13 @@ describe('TaskCard', () => {
     expect(document.activeElement).toBe(handle);
   });
 
+  it('003 RNF-001 C-20 desde 768 px, el asa va 4 px hacia dentro y el botón de abrir le deja sitio', () => {
+    const { card, handle } = renderCard();
+
+    for (const name of ['md:end-1', 'md:top-1']) expect(handle.classList).toContain(name);
+    for (const name of ['md:pe-12', 'lg:pe-10']) expect(card.classList).toContain(name);
+  });
+
   it('003 RNF-005 D-27 el asa tiene estados de hover y de press, con transición y la escala solo con motion-safe', () => {
     const { handle } = renderCard();
 

@@ -1,6 +1,5 @@
 import {
   closestCenter,
-  MeasuringStrategy,
   MouseSensor,
   pointerWithin,
   TouchSensor,
@@ -10,6 +9,7 @@ import {
   type DndContextProps,
   type DragMoveEvent,
   type DragOverEvent,
+  type DroppableContainer,
   type DragStartEvent,
 } from '@dnd-kit/core';
 import type { Task, TaskStatus } from '@todo/shared';
@@ -74,11 +74,6 @@ export type BoardNotice = { tone: AlertTone; text: string };
 const MOUSE_OPTIONS = { activationConstraint: { distance: 5 } };
 const TOUCH_OPTIONS = { activationConstraint: { delay: 250, tolerance: 5 } };
 
-const MEASURING: DndContextProps['measuring'] = {
-  // D-9: la lista cambia durante el arrastre.
-  droppable: { strategy: MeasuringStrategy.Always },
-};
-
 type Point = { clientX: number; clientY: number };
 
 // D-25, D-31: como `pointerWithin`, pero con el rectángulo recortado con el del tablero, porque una
@@ -108,6 +103,18 @@ const collisionDetection: CollisionDetection = (args) => {
   const cards = args.droppableContainers.filter(({ data }) => data.current?.status === status);
   return cards.length > 0 ? closestCenter({ ...args, droppableContainers: cards }) : [column];
 };
+
+// D-9: el centro de la tarjeta arrastrada ha pasado el de la tarjeta de debajo. D-20: `over.rect` es una
+// foto de cuando cambió la tarjeta de debajo, y la vista previa la mueve sin que cambie; la medida de
+// ahora (D-32) está en la colisión.
+function centerBelow({ active, over, collisions }: DragOverEvent) {
+  const moving = active.rect.current.translated;
+  if (!over || !moving) return false;
+  const collision = collisions?.find(({ id }) => id === over.id);
+  const container = collision?.data?.droppableContainer as DroppableContainer | undefined;
+  const { top, height } = container?.rect.current ?? over.rect;
+  return moving.top + moving.height / 2 > top + height / 2;
+}
 
 const handleOf = (id: string) => document.querySelector<HTMLElement>(`[data-task-handle="${id}"]`);
 
@@ -173,21 +180,27 @@ export function useTaskMove({
 
   // D-25: dónde se suelta de verdad. En la fase de captura de `window`, antes de que dnd-kit lo trate.
   const releasedAt = useRef<Point | null>(null);
+  // D-33: al cambiar de columna, React quita la tarjeta original y los eventos táctiles siguen yendo a
+  // ese elemento, ya fuera del documento: a `window` no llegan.
+  const touchedAt = useRef<EventTarget | null>(null);
   const pointerDragging = drag?.mode === 'pointer';
   useLayoutEffect(() => {
     if (!pointerDragging) return;
     releasedAt.current = null;
+    const touched = touchedAt.current;
     const onMouseUp = (event: globalThis.MouseEvent) => {
       releasedAt.current = event;
     };
-    const onTouchEnd = (event: TouchEvent) => {
-      releasedAt.current = event.changedTouches[0] ?? null;
+    const onTouchEnd = (event: Event) => {
+      releasedAt.current = (event as TouchEvent).changedTouches[0] ?? null;
     };
     window.addEventListener('mouseup', onMouseUp, true);
     window.addEventListener('touchend', onTouchEnd, true);
+    touched?.addEventListener('touchend', onTouchEnd, true);
     return () => {
       window.removeEventListener('mouseup', onMouseUp, true);
       window.removeEventListener('touchend', onTouchEnd, true);
+      touched?.removeEventListener('touchend', onTouchEnd, true);
     };
   }, [pointerDragging]);
 
@@ -305,12 +318,15 @@ export function useTaskMove({
   // RF-005, E-17: Esc y el cambio de tamaño de la ventana cancelan sin anuncio: los anuncios son del
   // teclado (D-6).
   const dragHandlers = {
-    onDragStart({ active }: DragStartEvent) {
+    onDragStart({ active, activatorEvent }: DragStartEvent) {
       const taskId = String(active.id);
       const origin = placementOf(tasks, taskId);
-      if (origin) setDrag({ taskId, origin, current: origin, mode: 'pointer' });
+      if (!origin) return;
+      touchedAt.current = activatorEvent.target;
+      setDrag({ taskId, origin, current: origin, mode: 'pointer' });
     },
-    onDragOver({ active, over }: DragOverEvent) {
+    onDragOver(event: DragOverEvent) {
+      const { over } = event;
       if (drag?.mode !== 'pointer') return;
       if (!over) {
         setDrag({ ...drag, current: drag.origin });
@@ -320,21 +336,18 @@ export function useTaskMove({
       const target: Over = status
         ? { kind: 'column', status }
         : { kind: 'card', id: String(over.id) };
-      const moving = active.rect.current.translated;
-      const below =
-        moving !== null && moving.top + moving.height / 2 > over.rect.top + over.rect.height / 2;
-      setDrag({ ...drag, current: placementFromOver(groups, drag.taskId, target, below) });
+      const current = placementFromOver(groups, drag.taskId, target, centerBelow(event));
+      setDrag({ ...drag, current });
     },
-    // D-20: dentro de la columna donde ya está, se recoloca al cruzar el centro de la de debajo.
-    onDragMove({ active, over }: DragMoveEvent) {
-      if (drag?.mode !== 'pointer' || !over || over.id === active.id) return;
-      const moving = active.rect.current.translated;
-      const index = groups[drag.current.status].findIndex(({ id }) => id === over.id);
-      if (!moving || index === -1) return;
-      const center = moving.top + moving.height / 2;
-      const overCenter = over.rect.top + over.rect.height / 2;
-      const crossed = index < drag.current.index ? center < overCenter : center > overCenter;
-      if (crossed) setDrag({ ...drag, current: { status: drag.current.status, index } });
+    // D-20: dentro de la columna donde ya está, se recoloca al cruzar el centro de la de debajo, porque
+    // `onDragOver` solo se dispara cuando cambia la tarjeta de debajo.
+    onDragMove(event: DragMoveEvent) {
+      const { over } = event;
+      if (drag?.mode !== 'pointer' || !over) return;
+      if (!groups[drag.current.status].some(({ id }) => id === over.id)) return;
+      const target: Over = { kind: 'card', id: String(over.id) };
+      const current = placementFromOver(groups, drag.taskId, target, centerBelow(event));
+      if (!samePlacement(current, drag.current)) setDrag({ ...drag, current });
     },
     onDragEnd() {
       if (drag?.mode !== 'pointer') return;
@@ -357,7 +370,6 @@ export function useTaskMove({
       sensors,
       accessibility: ACCESSIBILITY,
       collisionDetection,
-      measuring: MEASURING,
       ...dragHandlers,
     },
   };

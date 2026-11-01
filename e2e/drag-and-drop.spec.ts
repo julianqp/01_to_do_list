@@ -752,6 +752,77 @@ test.describe('ratón: dentro de una columna', () => {
     await holdOver(long, 'Corta dos');
   });
 
+  test('003 RF-007 D-9 el puntero salta varias tarjetas y se queda quieto: el hueco queda al lado de la tarjeta de debajo', async ({
+    page,
+    channel,
+  }) => {
+    test.skip(channel === 'chrome', 'T-044: chromium y webkit');
+    const titles = ['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco'];
+    await openBoard(page);
+    await seedBoard(page, { todo: titles });
+
+    // De un solo salto, sin pasos intermedios, y el puntero sigue moviéndose apenas sobre el mismo sitio.
+    async function jump(moving: string, over: string, fractionY: number) {
+      const to = await pointIn(taskCard(page, over), fractionY);
+      const from = await pointIn(taskCard(page, moving));
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(from.x, from.y + (fractionY < 0.5 ? 10 : -10), { steps: 5 });
+      await expect(dragOverlay(page, moving)).toBeVisible();
+      await page.mouse.move(to.x, to.y);
+      await page.waitForTimeout(100);
+      await page.mouse.move(to.x + 1, to.y);
+    }
+
+    await test.step('hacia abajo, antes del centro de «Cinco»', async () => {
+      await jump('Uno', 'Cinco', 0.25);
+      await expectOrder(page, 'To do', ['Dos', 'Tres', 'Cuatro', 'Uno', 'Cinco']);
+      await page.keyboard.press('Escape');
+      await page.mouse.up();
+      await expect(dragOverlay(page, 'Uno')).toHaveCount(0);
+      await expectOrder(page, 'To do', titles);
+    });
+
+    await test.step('hacia arriba, después del centro de «Uno»', async () => {
+      await jump('Cinco', 'Uno', 0.75);
+      await expectOrder(page, 'To do', ['Uno', 'Cinco', 'Dos', 'Tres', 'Cuatro']);
+      await page.keyboard.press('Escape');
+      await page.mouse.up();
+      await expect(dragOverlay(page, 'Cinco')).toHaveCount(0);
+      await expectOrder(page, 'To do', titles);
+    });
+  });
+
+  test('003 RF-007 D-9 hacia abajo, tocar la siguiente sin llegar a su centro no cambia el orden, y cruzarlo, sí', async ({
+    page,
+    channel,
+  }) => {
+    test.skip(channel === 'chrome', 'T-044: chromium y webkit');
+    await openBoard(page);
+    await seedBoard(page);
+    const moves = trackMoves(page);
+    const moving = taskCard(page, 'Comprar pan');
+    const next = taskCard(page, 'Preparar la demo');
+
+    const before = await pointIn(next, 0.25);
+    await dragCard(page, moving, before, { drop: false });
+    await expect(dragOverlay(page, 'Comprar pan')).toBeVisible();
+    await page.waitForTimeout(100);
+    await page.mouse.move(before.x, before.y);
+    await expectOrder(page, 'To do', TODO);
+
+    const after = await pointIn(next, 0.75);
+    await page.mouse.move(after.x, after.y, { steps: 5 });
+    await page.mouse.move(after.x + 1, after.y);
+    await expectOrder(page, 'To do', ['Preparar la demo', 'Comprar pan', 'Llamar al banco']);
+
+    await page.mouse.up();
+    await expect(dragOverlay(page, 'Comprar pan')).toHaveCount(0);
+    await expectOrder(page, 'To do', ['Preparar la demo', 'Comprar pan', 'Llamar al banco']);
+    await expect.poll(() => moves.length).toBe(1);
+    expect(moves[0]!.postDataJSON()).toMatchObject({ status: 'todo', index: 1 });
+  });
+
   test('003 CA-2.6 RF-021 sin conexión al reordenar con ratón: la columna vuelve al orden de antes, con el aviso', async ({
     page,
   }) => {
@@ -833,6 +904,65 @@ test.describe('dedo', () => {
     await expectOrder(page, 'In progress', ['Preparar la demo', ...IN_PROGRESS]);
     await expectCount(page, 'To do', 1);
     await expectCount(page, 'In progress', 4);
+    await reloadBoard(page);
+    await expectOrder(page, 'In progress', ['Preparar la demo', ...IN_PROGRESS]);
+  });
+
+  test('003 E-21 RF-005 D-33 con el dedo, ya en otra columna, soltar fuera en el mismo instante en que sale: vuelve a su sitio, sin guardar', async ({
+    page,
+    channel,
+  }) => {
+    test.skip(channel === 'chrome', 'T-045: chromium y webkit');
+    await openBoard(page);
+    await seedBoard(page);
+    const moves = trackMoves(page);
+    const finger = await touchFinger(page);
+    const outside = await pointIn(boardTitle(page));
+
+    await touchDragCard(
+      page,
+      taskCard(page, 'Preparar la demo'),
+      taskCard(boardColumn(page, 'In progress'), IN_PROGRESS[0]!),
+      { drop: false, finger },
+    );
+    await expect(boardColumn(page, 'In progress').locator('li').first()).toContainText(
+      'Preparar la demo',
+    );
+
+    // Sin esperar entre los dos: se levanta el dedo antes de que se pinte el movimiento (D-25).
+    await Promise.all([finger('touchMove', outside), finger('touchEnd', outside)]);
+
+    await expect(dragOverlay(page, 'Preparar la demo')).toHaveCount(0);
+    await expectOrder(page, 'To do', TODO);
+    await expectOrder(page, 'In progress', IN_PROGRESS);
+    await expectNoNotice(page);
+    expect(moves).toHaveLength(0);
+  });
+
+  test('003 CA-4.1 D-33 con el dedo, soltar dentro de In progress tras cambiar de columna: se guarda', async ({
+    page,
+    channel,
+  }) => {
+    test.skip(channel === 'chrome', 'T-045: chromium y webkit');
+    await openBoard(page);
+    await seedBoard(page);
+    const moves = trackMoves(page);
+    const finger = await touchFinger(page);
+
+    const end = await touchDragCard(
+      page,
+      taskCard(page, 'Preparar la demo'),
+      taskCard(boardColumn(page, 'In progress'), IN_PROGRESS[0]!),
+      { drop: false, finger },
+    );
+    await expect(boardColumn(page, 'In progress').locator('li').first()).toContainText(
+      'Preparar la demo',
+    );
+    await finger('touchEnd', end);
+
+    await expect(dragOverlay(page, 'Preparar la demo')).toHaveCount(0);
+    await expectOrder(page, 'In progress', ['Preparar la demo', ...IN_PROGRESS]);
+    await expect.poll(() => moves.length).toBe(1);
     await reloadBoard(page);
     await expectOrder(page, 'In progress', ['Preparar la demo', ...IN_PROGRESS]);
   });
@@ -941,6 +1071,101 @@ test.describe('dedo', () => {
   });
 });
 
+test.describe('a 375, soltar sobre «Crear tarea»', () => {
+  test.use({ hasTouch: true });
+
+  // Con dos dígitos: `expectOrder` compara por el principio del título.
+  const TWELVE = Array.from({ length: 12 }, (_, i) => `Tarea ${String(i + 1).padStart(2, '0')}`);
+
+  // Lleva la tarjeta y devuelve cómo soltarla.
+  const INPUTS = [
+    {
+      name: 'con ratón',
+      async drag(page: Page, title: string) {
+        await dragCard(page, taskCard(page, title), createTaskButton(page), {
+          drop: false,
+          fractionY: 0.5,
+        });
+        return () => page.mouse.up();
+      },
+    },
+    {
+      name: 'con el dedo',
+      async drag(page: Page, title: string) {
+        const finger = await touchFinger(page);
+        const end = await touchDragCard(page, taskCard(page, title), createTaskButton(page), {
+          drop: false,
+          fractionY: 0.5,
+          finger,
+        });
+        return () => finger('touchEnd', end);
+      },
+    },
+  ];
+
+  // D-35: con la columna debajo, la página hace scroll sola y el hueco se mueve hasta el último momento,
+  // así que el orden se lee en la fase de captura del mismo evento de soltar.
+  const recordOrderOnRelease = (page: Page) =>
+    page.evaluate(() => {
+      const state = window as Window & { e2eOrderAtDrop?: string[] };
+      const record = () => {
+        state.e2eOrderAtDrop = [
+          ...document.querySelectorAll('section[aria-label^="To do,"] li [data-task-id]'),
+        ].map((card) => card.textContent ?? '');
+      };
+      window.addEventListener('mouseup', record, { capture: true, once: true });
+      window.addEventListener('touchend', record, { capture: true, once: true });
+    });
+  const orderAtDrop = (page: Page) =>
+    page.evaluate(() => (window as Window & { e2eOrderAtDrop?: string[] }).e2eOrderAtDrop ?? []);
+
+  for (const { name, drag } of INPUTS) {
+    test(`003 CA-4.7 RF-019 ${name}, con 12 tarjetas y la columna debajo: se guarda donde marcaba el hueco, sin abrir el diálogo de crear`, async ({
+      page,
+    }) => {
+      await openBoard(page, MOBILE);
+      await seedBoard(page, { todo: TWELVE });
+      await columnPicker(page, 'To do').check();
+      const moves = trackMoves(page);
+
+      const release = await drag(page, TWELVE[0]!);
+      await expect(dragOverlay(page, TWELVE[0]!)).toBeVisible();
+      await recordOrderOnRelease(page);
+      await release();
+      await expect(dragOverlay(page, TWELVE[0]!)).toHaveCount(0);
+
+      const order = await orderAtDrop(page);
+      expect(order).toHaveLength(12);
+      expect(order[0]).not.toContain(TWELVE[0]!);
+      await expect.poll(() => moves.length).toBe(1);
+      await expect(cardsIn(page, 'To do')).toHaveText(order);
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await reloadBoard(page);
+      await columnPicker(page, 'To do').check();
+      await expect(cardsIn(page, 'To do')).toHaveText(order);
+    });
+
+    test(`003 CA-4.7 RF-019 ${name}, con 3 tarjetas y la columna terminada antes del botón: vuelve, sin guardar ni avisar`, async ({
+      page,
+    }) => {
+      await openBoard(page, MOBILE);
+      await seedBoard(page);
+      await columnPicker(page, 'To do').check();
+      const moves = trackMoves(page);
+
+      const release = await drag(page, 'Preparar la demo');
+      await expect(dragOverlay(page, 'Preparar la demo')).toBeVisible();
+      await release();
+      await expect(dragOverlay(page, 'Preparar la demo')).toHaveCount(0);
+
+      await expectOrder(page, 'To do', TODO);
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await expectNoNotice(page);
+      expect(moves).toHaveLength(0);
+    });
+  }
+});
+
 test.describe('móvil con teclado', () => {
   test('003 CA-3.9 CA-3.10 RF-023 a 375, Flecha derecha muestra In progress y la marca en el selector; Esc vuelve a To do', async ({
     page,
@@ -1027,12 +1252,36 @@ test.describe('teclado: la tarjeta cogida sigue a la vista', () => {
     expect(seen.handleOnTop, `${step}: el asa no está tapada`).toBe(true);
   }
 
-  async function walkColumn(page: Page, scroller: 'ul' | 'main') {
+  // C-20: la lista recorta, y el anillo de foco necesita 4 px alrededor del asa (`outline` 2 + `offset` 2).
+  // Con la tarjeta ya escalada: a mitad de la transición sobraría sitio.
+  async function expectRingRoom(page: Page, title: string, step: string) {
+    const room = await moveHandle(page, title).evaluate(async (handle) => {
+      await Promise.allSettled(handle.parentElement!.getAnimations().map((a) => a.finished));
+      const rect = handle.getBoundingClientRect();
+      const list = handle.closest('ul')!.getBoundingClientRect();
+      return {
+        arriba: rect.top - list.top,
+        abajo: list.bottom - rect.bottom,
+        izquierda: rect.left - list.left,
+        derecha: list.right - rect.right,
+      };
+    });
+    for (const [side, px] of Object.entries(room)) {
+      expect(px, `${step}: sitio para el anillo por ${side}`).toBeGreaterThanOrEqual(4);
+    }
+  }
+
+  async function walkColumn(
+    page: Page,
+    scroller: 'ul' | 'main',
+    afterStep?: (step: string) => Promise<void>,
+  ) {
     const title = TWELVE[0]!;
     await tabTo(page, moveHandle(page, title));
     await page.keyboard.press('Space');
     await expect(liveRegion(page)).toContainText(`Has cogido «${title}»`);
     await expectInView(page, title, scroller, 'al cogerla');
+    await afterStep?.('al cogerla');
 
     for (const [key, positions] of [
       ['ArrowDown', [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]],
@@ -1042,10 +1291,77 @@ test.describe('teclado: la tarjeta cogida sigue a la vista', () => {
         await page.keyboard.press(key);
         await expect(liveRegion(page)).toHaveText(`To do, posición ${position} de 12.`);
         await expectInView(page, title, scroller, `${key} ${i + 1}, posición ${position}`);
+        await afterStep?.(`${key} ${i + 1}, posición ${position}`);
       }
     }
     await page.keyboard.press('Escape');
   }
+
+  for (const width of [768, 1023]) {
+    test(`003 RNF-001 C-20 a ${width}, con la tarjeta cogida, primera y última: sitio para el anillo de foco del asa dentro de la lista`, async ({
+      page,
+      channel,
+    }) => {
+      test.skip(channel === 'chrome', 'T-042: chromium y webkit');
+      await openBoard(page, { width, height: 900 });
+      await seedBoard(page);
+
+      for (const title of [TODO[0]!, TODO.at(-1)!]) {
+        await tabTo(page, moveHandle(page, title));
+        await page.keyboard.press('Space');
+        await expect(liveRegion(page)).toContainText(`Has cogido «${title}»`);
+        await expectRingRoom(page, title, title);
+        await page.keyboard.press('Escape');
+      }
+    });
+  }
+
+  test('003 CA-3.11 RNF-001 a 768, con 12 tarjetas: sitio para el anillo de foco en cada flecha', async ({
+    page,
+    channel,
+  }) => {
+    test.skip(channel === 'chrome', 'T-042: chromium y webkit');
+    await openBoard(page, { width: 768, height: 900 });
+    await seedBoard(page, { todo: TWELVE });
+
+    await walkColumn(page, 'ul', (step) => expectRingRoom(page, TWELVE[0]!, step));
+  });
+
+  test('003 RNF-001 a 768 y 1023, el asa sigue midiendo 44 × 44', async ({ page, channel }) => {
+    test.skip(channel === 'chrome', 'T-042: chromium y webkit');
+    await openBoard(page, { width: 768, height: 900 });
+    await seedBoard(page);
+    const handle = moveHandle(page, TODO[0]!);
+
+    for (const width of [768, 1023]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(handle).toBeVisible();
+      const rect = await handle.boundingBox();
+      expect(rect!.width).toBeCloseTo(44, 0);
+      expect(rect!.height).toBeCloseTo(44, 0);
+    }
+  });
+
+  test('003 E-6 RNF-001 a 768, con un título de 200 caracteres, el asa no tapa el texto', async ({
+    page,
+    channel,
+  }) => {
+    test.skip(channel === 'chrome', 'T-042: chromium y webkit');
+    const long = 'Revisar '.repeat(25).trim().padEnd(200, 'x');
+    await openBoard(page, { width: 768, height: 900 });
+    await seedBoard(page, { todo: [long] });
+
+    const overlap = await moveHandle(page, long).evaluate((handle) => {
+      const rect = handle.getBoundingClientRect();
+      const title = handle.previousElementSibling!.querySelector('span')!;
+      const range = document.createRange();
+      range.selectNodeContents(title);
+      return [...range.getClientRects()].some(
+        (line) => line.right > rect.left + 0.5 && line.top < rect.bottom && line.bottom > rect.top,
+      );
+    });
+    expect(overlap).toBe(false);
+  });
 
   for (const height of [900, 720]) {
     test(`003 CA-3.11 RF-024 a 1280 × ${height}, con 12 tarjetas: en cada flecha, la tarjeta dentro de la lista y el foco en el asa`, async ({

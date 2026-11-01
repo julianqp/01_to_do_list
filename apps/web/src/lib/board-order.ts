@@ -72,9 +72,9 @@ export function stepPlacement(
 }
 
 // D-9: el destino con el puntero. `groups` es la vista previa (la tarjeta ya en su sitio actual).
-// - En la misma columna, la posición de la tarjeta de debajo, como arrayMove: no oscila.
-// - En otra columna, antes o después de la tarjeta de debajo según `below` (el centro de la que se
-//   arrastra queda por debajo del de esa tarjeta).
+// - Sobre una tarjeta, antes o después de ella según `below` (el centro de la que se arrastra queda por
+//   debajo del de esa tarjeta), también en la misma columna: solo la cruza al pasar su centro.
+// - Sobre sí misma, donde está.
 // - Sobre la columna sin tarjeta debajo (vacía, E-1), al final.
 export function placementFromOver(
   groups: Record<TaskStatus, Task[]>,
@@ -90,8 +90,11 @@ export function placementFromOver(
     const column = groups[status];
     const index = column.findIndex(({ id }) => id === over.id);
     if (index === -1) continue;
-    const sameColumn = column.some(({ id }) => id === activeId);
-    return { status, index: sameColumn || !below ? index : index + 1 };
+    const activeIndex = column.findIndex(({ id }) => id === activeId);
+    if (activeIndex === index) return { status, index };
+    // D-3: `index` no cuenta la tarjeta que se mueve.
+    const rest = activeIndex !== -1 && activeIndex < index ? index - 1 : index;
+    return { status, index: below ? rest + 1 : rest };
   }
   throw new Error(`La tarjeta ${over.id} no está en el tablero`);
 }

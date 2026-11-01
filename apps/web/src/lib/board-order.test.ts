@@ -168,14 +168,30 @@ describe('stepPlacement', () => {
 describe('placementFromOver', () => {
   const groups = groupByStatus(TASKS);
 
-  it('003 D-9 RF-007 en la misma columna, la posición de la tarjeta de debajo, hacia arriba y hacia abajo (como arrayMove)', () => {
-    const up = { kind: 'card', id: 'pan' } as const;
-    const down = { kind: 'card', id: 'demo' } as const;
-    // `below` no cuenta dentro de la misma columna: no oscila al cambiar el orden.
-    for (const below of [false, true]) {
-      expect(placementFromOver(groups, 'demo', up, below)).toEqual({ status: 'todo', index: 0 });
-      expect(placementFromOver(groups, 'pan', down, below)).toEqual({ status: 'todo', index: 2 });
-    }
+  it('003 D-9 RF-007 en la misma columna, hacia arriba, solo cruza la de debajo con su centro cruzado', () => {
+    const over = { kind: 'card', id: 'banco' } as const;
+    expect(placementFromOver(groups, 'demo', over, false)).toEqual({ status: 'todo', index: 1 });
+    expect(placementFromOver(groups, 'demo', over, true)).toEqual({ status: 'todo', index: 2 });
+  });
+
+  it('003 D-9 RF-007 en la misma columna, hacia abajo, solo cruza la de debajo con su centro cruzado', () => {
+    const over = { kind: 'card', id: 'banco' } as const;
+    expect(placementFromOver(groups, 'pan', over, true)).toEqual({ status: 'todo', index: 1 });
+    expect(placementFromOver(groups, 'pan', over, false)).toEqual({ status: 'todo', index: 0 });
+  });
+
+  it('003 D-9 RF-007 un salto de varias tarjetas sin cruzar el centro: queda al lado de la de debajo', () => {
+    const column = ['a', 'b', 'c', 'd'].map((id) => task(id, 'todo'));
+    const jump = groupByStatus(column);
+    // Hacia abajo, justo encima de `d`; hacia arriba, justo debajo de `a`.
+    expect(placementFromOver(jump, 'a', { kind: 'card', id: 'd' }, false)).toEqual({
+      status: 'todo',
+      index: 2,
+    });
+    expect(placementFromOver(jump, 'd', { kind: 'card', id: 'a' }, true)).toEqual({
+      status: 'todo',
+      index: 1,
+    });
   });
 
   it('003 D-9 sobre sí misma, donde está', () => {

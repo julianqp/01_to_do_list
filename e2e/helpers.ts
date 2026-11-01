@@ -179,7 +179,7 @@ export async function dragCard(
   await page.mouse.move(from.x, from.y + 10, { steps: 5 });
   const to = await pointIn(target, fractionY);
   await page.mouse.move(to.x, to.y, { steps: 15 });
-  // Uno más, con la lista ya pintada con el hueco (MeasuringStrategy.Always, D-9).
+  // Uno más, con la lista ya pintada con el hueco y vuelta a medir (D-32).
   const end = { x: to.x + 1, y: to.y };
   await page.mouse.move(end.x, end.y);
   if (drop) await page.mouse.up();
