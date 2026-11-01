@@ -2,7 +2,7 @@ import type { Task } from '@todo/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { apiError, json, mockBrowser } from '../components/test-utils';
 import type { Placement } from './board-order';
 import {
@@ -304,6 +304,21 @@ describe('useMoveTask', () => {
     expect(column(view, 'in_progress')).toEqual(['correo']);
     // D-12: sin reintentos.
     expect(browser.callsTo('POST', '/api/tasks/demo/move')).toHaveLength(1);
+  });
+
+  it('003 RF-021 D-29 al fallar, `mutateAsync` rechaza sin esperar a que responda `GET /api/tasks`', async () => {
+    const view = await renderBoard();
+    browser.routes[moveRoute('demo')] = () => Promise.reject(new TypeError('Failed to fetch'));
+    const before = getsOfList();
+    browser.routes['GET /api/tasks'] = () => new Promise<Response>(() => undefined);
+    const rejected = vi.fn();
+
+    act(() => {
+      run(view.result.current.mutation, DEMO_TO_PROGRESS).catch(rejected);
+    });
+
+    await waitFor(() => expect(getsOfList()).toBe(before + 1));
+    await waitFor(() => expect(rejected).toHaveBeenCalledTimes(1));
   });
 
   it('003 RF-022 con TASK_NOT_FOUND, la tarjeta se quita de la caché', async () => {

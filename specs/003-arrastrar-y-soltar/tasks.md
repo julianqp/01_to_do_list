@@ -1,7 +1,7 @@
 ---
 spec: 003
 plan_aprobado: 2026-10-31
-progreso: 31/39
+progreso: 32/39
 ---
 
 # Tareas · Spec 003 · Arrastrar y soltar
@@ -381,7 +381,7 @@ Resuelven `verificacion.md` (T-025, NO APTO), con las decisiones del usuario del
     - `003 CA-3.13` E2E a 375 con `page.route` abortando `…/move`: se ve To do, el foco está en el asa y sale el aviso, en `chromium` y `webkit`. Hace falta el E2E porque jsdom no aplica `display: none`.
   - Hecho cuando: los casos fallan primero; después, `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde
 
-- [ ] **T-038** Avisar y volver a la columna sin esperar a la lista
+- [x] **T-038** Avisar y volver a la columna sin esperar a la lista
   - Depende de: T-031
   - Ficheros: `apps/web/src/lib/task-queries.ts` (D-29), `apps/web/src/lib/task-queries.test.tsx`, `e2e/drag-and-drop.spec.ts`
   - Cubre: RF-021, RF-023, CA-1.9, CA-1.12 (el aviso), CA-2.6, CA-3.13, D-29 (hallazgo de T-031)
@@ -486,3 +486,4 @@ Resuelven `verificacion.md` (T-025, NO APTO), con las decisiones del usuario del
 | T-030 | 9b6eb86 | D-26 con `onTaskGone`: `Board` reutiliza `focusTarget = { kind: 'create', removedId }`, que espera a que la tarjeta ya no esté y sirve con el «Crear tarea» del estado vacío. `focusTarget` sube por encima de `useTaskMove`. Test primero: fallaban los dos `003 CA-3.12` unitarios y el E2E en `chromium` y `webkit`, con el foco en `BODY` o fuera del botón; `003 RF-022 D-26` ya pasaba, porque describe lo que no cambia. Ayuda nueva en el E2E, `deleteTaskViaApi`: el `DELETE` exige cuerpo JSON (`requireJson`). `pnpm test` (889), `pnpm lint` y `pnpm typecheck` en verde; E2E de CA-3.12, CA-1.10, D-15 y CA-3.1 en `chromium` y `webkit` en verde |
 | T-031 | 9b6eb86 | D-26 con `onMobileColumn(origin.status)` al fallar, si el foco seguía en el asa. Test primero: con el cambio quitado, fallaban `003 CA-3.13` en `Board.test` y el E2E en `chromium` y `webkit` (el selector no volvía a To do); `003 RF-023 D-26` ya pasaba, porque describe lo que no cambia. `failWith` sube al módulo de `Board.test`. `pnpm test` (891), `pnpm lint` y `pnpm typecheck` en verde; `pnpm test:e2e e2e/drag-and-drop.spec.ts` en `chromium` y `webkit`: 72 pasan, 4 saltados. **Hallazgo, lote parado:** el E2E de la tarea solo aborta `…/move`, y la lista se vuelve a pedir antes de que `mutateAsync` rechace (nota de D-18). Sonda temporal a 375, ya borrada, en `chromium` y `webkit`: sin conexión, aviso y columna en 30–33 ms; con `GET /api/tasks` lento 1500 ms, unos 1800 ms; **con la API caída y el navegador con red, unos 7 s en In progress sin la tarjeta, sin aviso y con el foco en `BODY`, y después el tablero se sustituye por el error de carga («Reintentar»), así que el aviso de mover no llega a verse.** No cumple RF-021, RF-023, CA-1.9, CA-2.6 ni CA-3.13 en ese caso. No es de esta tarea: viene de `onSettled` (T-012) y de `PrivateArea` (002/D-8). Pendiente de la decisión del usuario |
 | — | | 2026-11-01, `/sdd-cambiar-spec` tras el hallazgo de T-031, con la decisión del usuario: corregir las dos causas. Spec v3.0 (RF-021 cambia; nuevos RF-025, CA-1.12 y E-22), plan D-29 y D-30, y tareas T-038 y T-039 antes de T-032. Ninguna tarea `[x]` se rehace: T-031 sigue valiendo y T-038 completa CA-3.13. Por la lectura, ningún test de la 002 cuenta con el comportamiento actual: se confirma en T-039. T-029, T-030 y T-031 comparten el commit 9b6eb86 |
+| T-038 | | D-29: `onSettled` lanza `invalidateQueries` sin devolver su promesa. Test primero: `003 RF-021 D-29` fallaba porque `mutateAsync` no rechazaba con la lista pendiente, y los dos E2E con `**/api/**` abortado, en `chromium` y `webkit`, porque el aviso no llegaba en 1 s. `003 D-12` y `003 RF-021 D-18` siguen en verde sin cambiarlos. **Ajuste de un test de T-028, fuera de la lista de casos:** `003 RF-006` arrastrar desde el asa falló una vez en `webkit` con la lista en otro orden, y no se reprodujo en 30 repeticiones aisladas ni en 3 pasadas del fichero. Causa probable, sin confirmar: se coge por el asa, y el centro de la capa quedaba a unos 3 px de pasar al otro lado de la tarjeta; ahora suelta con `fractionY: 0.1`. Con `--repeat-each=10`, ese test y los de API caída: 60 de 60. `pnpm test` (892), `pnpm lint` y `pnpm typecheck` en verde. `pnpm test:e2e e2e/drag-and-drop.spec.ts` en `chromium` y `webkit`: 75 pasan, 4 saltados, 1 «flaky» en `webkit` (CA-2.5, pasa al reintentar: es T-035). Tres pasadas de `webkit` sin reintentos dieron 5 fallos en `/signup` sin hidratar (M-7) |

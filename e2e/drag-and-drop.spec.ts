@@ -397,10 +397,13 @@ test.describe('ratón: entre columnas', () => {
     await openBoard(page);
     await seedBoard(page);
 
+    // Se coge por el asa, no por el centro: el centro de la capa queda más abajo que el puntero, y en
+    // el cuarto superior de `dragCard` solo faltarían unos 3 px para pasar al otro lado de la tarjeta.
     await dragCard(
       page,
       moveHandle(page, 'Preparar la demo'),
       taskCard(boardColumn(page, 'In progress'), IN_PROGRESS[0]!),
+      { fractionY: 0.1 },
     );
 
     await expectOrder(page, 'In progress', ['Preparar la demo', ...IN_PROGRESS]);
@@ -918,6 +921,57 @@ test.describe('móvil con teclado: falla el guardado', () => {
     await expectOrder(page, 'To do', TODO);
     await expect(handle).toBeVisible();
     await expect(handle).toBeFocused();
+  });
+});
+
+test.describe('toda la API caída, no solo `…/move`', () => {
+  test.skip(({ channel }) => channel === 'chrome', 'T-038: chromium y webkit');
+
+  // D-29: el aviso no espera a volver a pedir la lista, que se reintenta unos 7 s.
+  const AT_ONCE = { timeout: 1000 };
+  const stopApi = (page: Page) =>
+    page.route('**/api/**', (route) => route.abort('connectionrefused'));
+
+  test('003 CA-1.12 RF-021 al soltar con ratón: la tarjeta en su sitio, los recuentos de antes y el aviso, sin esperar', async ({
+    page,
+  }) => {
+    await openBoard(page);
+    await seedBoard(page);
+    await stopApi(page);
+
+    await dragCard(
+      page,
+      taskCard(page, 'Preparar la demo'),
+      taskCard(boardColumn(page, 'In progress'), IN_PROGRESS[0]!),
+    );
+
+    await expect(page.getByText(MOVE_ERROR)).toBeVisible(AT_ONCE);
+    await expectOrder(page, 'To do', TODO);
+    await expectOrder(page, 'In progress', IN_PROGRESS);
+    await expectCount(page, 'To do', 3);
+    await expectCount(page, 'In progress', 3);
+  });
+
+  test('003 CA-3.13 RF-023 RF-021 a 375, al soltar con teclado: se ve To do, el foco está en el asa y sale el aviso, sin esperar', async ({
+    page,
+  }) => {
+    await openBoard(page, MOBILE);
+    await seedBoard(page);
+    await columnPicker(page, 'To do').check();
+    const handle = moveHandle(page, 'Preparar la demo');
+    await tabTo(page, handle);
+    await page.keyboard.press('Space');
+    await page.keyboard.press('ArrowRight');
+    await expect(columnPicker(page, 'In progress')).toBeChecked();
+    await stopApi(page);
+
+    await page.keyboard.press('Space');
+
+    await expect(page.getByText(MOVE_ERROR)).toBeVisible(AT_ONCE);
+    await expect(columnPicker(page, 'To do')).toBeChecked(AT_ONCE);
+    await expect(boardColumn(page, 'To do')).toBeVisible(AT_ONCE);
+    await expect(handle).toBeFocused(AT_ONCE);
+    await expectOrder(page, 'To do', TODO);
   });
 });
 

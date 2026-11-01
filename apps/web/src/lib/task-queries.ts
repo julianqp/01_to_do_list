@@ -94,9 +94,12 @@ export function useMoveTask() {
           : placeTask(tasks, task, from),
       );
     },
-    onSettled: () =>
-      queryClient.isMutating({ mutationKey: MOVE_KEY }) === 1
-        ? queryClient.invalidateQueries({ queryKey: TASKS_KEY })
-        : undefined,
+    // D-29: sin devolver la promesa. Si no, el fallo esperaría a la lista, que con la API caída se
+    // reintenta unos 7 s, y con él el aviso y la vuelta a la columna (RF-021, RF-023).
+    onSettled: () => {
+      if (queryClient.isMutating({ mutationKey: MOVE_KEY }) === 1) {
+        void queryClient.invalidateQueries({ queryKey: TASKS_KEY });
+      }
+    },
   });
 }
