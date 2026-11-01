@@ -2,10 +2,10 @@
 id: 003
 titulo: Arrastrar y soltar
 estado: en-implementacion # borrador | aprobada | en-implementacion | implementada | obsoleta
-version: 3.1
+version: 4.0
 autor: Julian Querol Polo
 creada: 2026-10-31
-aprobada: 2026-11-01 (v3.1), Julian Querol Polo   # AAAA-MM-DD, por quién; v1.0 el 2026-10-31
+aprobada: 2026-11-01 (v4.0), Julian Querol Polo   # AAAA-MM-DD, por quién; v1.0 el 2026-10-31
 ticket:
 ---
 
@@ -24,6 +24,7 @@ Con la spec 002, el usuario ya tiene su tablero, pero para pasar una tarea de To
 - El usuario cambia una tarea de columna arrastrando su tarjeta, sin abrir el detalle.
 - El usuario ordena a mano las tarjetas de una columna, y ese orden se mantiene al volver a cargar el tablero.
 - Todo lo que se hace arrastrando se puede hacer solo con teclado, y un lector de pantalla anuncia cada paso.
+- *(v4.0)* Todo lo que se hace arrastrando se puede hacer también con un solo clic o toque, sin arrastrar.
 - Si un movimiento no se puede guardar, la tarjeta vuelve a su sitio y el usuario sabe por qué.
 
 ## 3. Usuarios y actores
@@ -102,8 +103,27 @@ Por debajo de 768 px solo se ve una columna (002/RF-034): allí el arrastre solo
 - **CA-4.2** Dada una ventana de 375 px con To do visible, cuando el usuario desliza el dedo sobre la columna sin mantenerlo antes sobre una tarjeta, entonces la columna hace scroll y no empieza ningún arrastre.
 - **CA-4.3** Dada una ventana de 375 px con To do visible y 3 tarjetas, cuando el usuario mantiene el dedo sobre la tercera y la suelta encima de la primera, entonces pasa a ser la primera de To do, como en CA-2.1.
 - **CA-4.4** Dada una ventana de 375 px, cuando el usuario toca una tarjeta sin mantener el dedo, entonces se abre su detalle como panel inferior (002/CA-7.2).
-- **CA-4.5** *(v0.2)* Dada una ventana de 375 px con To do visible, cuando el usuario arrastra con el dedo «Preparar la demo» y la suelta sobre el selector de estados o fuera de la columna, entonces la tarjeta vuelve a su sitio de antes, no se guarda nada y no aparece ningún aviso (RF-005).
+- **CA-4.5** *(v0.2)* Dada una ventana de 375 px con To do visible, cuando el usuario arrastra con el dedo «Preparar la demo» y la suelta sobre el selector de estados o fuera de la columna, entonces la tarjeta vuelve a su sitio de antes, no se guarda nada y no aparece ningún aviso (RF-005). Soltarla sobre «Crear tarea» es CA-4.7 *(v4.0)*.
 - **CA-4.6** *(v2.0)* Dada una ventana de 375 px, cuando el usuario toca el asa de una tarjeta sin mantener el dedo, entonces se abre su detalle como panel inferior, como en CA-4.4, y la tarjeta no se coge.
+- **CA-4.7** *(v4.0)* Dada una ventana de 375 px con To do visible y 12 tarjetas, de modo que la columna queda debajo de «Crear tarea», cuando el usuario arrastra una tarjeta y la suelta sobre ese botón, entonces la tarjeta queda y se guarda en la posición que marcaba el hueco, y no se abre el diálogo de crear. Con solo 3 tarjetas, donde la columna termina antes del botón, soltarla ahí es soltarla fuera, como en CA-4.5.
+
+### HU-5 · Ordenar con un clic o un toque, sin arrastrar (P1) *(v4.0)*
+
+Como usuario que no puede o no quiere arrastrar, quiero subir o bajar una tarea dentro de su columna desde su detalle, para ordenarla con un solo clic o toque (WCAG 2.5.7).
+
+**Criterios de aceptación**
+
+- **CA-5.1** Dada To do con «Comprar pan», «Preparar la demo» y «Llamar al banco», en este orden, cuando el usuario abre el detalle de «Preparar la demo», entonces ve debajo de «Estado» el texto «To do, posición 2 de 3.» y los botones «Subir» y «Bajar». En el diálogo de crear una tarea no aparecen.
+- **CA-5.2** Dado el detalle de CA-5.1, cuando el usuario hace clic en «Subir», entonces el texto pasa a «To do, posición 1 de 3.» y el diálogo sigue abierto; al cerrarlo, el orden es «Preparar la demo», «Comprar pan», «Llamar al banco», y se mantiene al volver a cargar el tablero.
+- **CA-5.3** Dada una ventana de 375 px con el detalle de CA-5.1 como panel inferior, cuando el usuario toca «Bajar», entonces el texto pasa a «To do, posición 3 de 3.» y la tarea queda la última de To do.
+- **CA-5.4** Dado solo el teclado y el foco en «Subir» en el detalle de CA-5.1, cuando el usuario pulsa Enter o Espacio, entonces la tarea sube una posición, el foco sigue en «Subir» y el lector de pantalla anuncia «To do, posición 1 de 3.».
+- **CA-5.5** Dada una tarea la primera de su columna, «Subir» está inactivo y, si el usuario lo pulsa, nada cambia y no se guarda nada; igual con «Bajar» en la última. Si el botón se queda inactivo al llegar al borde, conserva el foco.
+- **CA-5.6** Dado el detalle de CA-5.1 con el título cambiado y sin guardar, cuando el usuario pulsa «Subir», entonces la tarea sube y el campo conserva el título escrito. «Cancelar» sigue preguntando «¿Descartar los cambios?» y, al descartar, el título vuelve al de antes y la posición nueva se queda.
+- **CA-5.7** Dado el detalle de CA-5.1 sin ningún otro cambio, cuando el usuario pulsa «Subir» y después «Cancelar», entonces el diálogo se cierra sin preguntar y la posición nueva se queda.
+- **CA-5.8** Dado el detalle de CA-5.1, cuando el usuario elige In progress sin guardar, entonces «Subir» y «Bajar» quedan inactivos y debajo aparece «Guarda el cambio de estado para poder subirla o bajarla.»; si vuelve a elegir To do, se activan de nuevo y el texto desaparece.
+- **CA-5.9** Dado que el servidor no responde, cuando el usuario pulsa «Subir» en el detalle de CA-5.1, entonces la tarea vuelve a la posición 2 de To do, el texto vuelve a «To do, posición 2 de 3.», el diálogo sigue abierto y dentro de él aparece el aviso de CA-1.9.
+- **CA-5.10** Dada «Preparar la demo» borrada en otra pestaña, cuando el usuario pulsa «Subir» en su detalle, entonces el diálogo se cierra, en el tablero aparece «Esta tarea ya no existe.», la tarjeta desaparece y el foco pasa a «Crear tarea».
+- **CA-5.11** Dada la tarea subida como en CA-5.2, cuando el usuario cambia el título y pulsa «Guardar cambios», entonces la tarjeta conserva su posición nueva. Si además cambia el estado, entra la primera de la columna nueva (RF-010).
 
 > Prioridades: **P1** imprescindible (sin esto no se publica) · **P2** importante · **P3** deseable.
 
@@ -139,7 +159,7 @@ Por debajo de 768 px solo se ve una columna (002/RF-034): allí el arrastre solo
 **Táctil**
 
 - **RF-018** CUANDO el usuario mantenga el dedo sobre una tarjeta y lo desplace sin levantarlo, el sistema DEBE empezar a arrastrarla; un deslizamiento sin mantener antes el dedo DEBE hacer scroll y no arrastrar. *(HU-4)*
-- **RF-019** MIENTRAS la ventana mida menos de 768 px, el arrastre (con el dedo o con el ratón) DEBE limitarse a ordenar las tarjetas de la columna visible; soltar la tarjeta fuera de esa columna, incluido el selector de estados, cuenta como soltarla fuera de cualquier columna (RF-005). *(HU-4)*
+- **RF-019** MIENTRAS la ventana mida menos de 768 px, el arrastre (con el dedo o con el ratón) DEBE limitarse a ordenar las tarjetas de la columna visible; soltar la tarjeta fuera de esa columna, incluido el selector de estados, cuenta como soltarla fuera de cualquier columna (RF-005). *(v4.0)* «Crear tarea», fijo abajo, no cuenta como fuera cuando la columna está debajo de él, porque esa es la zona de scroll automático: la tarjeta queda y se guarda en la posición que marca el hueco. Si la columna termina antes del botón, soltarla sobre él es soltarla fuera. *(HU-4)*
 - **RF-023** *(v0.2)* MIENTRAS la ventana mida menos de 768 px y haya una tarjeta cogida con teclado, CUANDO Flecha izquierda o Flecha derecha la pasen a otra columna, el sistema DEBE mostrar esa columna y marcarla en el selector de estados; SI el movimiento se cancela (RF-017), ENTONCES DEBE volver a mostrar la columna de partida. SI falla al guardarse (RF-021) y el foco seguía en su asa *(v3.1)*, ENTONCES DEBE volver a mostrar la columna de partida y mantener el foco en su asa; si el foco ya salió, no cambia ni la columna visible ni el foco. *(HU-3, HU-4)*
 
 **Guardar y errores**
@@ -149,9 +169,16 @@ Por debajo de 768 px solo se ve una columna (002/RF-034): allí el arrastre solo
 - **RF-022** SI el usuario mueve una tarea que ya no existe o no es suya, ENTONCES el sistema DEBE mostrar «Esta tarea ya no existe.» y quitar la tarjeta del tablero (002/RF-030). Si el foco seguía en su asa, DEBE pasar a «Crear tarea» *(v2.0)*. *(HU-1, HU-2, HU-3)*
 - **RF-025** *(v3.0)* SI, con el tablero ya a la vista, no se puede volver a obtener la lista de tareas, ENTONCES el sistema DEBE seguir mostrando el tablero con lo que ya tenía y NO DEBE sustituirlo por el error de carga de 002/RF-008. Acota 002/RF-008. *(HU-1, HU-2, HU-3)*
 
+**Ordenar sin arrastrar** *(v4.0)*
+
+- **RF-026** El detalle de una tarea ya creada DEBE mostrar, debajo de «Estado», el texto «<columna>, posición <n> de <total>.» y los botones «Subir» y «Bajar», que se activan con un clic, un toque, Enter o Espacio. Cada cambio de ese texto DEBE anunciarse al lector de pantalla. *(HU-5)*
+- **RF-027** CUANDO el usuario pulse «Subir» o «Bajar», el sistema DEBE mover la tarea una posición dentro de su columna y guardarlo al momento, sin pulsar «Guardar cambios», como en RF-007 y RF-020, con el diálogo abierto, el foco en el botón pulsado y los demás campos como estén. Con ese movimiento guardándose, otra pulsación no hace nada. El movimiento no cuenta como cambio sin guardar (002/RF-021), y ni «Cancelar» ni descartar los cambios lo deshacen. *(HU-5)*
+- **RF-028** SI no hay posición en esa dirección, o el estado elegido en el formulario no es el guardado, ENTONCES el botón DEBE quedar inactivo y conservar el foco si lo tenía. Con el estado cambiado sin guardar, DEBE mostrar debajo «Guarda el cambio de estado para poder subirla o bajarla.». *(HU-5)*
+- **RF-029** SI el movimiento falla como en RF-021, ENTONCES la tarea DEBE volver a su posición de antes y el aviso de RF-021 DEBE salir dentro del diálogo, sin cerrarlo. SI la tarea ya no existe o no es suya, ENTONCES el diálogo DEBE cerrarse, con el aviso de RF-022 en el tablero y el foco en «Crear tarea». *(HU-5)*
+
 ## 6. Requisitos no funcionales
 
-- **RNF-001** Accesibilidad: WCAG 2.2 AA en todo componente interactivo y AAA en el contraste del texto (C-20, C-26), en tema claro y oscuro, también para la tarjeta levantada, el hueco de destino y el asa. Todo lo que se hace arrastrando se puede hacer solo con teclado (HU-3). El asa mide al menos 44 × 44 px por debajo de 1024 px (§4). Con `prefers-reduced-motion`, la tarjeta no se desplaza animada (§8). Se comprueba con pruebas automáticas y con la checklist de §21.
+- **RNF-001** Accesibilidad: WCAG 2.2 AA en todo componente interactivo y AAA en el contraste del texto (C-20, C-26), en tema claro y oscuro, también para la tarjeta levantada, el hueco de destino y el asa. Todo lo que se hace arrastrando se puede hacer solo con teclado (HU-3) y con un solo puntero sin arrastrar (WCAG 2.5.7) *(v4.0)*: ordenar, con «Subir» y «Bajar» (HU-5); cambiar de columna, con el estado del detalle (002/HU-4). El asa mide al menos 44 × 44 px por debajo de 1024 px (§4). Con `prefers-reduced-motion`, la tarjeta no se desplaza animada (§8). Se comprueba con pruebas automáticas y con la checklist de §21.
 - **RNF-002** Respuesta: con 500 tareas, 200 de ellas en la misma columna, la tarjeta aparece en su sitio nuevo en ≤ 100 ms desde que se suelta, en uso local y en el navegador de desarrollo.
 - **RNF-003** Privacidad y seguridad: ningún movimiento permite cambiar el estado o la posición de tareas de otro usuario, ni deducir cuántas tiene; una tarea ajena se trata igual que una inexistente (C-13).
 - **RNF-004** Compatibilidad: la misma que 004/RNF-004, con ratón y teclado. El arrastre con el dedo se comprueba con la emulación táctil de esos navegadores.
@@ -183,6 +210,8 @@ Por debajo de 768 px solo se ve una columna (002/RF-034): allí el arrastre solo
 | E-20 | Idioma | Solo español de España; anuncios y avisos con la voz de §15 |
 | E-21 | *(v2.0)* Se suelta la tarjeta fuera de cualquier columna en el mismo instante en que sale de ella | La tarjeta vuelve a su sitio de antes y no se guarda nada (RF-005), aunque la vista previa aún la mostrara en la columna |
 | E-22 | *(v3.0)* No se puede volver a obtener la lista con el tablero a la vista, tras un movimiento o por cualquier otra causa | El tablero sigue con lo que ya tenía, sin error de carga (RF-025) y sin aviso propio; la lista se actualiza la próxima vez que se pida |
+| E-23 | *(v4.0)* La tarea es la única de su columna | El detalle muestra «<columna>, posición 1 de 1.», con «Subir» y «Bajar» inactivos |
+| E-24 | *(v4.0)* El orden de la columna cambió en otra pestaña con el detalle abierto | La posición es la de la lista que tiene esta pestaña; al pulsar se guarda como cualquier movimiento y gana el último (E-11) |
 
 ## 8. Entidades y glosario
 
@@ -205,13 +234,12 @@ Por debajo de 768 px solo se ve una columna (002/RF-034): allí el arrastre solo
 - Límite de tareas por columna.
 - Cambiar de columna deslizando el dedo en móvil (§4; ya en «Ideas sin priorizar»).
 - *(v0.2)* Pasar una tarjeta a otra columna arrastrándola por debajo de 768 px (por ejemplo, soltándola sobre el selector de estados): allí se hace desde el detalle o con teclado (RF-019).
-- *(v0.2)* Acciones «Subir» y «Bajar» en el detalle de la tarea: la alternativa con teclado es el asa (HU-3).
 - Arrastrar tarjetas fuera del tablero (a otra ventana o aplicación) o soltar ficheros en él.
 
 ## 10. Dependencias y supuestos
 
 - **Depende de:** spec 002 (`implementada`), por el tablero, las tarjetas, el detalle y sus reglas de estado y fecha real de fin; spec 004 (`implementada`), por el catálogo de valores visuales; spec 001 (`implementada`), por la sesión.
-- **Modifica la spec 002:** RF-008 sustituye a 002/RF-002 (orden por momento de creación), y con él a 002/CA-1.8, 002/E-22 y 002/E-24; RF-010 completa 002/RF-024 (dónde entra la tarjeta al cambiar de estado desde el detalle); RF-025 acota 002/RF-008 y 002/CA-1.6 a cuando no hay tablero que enseñar *(v3.0)*. Se propone añadir en el Registro de cambios de la spec 002 una fila «Modificada por la spec 003». `DESIGN.md` §11.3 («Las tarjetas van de la creada más recientemente a la más antigua») tendrá que actualizarse en el plan.
+- **Modifica la spec 002:** RF-008 sustituye a 002/RF-002 (orden por momento de creación), y con él a 002/CA-1.8, 002/E-22 y 002/E-24; RF-010 completa 002/RF-024 (dónde entra la tarjeta al cambiar de estado desde el detalle); RF-025 acota 002/RF-008 y 002/CA-1.6 a cuando no hay tablero que enseñar *(v3.0)*; RF-026 a RF-029 añaden «Subir» y «Bajar» al diálogo de 002/RF-012, y lo que mueven no cuenta como cambio sin guardar de 002/RF-021 *(v4.0)*. Se propone añadir en el Registro de cambios de la spec 002 una fila «Modificada por la spec 003». `DESIGN.md` §11.3 («Las tarjetas van de la creada más recientemente a la más antigua») tendrá que actualizarse en el plan.
 - **Supuestos:**
   - Con ratón, la tarjeta se arrastra desde cualquier punto; el asa es el punto de entrada para el teclado. Un clic sin desplazar el puntero abre el detalle, también en el asa (RF-006). Solo Espacio, Enter o la activación de un lector de pantalla cogen la tarjeta *(v2.0)*.
   - Con el dedo, el arrastre empieza al mantener el dedo sobre la tarjeta; el tiempo exacto lo fija el plan.
@@ -223,6 +251,7 @@ Por debajo de 768 px solo se ve una columna (002/RF-034): allí el arrastre solo
   - Las tareas que ya existen conservan su orden actual al llegar esta spec (E-19).
   - Una tarea nueva sigue entrando la primera de Backlog (RF-009, 002/RF-011).
   - No hay límite de tareas por columna; RNF-002 se mide con 500 tareas, como 002/RNF-004.
+  - *(v4.0)* «Subir» y «Bajar» solo mueven dentro de la columna guardada de la tarea; para cambiar de columna sin arrastrar sigue el estado del detalle (002/HU-4).
 
 ## 11. Aclaraciones
 
@@ -242,6 +271,11 @@ Historial de preguntas resueltas durante `/sdd-clarificar`.
 | 2026-11-01 | A 375 px con teclado, si falla el guardado, ¿qué columna se muestra? | La de origen, con el foco en el asa, igual que al cancelar | CA-3.13, RF-023 |
 | 2026-11-01 | Con el servidor caído del todo, ¿cuándo sale el aviso de mover y qué pasa con el tablero? | El aviso y la vuelta de la tarjeta, al momento, y el tablero sigue a la vista: el error de carga solo sale si no hay nada que enseñar. Si solo falla un refresco en segundo plano, no hay aviso | RF-021, RF-025, CA-1.12, E-22 |
 | 2026-11-01 | A 375 px con teclado, si falla el guardado cuando el foco ya salió del asa, ¿se vuelve a la columna de origen? | No: no cambia ni la columna visible ni el foco, porque el usuario ya sigue con otra cosa. Al cancelar se vuelve siempre | RF-023 |
+| 2026-11-01 | ¿Cómo se ordena una columna con un solo puntero, sin arrastrar (WCAG 2.5.7)? | Con «Subir» y «Bajar» en el detalle, activables también con teclado. Sustituye a la respuesta del 2026-10-31 («Sin acciones Subir/Bajar en el detalle») | HU-5, RF-026, RNF-001, §9 |
+| 2026-11-01 | ¿Cuándo se aplica «Subir» o «Bajar»? | Al momento, como un arrastre, sin «Guardar cambios». El diálogo sigue abierto y conserva lo que se esté editando; «Cancelar» no lo deshace, y no cuenta como cambio sin guardar | RF-027, CA-5.2, CA-5.6, CA-5.7 |
+| 2026-11-01 | ¿Qué pasa con «Subir» y «Bajar» si se ha cambiado el estado sin guardar? | Quedan inactivos, con un texto que explica por qué, hasta guardar o volver al estado original | RF-028, CA-5.8 |
+| 2026-11-01 | Si falla «Subir» o «Bajar», ¿dónde sale el aviso? | Dentro del diálogo, como los demás errores de guardar. Si la tarea ya no existe, el diálogo se cierra y el aviso sale en el tablero | RF-029, CA-5.9, CA-5.10 |
+| 2026-11-01 | Por debajo de 768 px, ¿soltar sobre «Crear tarea» es soltar fuera? | No, si la columna está debajo: es la zona de scroll automático y se guarda en la posición que marca el hueco. Si la columna termina antes del botón, sí | RF-019, CA-4.7 |
 
 ## 12. Registro de cambios
 
@@ -253,3 +287,4 @@ Historial de preguntas resueltas durante `/sdd-clarificar`.
 | 2.0     | 2026-11-01 | Nuevos RF-024, CA-1.11, CA-3.11, CA-3.12, CA-3.13, CA-4.6 y E-21. Cambian RF-006 (un clic o un toque en el asa abre el detalle), RF-022 (foco a «Crear tarea») y RF-023 (volver a la columna de partida si falla el guardado), además del glosario y §10 | `/sdd-verificar` NO APTO (`verificacion.md`: B-1, I-1, M-1, M-2); decisiones del usuario con `/sdd-cambiar-spec` |
 | 3.0     | 2026-11-01 | Nuevos RF-025, CA-1.12 y E-22. Cambia RF-021 (sin esperar a otra respuesta del servidor), además de §10 | Hallazgo de T-031: con la API caída no se cumplían RF-021, RF-023, CA-1.9, CA-2.6 ni CA-3.13; decisión del usuario con `/sdd-cambiar-spec` |
 | 3.1     | 2026-11-01 | RF-023: al fallar el guardado, vuelve a la columna de partida solo si el foco seguía en su asa; al cancelar, siempre. Sin cambio de comportamiento: recoge lo que ya hacía D-26 | Observación M-4 de `/sdd-verificar` (`verificacion.md`, segunda); decisión del usuario con `/sdd-cambiar-spec` |
+| 4.0     | 2026-11-01 | Nuevos HU-5, RF-026 a RF-029, CA-5.1 a CA-5.11, CA-4.7, E-23 y E-24: «Subir» y «Bajar» en el detalle. «Subir» y «Bajar» salen de §9. Cambian RF-019 (soltar sobre «Crear tarea» con la columna debajo guarda, como ya hacía el código) y RNF-001 (cita WCAG 2.5.7), además de §2 y §10. Ningún ID se elimina | Observaciones I-2 y M-4 de `/sdd-verificar` (`verificacion.md`, tercera); decisiones del usuario con `/sdd-cambiar-spec` |

@@ -1,7 +1,7 @@
 ---
 spec: 003
 plan_aprobado: 2026-10-31
-progreso: 39/43
+progreso: 39/49
 ---
 
 # Tareas · Spec 003 · Arrastrar y soltar
@@ -442,15 +442,9 @@ Resuelven `verificacion.md` (T-025, NO APTO), con las decisiones del usuario del
   - Cubre: C-17, C-19, RF-024, RF-025, CA-1.11, CA-1.12, CA-3.11, CA-3.12, CA-3.13, CA-4.6, E-21, E-22
   - Hecho cuando: hay un test cuyo título empieza por `003 ` para cada ID nuevo, con el criterio de T-024 (88 IDs en total, sin contar E-19); `pnpm test`, `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` en verde en los tres proyectos; el Registro tiene el recuento
 
-- [ ] **T-037** Volver a ejecutar `/sdd-verificar` (tercera verificación)
-  - Depende de: T-036 y T-040 a T-043
-  - Ficheros: `specs/003-arrastrar-y-soltar/verificacion.md`
-  - Cubre: todos (spec v3.1)
-  - Hecho cuando: el informe está escrito, en una sesión nueva si es posible; si sale APTO, la spec pasa a `implementada` con la confirmación del usuario
-
 ## Fase 7 · Correcciones de la segunda verificación
 
-Resuelven `verificacion.md` (segunda, APTO CON OBSERVACIONES), con las decisiones del usuario del 2026-11-01: I-1, I-2, el anillo de foco de M-1 y lo que M-5 dice de `plan.md`. La spec no cambia: RF-005, RF-011 y RNF-001 ya piden este comportamiento. Van en orden, porque comparten `e2e/drag-and-drop.spec.ts` y `plan.md`, y T-037 va después de todas. Cada una termina con `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde. Los fallos de `/signup` sin hidratar (M-7 de la 004) se anotan aparte y no cuentan como fallos de estas tareas.
+Resuelven `verificacion.md` (segunda, APTO CON OBSERVACIONES), con las decisiones del usuario del 2026-11-01: I-1, I-2, el anillo de foco de M-1 y lo que M-5 dice de `plan.md`. La spec no cambia: RF-005, RF-011 y RNF-001 ya piden este comportamiento. *Desde la tercera verificación (NO APTO), con la spec v4.0:* T-044 y T-045 entran aquí, porque corrigen el mismo código de arrastre; T-037 pasa al final de la fase 8. Van en orden, porque comparten `e2e/drag-and-drop.spec.ts` y `plan.md`. Cada una termina con `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde. Los fallos de `/signup` sin hidratar (M-7 de la 004) se anotan aparte y no cuentan como fallos de estas tareas.
 
 - [x] **T-040** No guardar si se suelta en el margen del tablero
   - Ficheros: `apps/web/src/lib/task-move.ts` (`collisionDetection`, `inVisibleColumn`), `apps/web/src/components/Board.tsx` (solo si hace falta un atributo para localizar el contenedor con scroll), `e2e/drag-and-drop.spec.ts`, `specs/003-arrastrar-y-soltar/plan.md` (**D-31**)
@@ -473,25 +467,57 @@ Resuelven `verificacion.md` (segunda, APTO CON OBSERVACIONES), con las decisione
 - [ ] **T-041** Volver a medir las tarjetas al cambiar la vista previa
   - Depende de: T-040
   - Ficheros: `apps/web/src/components/Board.tsx` (un componente pequeño dentro de `DndContext`), `apps/web/src/lib/task-move.ts` (comentario de `MEASURING`), `e2e/helpers.ts` (comentario de `dragCard`), `e2e/drag-and-drop.spec.ts`, `specs/003-arrastrar-y-soltar/plan.md` (D-9)
-  - Cubre: RF-007, RF-011, CA-2.5, RNF-002, RNF-004, E-4, D-9, D-20, D-21 (verificación I-2)
+  - Cubre: RF-007, RF-011, CA-2.5, RNF-002, RNF-004, E-4, D-9, D-21, D-32 (verificación I-2)
+  - *Acotada en la spec v4.0:* solo la nueva medida (D-32). La oscilación y su test pasan a T-044, y `pnpm test:e2e` en verde, a T-049. `RemeasureOnPreview` ya está en `64f500f` y D-9 y D-32 ya están en el plan.
   - Pasos:
     - `measureDroppableContainers` sale de `useDndContext`, que solo funciona dentro de `DndContext`, y `useTaskMove` está por encima. Por eso hace falta un componente pequeño dentro del contexto, que lo llame en un efecto de layout cuando cambie `drag.current` con el puntero. Sin ids vuelve a medir todas; si RNF-002 lo pide, solo las de las columnas afectadas;
     - sin romper el `memo` de D-21: ese componente no pinta nada y no pasa nada a las tarjetas;
-    - `plan.md`, D-9 «Medidas»: corregir la idea antigua, porque `MeasuringStrategy.Always` no vuelve a medir cuando las mismas tarjetas cambian de orden (T-035), y escribir cómo se hace ahora y si `Always` sigue haciendo falta;
-    - corregir los comentarios que repiten esa idea: `task-move.ts:78` y `e2e/helpers.ts:182`.
+    - decidir si `MeasuringStrategy.Always` sigue haciendo falta, y anotarlo en D-32;
+    - corregir los comentarios que repiten la idea antigua: `task-move.ts:78` y `e2e/helpers.ts:182`.
   - Casos:
-    - **Antes de cambiar nada**, sin un caso que falle siempre: `pnpm test:e2e e2e/drag-and-drop.spec.ts --project=webkit -g "003 CA-2.5" --repeat-each=200 --retries=0`, con el número de fallos reales en el Registro (la verificación midió 3 de 100);
-    - `003 RF-007 D-9` con un título de 200 caracteres entre tarjetas cortas y el puntero casi quieto sobre otra tarjeta, durante 500 ms: la vista previa no oscila, en `chromium` y `webkit`. Los rectángulos viejos podían estar tapando este riesgo (D-9, D-20). **Si oscila, parar y avisar**;
+    - **Antes de cambiar nada**, sin un caso que falle siempre: `pnpm test:e2e e2e/drag-and-drop.spec.ts --project=webkit -g "003 CA-2.5" --repeat-each=200 --retries=0`, con el número de fallos reales en el Registro (la verificación midió 3 de 100). Ya medido: 5 fallos reales de 200;
     - `003 RNF-002 D-9` en `chromium`, reordenar dentro de la columna de 200 tarjetas: ≤ 100 ms desde que se suelta. El test actual saca la tarjeta de esa columna.
   - Hecho cuando:
-    - `-g "003 CA-2.5"` en `webkit`, con `--repeat-each=300 --retries=0`, da **0 fallos reales**. Si no, **parar y avisar**: queda la opción 2 de I-2;
+    - `-g "003 CA-2.5"` en `webkit`, con `--repeat-each=300 --retries=0`, da **0 fallos reales**. Si no, **parar y avisar**. Ya medido: 0 de 300, anotado en el Registro;
     - RNF-002, los dos tests, ≤ 100 ms en tres ejecuciones seguidas en `chromium`, con los tiempos en el Registro (antes de esta tarea, 38,5 / 40,7 / 39 ms);
     - se anota lo que tarda un cambio de vista previa con 200 tarjetas: la spec no pone límite, pero si pasa de 100 ms, **avisar**;
     - `003 E-4` y `003 E-5` siguen en verde;
-    - `pnpm test:e2e` en verde en los tres proyectos, con los «flaky» identificados en el Registro.
+    - `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde. `003 RF-007 D-9` sigue en rojo hasta T-044.
+
+- [ ] **T-044** Corregir la oscilación: la tarjeta cambia de sitio solo al cruzar el centro de la de debajo
+  - Depende de: T-041
+  - Ficheros: `apps/web/src/lib/board-order.ts` (`placementFromOver`), `board-order.test.ts`, `apps/web/src/lib/task-move.ts` (`onDragOver`, `onDragMove`), `e2e/drag-and-drop.spec.ts`, `e2e/helpers.ts` (solo si hace falta para arrastrar hacia abajo)
+  - Cubre: RF-007, RF-011, CA-1.1, CA-2.1, CA-2.5, CA-4.3, RNF-002, RNF-004, D-9, D-20 (verificación B-1). D-9 y D-20 ya recogen la regla en el plan
+  - Pasos:
+    - en la misma columna, `placementFromOver` usa `below`: la tarjeta cruza a la de debajo solo si su centro ha pasado el de esa tarjeta; si no, queda a su lado, en el lado que marque ese centro. Su contrato no cambia;
+    - `onDragOver` y `onDragMove` usan esa misma regla;
+    - corregir los comentarios que dicen «como arrayMove» o «no oscila».
+  - Casos (unitarios primero):
+    - `003 D-9 RF-007` en `board-order.test.ts`, que hoy dice «como arrayMove»: hacia arriba y hacia abajo, con el centro cruzado y sin cruzar; encima de sí misma, no cambia;
+    - `003 D-9 RF-007` salto de varias tarjetas: el `over` a tres posiciones y sin cruzar su centro, queda al lado de esa tarjeta;
+    - `003 RF-007 D-9`, el E2E que ya existe, **sin cambiarlo**: pasa de rojo a verde en `chromium` y `webkit`;
+    - `003 RF-007 D-9` nuevo: el puntero salta varias tarjetas y se queda quieto, y el hueco queda al lado de la tarjeta de debajo, en `chromium` y `webkit`;
+    - `003 RF-007 D-9` nuevo: hacia abajo, tocar la siguiente sin llegar a su centro no cambia el orden, y cruzarlo, sí.
+  - Hecho cuando:
+    - `003 RF-007 D-9` pasa también con `--repeat-each=5 --retries=0`. **Si sigue oscilando, parar y avisar**;
+    - `003 CA-1.1`, `003 CA-2.1`, `003 CA-4.3` y `003 E-4` en verde, y `-g "003 CA-2.5"` en `webkit`, con `--repeat-each=200 --retries=0`, da 0 fallos reales;
+    - RNF-002, los dos tests, ≤ 100 ms en tres ejecuciones seguidas en `chromium`, con los tiempos en el Registro;
+    - cada E2E que haya que ajustar porque arrastre hacia abajo se anota en el Registro con el motivo.
+
+- [ ] **T-045** Con el dedo, no guardar si se suelta fuera justo tras cambiar de columna
+  - Depende de: T-044 (mismos ficheros)
+  - Ficheros: `apps/web/src/lib/task-move.ts`, `e2e/drag-and-drop.spec.ts`
+  - Cubre: RF-005, E-21, D-25, D-33 (verificación I-1). D-33 ya está en el plan; si la solución cambia, se corrige allí
+  - Casos (E2E primero, porque jsdom no calcula posiciones), en `chromium` y `webkit`, con 1280 px y `hasTouch`:
+    - `003 E-21 RF-005 D-33` llevar la tarjeta de To do a In progress con el dedo, esperar a que se pinte allí, y hacer el último `touchmove` y el `touchend` a la vez sobre el título: ninguna petición a `…/move`, la tarjeta en su sitio y sin aviso;
+    - `003 CA-4.1 D-33` soltar con el dedo dentro de In progress tras cambiar de columna: sí se guarda.
+  - Hecho cuando:
+    - el primer caso falla primero (la verificación midió 12 de 12 guardados), y se anota en el Registro;
+    - después pasan los dos, también con `--repeat-each=5 --retries=0`;
+    - `003 E-21`, `003 CA-4.3` y `003 CA-4.5` siguen en verde sin cambiarlos.
 
 - [ ] **T-042** Dar sitio al anillo de foco del asa de 768 a 1023 px
-  - Depende de: T-041
+  - Depende de: T-045
   - Ficheros: `apps/web/src/components/TaskCard.tsx` y `BoardColumn.tsx` (el que haga falta), `TaskCard.test.tsx`, `e2e/drag-and-drop.spec.ts`, `specs/003-arrastrar-y-soltar/plan.md` (D-11, si cambia lo que dice del asa)
   - Cubre: RNF-001, C-20, CA-3.1, CA-3.11, D-11 (verificación M-1, solo el anillo)
   - Pasos: el anillo necesita 4 px alrededor del asa (`outline` 2 + `offset` 2). Se le da sitio llevando el asa hacia dentro, como ya hace desde 1024 px, ajustando el relleno del botón de abrir para que no tape el título, o con más relleno en la lista. La opción elegida y el motivo van al Registro. Solo valores del catálogo, sin `style=` (ADR-0003).
@@ -516,6 +542,68 @@ Resuelven `verificacion.md` (segunda, APTO CON OBSERVACIONES), con las decisione
     - §4.4: añadir la fila de `apps/web/src/components/PrivateArea.tsx`: tablero si hay datos (D-30) y `scroll-padding` de `main` (D-23), «Modificado»;
     - §4.5, «Asa»: el icono de 16 px se apoya en `DESIGN.md` §11.3, no en §9, que pide el 40 % del diámetro en los botones de icono (17,6 y 12,8 px).
   - Hecho cuando: `git diff` de esta tarea solo cambia esas dos partes; `pnpm lint` en verde.
+
+## Fase 8 · Spec v4.0: ordenar sin arrastrar y soltar sobre «Crear tarea»
+
+Resuelven `verificacion.md` (tercera, NO APTO), con las decisiones del usuario del 2026-11-01: I-2 (WCAG 2.5.7) y M-4. Cada una termina con `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde.
+
+- [ ] **T-046** Probar que soltar sobre «Crear tarea» guarda si la columna está debajo
+  - Depende de: T-043
+  - Ficheros: `e2e/drag-and-drop.spec.ts`
+  - Cubre: RF-019, CA-4.5, CA-4.7, D-35 (verificación M-4). Sin cambio de código: la verificación lo midió con ratón y 12 tarjetas
+  - Casos, en los tres proyectos, a 375 px, con ratón y con el dedo:
+    - `003 CA-4.7 RF-019` con 12 tarjetas, soltar sobre «Crear tarea»: una petición a `…/move`, la tarjeta en el sitio del hueco justo antes de soltar y sin diálogo de crear abierto;
+    - `003 CA-4.7 RF-019` con 3 tarjetas, donde la columna termina antes del botón: ninguna petición, la tarjeta en su sitio y sin aviso ni diálogo.
+  - Hecho cuando: pasan los dos, con ratón y con el dedo. **Si alguno falla, parar y avisar**: el dedo y la columna corta no se han medido, y sería un cambio de código.
+
+- [ ] **T-047** Añadir «Subir» y «Bajar» al detalle de la tarea
+  - Depende de: T-046
+  - Ficheros: `apps/web/src/components/TaskDialog.tsx`, `TaskDialog.test.tsx`, `Button.tsx`, `Button.test.tsx`, `Board.tsx`, `Board.test.tsx` (solo si hace falta), `apps/web/src/lib/task-messages.ts`, `task-messages.test.ts`
+  - Cubre: RF-026, RF-027, RF-028, RF-029, CA-5.1, CA-5.2, CA-5.4 a CA-5.11, E-23, E-24, D-34
+  - Pasos (tests primero):
+    - `Button` gana `inactive`, a opacidad .45, sin `disabled`, para que conserve el foco (D-34);
+    - `Board` pasa `tasks` a `TaskDialog`;
+    - el bloque va en la carpeta Datos, debajo del estado, solo al editar: el texto con `movedText`, en un `<p aria-live="polite">`, y los dos botones glass;
+    - `MOVE_NEEDS_SAVE` en `task-messages.ts`, con el texto exacto de RF-028.
+  - Casos, en `TaskDialog.test.tsx` con la ruta `POST /api/tasks/<id>/move`:
+    - `003 CA-5.1 RF-026` posición, botones y que al crear no aparecen;
+    - `003 CA-5.2 RF-027` «Subir» manda `index` 0 y el texto cambia, sin cerrar el diálogo, y `003 RF-027` con otra pulsación durante el guardado no se manda otra petición;
+    - `003 CA-5.4 RF-026` con Enter y con Espacio, el foco sigue en el botón y cambia la región viva;
+    - `003 CA-5.5 RF-028` en los bordes: `aria-disabled`, ninguna petición y el foco se conserva al llegar al borde;
+    - `003 CA-5.6 RF-027` conserva el título escrito, «Cancelar» pregunta y, al descartar, la posición se queda;
+    - `003 CA-5.7 RF-027` sin otros cambios, «Cancelar» cierra sin preguntar;
+    - `003 CA-5.8 RF-028` con el estado cambiado, botones inactivos y el texto, y al volver al estado se activan;
+    - `003 CA-5.9 RF-029` con `NetworkError` y con 500: vuelve el texto de antes, aviso en la alerta del diálogo, y sigue abierto;
+    - `003 CA-5.10 RF-029` con `TASK_NOT_FOUND`: `onClose` con `notFound`;
+    - `003 CA-5.11 RF-027` guardar sin cambiar el estado conserva la posición: en `tasks.update.test.ts` ya está cubierto en la API, aquí que el `PUT` no lleva posición;
+    - `003 E-23 RF-028` única de su columna, y `003 E-24` el `index` sale de la lista recibida.
+  - Hecho cuando: los casos pasan; los tests de `TaskDialog` de la 002 siguen en verde, solo pasando `tasks` al montarlo; `design-rules.test.ts` en verde sin cambiarlo.
+
+- [ ] **T-048** Probar «Subir» y «Bajar» de punta a punta y actualizar `DESIGN.md`
+  - Depende de: T-047
+  - Ficheros: `e2e/drag-and-drop.spec.ts`, `DESIGN.md`
+  - Cubre: RF-026 a RF-029, CA-5.2, CA-5.3, CA-5.4, CA-5.9, CA-5.10, RNF-001, RNF-004, C-26
+  - Casos, en los tres proyectos:
+    - `003 CA-5.2 RF-027` con clic, cerrar y volver a cargar: el orden se mantiene;
+    - `003 CA-5.3 RF-027` con toque a 375 px, en el panel inferior;
+    - `003 CA-5.4 RF-026` solo con teclado: foco y anuncio;
+    - `003 CA-5.9 RF-029` con `page.route` abortando `…/move`;
+    - `003 CA-5.10 RF-029` con la tarea borrada de verdad: el foco en «Crear tarea»;
+    - `003 RNF-001` axe con el detalle abierto, con un botón inactivo y el texto de RF-028, en claro y oscuro, y «Subir» y «Bajar» de 44 px de alto a 375 y 1280.
+  - Pasos: `DESIGN.md` §11.4 y el historial, a `1.5.0-todo.1` (plan §4.6).
+  - Hecho cuando: los casos pasan; en una captura a 1280 y otra a 375, en claro y en oscuro, el bloque se ve como dice §11.4, anotado en el Registro.
+
+- [ ] **T-049** Comprobar la trazabilidad de los IDs nuevos y la suite completa
+  - Depende de: T-041 a T-048
+  - Ficheros: tests existentes (solo si falta alguno)
+  - Cubre: C-17, C-19, RF-026 a RF-029, CA-4.7, CA-5.1 a CA-5.11, E-23, E-24
+  - Hecho cuando: hay un test cuyo título empieza por `003 ` para cada ID, con el criterio de T-024 (106 IDs, sin contar E-19); `pnpm test`, `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` en verde en los tres proyectos, con los «flaky» identificados; el Registro tiene el recuento.
+
+- [ ] **T-037** Volver a ejecutar `/sdd-verificar` (cuarta verificación)
+  - Depende de: T-036 y T-040 a T-049. **Es la última tarea**
+  - Ficheros: `specs/003-arrastrar-y-soltar/verificacion.md`
+  - Cubre: todos (spec v4.0)
+  - Hecho cuando: el informe está escrito, en una sesión nueva si es posible; si sale APTO, la spec pasa a `implementada` con la confirmación del usuario
 
 ## Registro
 
@@ -567,3 +655,6 @@ Resuelven `verificacion.md` (segunda, APTO CON OBSERVACIONES), con las decisione
 | — | | 2026-11-01, `/sdd-cambiar-spec` por la observación M-4, con la decisión del usuario. Spec v3.1: RF-023 recoge la condición de D-26 al fallar el guardado; al cancelar, se vuelve siempre. Sin cambio de comportamiento ni de código: lo cubre `003 RF-023 D-26`. Ninguna tarea nueva, a rehacer ni obsoleta. M-4 deja de estar sin tarea: la tercera verificación (T-037) comprueba que queda resuelta |
 | T-040 | | D-31: `inVisibleColumn` recorta el rectángulo de cada columna con el del tablero, su padre, y lo usan `collisionDetection` y `onDragEnd`: ningún atributo nuevo, así que `Board.tsx` no cambia. E2E primero, 9 tests en `chromium` y `webkit`: con el código de antes fallaban 12 de 18, con la tarea guardada en el margen a 768 sin esperar en los dos navegadores (lo que midió la verificación) y con el hueco en In progress o Done; E-5 y `003 RF-001 D-31` ya pasaban, porque describen lo que no cambia. Después, 18 de 18 y, con `--repeat-each=5 --retries=0`, 90 de 90. **Dos ajustes en la comprobación de la tarea:** (1) a 1024 solo sobran unos 200 px, y `chromium` a los 100 ms ya puede haber llegado al final, así que ese caso no comprueba que siga recortado (la verificación ya lo midió así); los demás, sí; (2) la vista previa se mira en cada fotograma, porque sin el cambio también acaba volviendo al origen al terminar el scroll. `003 CA-1.7`, `003 CA-4.5`, `003 RF-019`, `003 E-5` y `003 E-21` siguen en verde sin cambiarlos en los tres proyectos: 23 pasan, 9 saltados y 1 fallo en `webkit`, en `toHaveURL` de `signup`, antes de llegar al tablero (M-7, no cuenta, según la fase 7); ese test, 5 de 5 al repetirlo. `pnpm test` (897), `pnpm lint` y `pnpm typecheck` en verde |
 | T-041 | | **Sin cerrar, lote parado: pendiente de la decisión del usuario.** La tarea dice «si oscila, parar y avisar», y oscila. **Medida inicial** (`webkit`, `-g "003 CA-2.5" --repeat-each=200 --retries=0`, ya con T-040): 5 fallos reales, los 5 con «Llamar al banco» antes de «Preparar la demo», y 3 de `/signup` sin hidratar (M-7). **Con `RemeasureOnPreview` en `Board.tsx`** (efecto de layout que llama a `measureDroppableContainers([])` cuando cambia `drag.current` con el puntero), `--repeat-each=300`: **0 fallos reales** y 3 de `/signup`, todos en `openBoard`. I-2 queda corregido. **Oscilación:** `003 RF-007 D-9` falla en `chromium` y `webkit`, y **ya fallaba antes del cambio**: a media altura del título largo, 16 y 4 cambios de orden antes, y 16 y 2 después, en 500 ms, con un temblor de ±1 px. Sonda temporal, ya borrada, con «Corta uno» sobre una tarjeta de 243 px, en una malla de 6 px, bajando y subiendo: **con el puntero quieto, 0 cambios en todas las posiciones**; con el temblor, de 2 a 9 cambios en una o dos posiciones (a unos 40-46 px del borde superior en los dos navegadores y, solo con la medida nueva, a 130 px en `webkit`). Sin medir, las mismas cerca de 40 px. Con dos tarjetas de la misma altura (63 px), 0 cambios en esa malla, que puede saltarse franjas: la sonda no vio la de media altura que sí ve el test. Causa probable, por la lectura del código y sin confirmar: en la misma columna, `onDragOver` lleva la tarjeta al índice de la de debajo sin mirar de qué lado está el centro (D-9), y `onDragMove` la devuelve al cruzar (D-20); D-9 y D-20 dicen que no oscila, y no es cierto con alturas distintas. **Rendimiento, una sola pasada, no las tres que pide la tarea:** soltar entre columnas, 36,2 ms antes y 36,6 ms después; reordenar en la columna de 200, 38,4 y 40,5 ms; un cambio de vista previa, 32,9 y 41 ms. **Falta:** decidir la oscilación, RNF-002 tres veces, E-4 y E-5, `pnpm test:e2e` completo, D-9 en el plan y los comentarios de `task-move.ts` y `e2e/helpers.ts`, y si `Always` sigue haciendo falta. `003 RF-007 D-9` se queda en rojo a propósito hasta entonces |
+| — | | 2026-11-01, **M-3 de la segunda verificación, comprobado por el usuario en Safari real:** en tema oscuro, al arrastrar una tarjeta por encima de otra, la capa se ve correcta, así que no hace falta subir su opacidad. Es una comprobación a ojo, sin medir el contraste, y solo sobre otra tarjeta: la capa sobre «Crear tarea» no se ha mirado. La sonda de la verificación daba ahí 4,39:1 en el `webkit` de Playwright, y no se sabe si Safari se comporta igual |
+| T-037 | b8924dd | **Tercera verificación; T-037 sigue pendiente hasta la cuarta.** `verificacion.md`: **NO APTO**, en una sesión nueva. Se lanzó antes de terminar T-041 a T-043. Bloqueantes: **B-1**, `003 RF-007 D-9` en rojo por la oscilación, y **B-2**, T-041 a T-043 sin hacer. Importantes: **I-1**, E-21 con el dedo guarda (12 de 12), e **I-2**, WCAG 2.5.7 al ordenar una columna. Menores: M-1 a M-7. `pnpm test` (897), `pnpm lint` y `pnpm typecheck` en verde; `pnpm test:e2e` con 325 pasan, 33 saltados y 2 fallan; CA-2.5 en `webkit`, 0 fallos reales de 200; RNF-002: 39 / 36,4 / 36,4 ms entre columnas y 67,8 / 40,4 / 40,1 ms en la columna de 200. Sondas temporales, fuera del repositorio |
+| — | | 2026-11-01, `/sdd-cambiar-spec` tras la tercera verificación, con las decisiones del usuario. **Spec v4.0:** HU-5, RF-026 a RF-029, CA-5.1 a CA-5.11, CA-4.7, E-23 y E-24 («Subir» y «Bajar» en el detalle, al momento, y sin efecto con el estado cambiado sin guardar; I-2); RF-019 (soltar sobre «Crear tarea» con la columna debajo guarda; M-4). **Plan:** cambian D-9 y D-20 (cruzar el centro; B-1) y D-25; nuevas D-32 (`RemeasureOnPreview`, el arreglo de «caer una posición más abajo»), D-33 (I-1), D-34 y D-35. **Tareas:** nuevas T-044 a T-049; T-041 se acota a la nueva medida; T-042 pasa a depender de T-045; T-037 pasa al final, como cuarta verificación. Ninguna tarea `[x]` se rehace ni queda obsoleta. **Lo que la regla de cruzar el centro añade, propuesto en el análisis y confirmado por el usuario:** si el puntero salta varias tarjetas, queda al lado de la de debajo. **Sin tarea:** M-1 (sombra), M-3 y M-5; volverán a salir en la verificación. M-3 pesa más con D-35, porque la capa pasa sobre «Crear tarea» |
