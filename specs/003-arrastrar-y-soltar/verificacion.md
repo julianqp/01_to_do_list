@@ -1,61 +1,62 @@
-# Verificación · Spec 003 · 2026-11-01 (segunda)
-Resultado: **APTO CON OBSERVACIONES**
+# Verificación · Spec 003 · 2026-11-01 (tercera)
+Resultado: **NO APTO**
 
 ## Resumen
 
-- **Motivo:** no hay bloqueantes y el bloqueante anterior (B-1) está resuelto. Quedan dos problemas importantes, porque en ambos se guarda un movimiento que la spec dice que no debe guardarse o que cae en otro sitio:
-  - **I-1:** soltar en el margen del tablero, de 768 a 1279 px, guarda el movimiento en vez de cancelarlo (RF-005). Se ve en `chromium` y en `webkit`.
-  - **I-2:** en `webkit`, al salir de la columna y volver, la tarjeta puede caer una posición más abajo y guardarse (RF-011, CA-2.5). Es el fallo de T-035, que sigue sin corregir: 3 de 100 en el test de la suite.
-- **Decisión pendiente:** T-036 dejó I-2 y el cuelgue M-2 «pendientes de la decisión del usuario antes de T-037». No hay ninguna decisión anotada, así que aquí siguen abiertos.
-- **Independencia:** auditoría hecha en una sesión nueva, sin haber escrito el código. Se repitieron todas las comprobaciones y se leyó el código de producción de `main...HEAD` (`17af22e`). Los fallos que el Registro daba por conocidos se volvieron a medir.
-- **Alcance revisado:** `spec.md` v3.0, `plan.md` (hasta D-30), `tasks.md` (38/39 antes de este informe), constitución v1.1 y `DESIGN.md` 1.4.0-todo.1. Sustituye al informe de T-025 (NO APTO), que sigue en el historial de git (`860d1de`).
+- **Motivo:** la suite E2E termina en rojo y la fase 7 está sin cerrar.
+  - **B-1:** `003 RF-007 D-9` falla en `chromium` y `webkit`: con un título largo y un temblor de ±1 px, la vista previa oscila. T-041 lo dejó parado, pendiente de la decisión del usuario, y ese test sigue en rojo a propósito.
+  - **B-2:** T-041, T-042 y T-043 no están hechas. T-037 depende de ellas, así que **esta verificación se ha lanzado antes de tiempo** y no cierra T-037.
+- **Lo nuevo de esta auditoría:** dos problemas importantes que los tests no ven.
+  - **I-1:** con el dedo, si se suelta fuera justo al salir de una columna a la que ya se había pasado la tarjeta, el movimiento se guarda (E-21, RF-005). 12 de 12 en `chromium` y `webkit`. La protección de D-25 no funciona con el dedo en ese caso.
+  - **I-2:** ordenar una columna solo se puede hacer arrastrando o con teclado, y WCAG 2.2 AA pide también una forma con un solo puntero sin arrastrar (criterio 2.5.7). RNF-001 y C-20 piden ese nivel, y §9 de la spec deja fuera la alternativa. **Lo tiene que decidir el usuario.**
+- **Lo que mejora:** los dos importantes de la segunda verificación están corregidos en lo medido: soltar en el margen ya no guarda (D-31) y CA-2.5 da 0 fallos reales de 200 en `webkit`.
+- **Independencia:** auditoría hecha en una sesión nueva, sin haber escrito el código. Se volvieron a ejecutar la suite y las medidas, y se leyó el código de producción de `main...HEAD` (`64f500f`).
+- **Alcance revisado:** `spec.md` v3.1, `plan.md` (hasta D-31), `tasks.md` (39/43), constitución v1.1 y `DESIGN.md` 1.4.0-todo.1. Sustituye al informe de la segunda verificación, que sigue en el historial de git (`406a678`). El cambio sin confirmar de `tasks.md` (nota sobre M-3) se lee como una anotación del usuario.
 
 | Comprobación | Resultado |
 |---|---|
 | `pnpm test` | ✅ 40 ficheros, 897 tests en verde |
 | `pnpm lint` | ✅ ESLint y Prettier sin errores |
 | `pnpm typecheck` | ✅ 0 errores y 5 sugerencias (`hints`) de Astro |
-| `pnpm test:e2e` (4 ficheros × `chromium`, `chrome`, `webkit`) | ✅ Termina con código 0: 305 pasan, 21 saltados (los previstos) y 1 *flaky* en `webkit`, `design-system.spec.ts` CA-4.3 de la spec 004, que pasó al reintentar. `webkit` lleva `retries: 1` ([playwright.config.ts](../../playwright.config.ts)), que puede ocultar I-2 |
+| `pnpm test:e2e` (4 ficheros × `chromium`, `chrome`, `webkit`) | ❌ **Termina con código 1:** 325 pasan, 33 saltados y 2 fallan, los dos `003 RF-007 D-9` (15 cambios de orden en `chromium` y 2 en `webkit`, con 1 como máximo). Sin *flaky* en esta pasada |
 | Trazabilidad | ✅ 88/88 IDs con al menos un test cuyo título empieza por `003 ` (89 contando E-19, que es manual) |
-| Suite de la API, 25 veces seguidas | ✅ 25 de 25, 123 tests cada vez. Ver M-2 |
-| `003 CA-2.5` en `webkit`, 100 veces, sin reintentos | ❌ 97 pasan y 3 fallan (I-2) |
-| RNF-002, 3 veces | ✅ 38,5 / 40,7 / 39 ms |
-| E-19 | ✅ La migración no ha cambiado desde que se comprobó en T-002 y en la verificación anterior (`git log`). No se repitió |
-| Restos | ✅ Sin `console.log`, `TODO`, `FIXME` ni `any` en los ficheros de producción de la spec ni en sus E2E. `.env` no está en el repositorio |
+| `003 CA-2.5` en `webkit`, 200 veces, sin reintentos | ✅ 196 pasan y 4 fallan, los 4 en `/signup` sin hidratar, antes de llegar al tablero (M-7 de la 004). **0 fallos reales** |
+| RNF-002 entre columnas, 3 veces | ✅ 39 / 36,4 / 36,4 ms |
+| RNF-002 reordenando en la columna de 200, 3 veces | ✅ 67,8 / 40,4 / 40,1 ms |
+| Cambio de vista previa con 200 tarjetas (sin límite en la spec) | 43 / 41,3 / 40,5 ms |
+| E-19 | ✅ Leída la migración: el relleno da el mismo orden que la lectura. Solo tiene un commit (`1814324`), el que se comprobó en T-002. No se repitió |
+| Restos | ✅ Sin `console.log`, `TODO`, `FIXME`, `any` ni `.only` en los ficheros de producción de la spec ni en sus E2E |
 
-**Sondas temporales.** Para lo que la suite no cubre se ejecutaron dos ficheros E2E en `chromium` y `webkit` y uno de la API. Ya están borrados y no forman parte de la suite. En este informe, «sonda» significa que la evidencia sale de ahí y que **ningún test del repositorio la protege**. Una primera medida de contraste se descartó porque incluía las esquinas redondeadas de la capa, y se repitió solo sobre la caja del texto.
+**Saltados:** 27 en `chrome` y 6 en `webkit`, 12 más que en la segunda verificación. Coincide con lo que piden T-040 y T-041 (solo `chromium` y `webkit`), pero no se han revisado uno a uno.
+
+**Sondas temporales.** Para lo que la suite no cubre se ejecutaron dos ficheros E2E en `chromium` y `webkit`, fuera del repositorio. En este informe, «sonda» significa que la evidencia sale de ahí y que **ningún test del repositorio la protege**.
 
 **Comprobado por sonda, sin problemas:**
 
-- Soltar sobre la cabecera a 375 px con `main` desplazado no guarda (RF-019).
-- El margen izquierdo a 1024 px, con el tablero desplazado, no guarda.
-- Reordenar hacia abajo cae donde indica el destino y se mantiene al volver a cargar (RF-007).
-- La capa mide igual que la tarjeta en reposo, también con 200 caracteres (E-6).
-- `index` de hasta 2^53 − 1 → 200, al final de la columna (D-3).
-- Entre 4 y 40 creaciones a la vez, sin posiciones repetidas y sin errores (D-2).
-- El test de E-16 también pasa lanzado con `TZ=UTC` y `TZ=America/New_York`, así que no depende de la zona de la máquina.
+- Soltar en el hueco de 16 px entre dos columnas a 1280 no guarda.
+- Arrastrar con ratón desde el asa guarda y no abre el detalle.
+- Con el dedo, salir de la columna, esperar 500 ms y soltar no guarda.
+- RF-024 entre columnas a 768: en cada flecha, el asa queda dentro de la ventana y sin tapar.
+- Soltar sobre la cabecera, a 375 con `main` desplazado (12 y 40 tarjetas) y a 1024 × 420, no guarda. **Con una reserva:** `inVisibleColumn` solo recorta en horizontal. A 375 no guarda porque el scroll automático ya ha sacado la columna de debajo de la cabecera al soltar, y a 1024 × 420 porque `main` no hace scroll.
 
 **Límites de esta auditoría:**
 
-- Los anuncios se comprueban por el texto de la región viva, no por lo que dice un lector de pantalla (D-22, riesgo aceptado). El riesgo de D-24, que un lector envíe su activación como un clic de puntero, tampoco se puede descartar.
-- El arrastre con el dedo se comprueba con emulación táctil, como pide RNF-004. En `webkit` usa eventos sintéticos (D-17), que no hacen scroll: CA-4.2 no corre ahí (R-6).
-- La checklist §21 no se repitió entera. Se revisaron 6 capturas: en `chromium`, 375 y 768 en claro y 1280 en oscuro con la tarjeta cogida, y 1280 en oscuro con arrastre; en `webkit`, 1280 en oscuro con arrastre, dos veces. Sin «aumentar contraste». El resto se apoya en la nota de T-023, anterior a D-27.
-- Sin Safari real: ver M-3.
+- Los anuncios se comprueban por el texto de la región viva, no por lo que dice un lector de pantalla (D-22, riesgo aceptado). El riesgo de D-24 tampoco se puede descartar.
+- El arrastre con el dedo se comprueba con emulación táctil, como pide RNF-004. En `webkit` usa eventos sintéticos (D-17). En `chromium`, eventos de CDP, que Chromium trata como reales.
+- La checklist §21 no se repitió, y no se hicieron capturas nuevas. `TaskCard.tsx` y `BoardColumn.tsx` no han cambiado desde la segunda verificación, así que el anillo cortado y el contraste de la capa se citan de sus medidas.
+- Sin Safari real por parte de esta auditoría: ver M-3.
 
 ### Problemas de la verificación anterior
 
 | Problema | Estado | Comprobación |
 |---|---|---|
-| B-1 (la tarjeta sale de la vista) | ✅ Resuelto | E2E de CA-3.11 a 1280 × 900, 1280 × 720 y 375, en `chromium` y `webkit` |
-| I-1 (clic en el asa) | ✅ Resuelto | Spec v2.0, D-24, CA-1.11 y CA-4.6 |
-| M-1 (soltar fuera en el mismo fotograma) | ✅ Resuelto | E-21, 6 veces por test. Sigue abierto en el margen del tablero: I-1 de este informe |
-| M-2 (foco perdido) | ✅ Resuelto | CA-3.12 y CA-3.13, también con toda la API caída |
-| M-3 (estados del asa) | ✅ Resuelto | D-27 |
-| M-4 (desviaciones sin anotar) | ✅ Resuelto | D-7, D-10 y §4.3 las recogen. Queda D-9: ver I-2 |
-| M-5 (copia de datos en estado) | ✅ Resuelto | `drag` y `landing` guardan id y posiciones ([task-move.ts:46-54](../../apps/web/src/lib/task-move.ts#L46-L54)) |
-| M-6 (commits) | ⚠️ En parte | Hash por tarea desde T-026; T-029 a T-031 comparten `9b6eb86`, anotado en el Registro |
-| M-7 (cobertura) | ✅ Resuelto | T-034 |
-| M-8 (limpieza) | ✅ Resuelto | `task-messages.ts` no importa `components/`; una sola idea de animar en el roadmap |
+| I-1 (soltar en el margen) | ✅ Resuelto | D-31; los tests `003 … D-31` pasan en `chromium` y `webkit` |
+| I-2 (caer una posición más abajo) | ✅ Resuelto en lo medido, sin documentar | 0 fallos reales de 200 aquí y de 300 en T-041, con `RemeasureOnPreview`. T-041 sigue abierta y el plan no lo recoge (M-2) |
+| M-1 (anillo y sombra recortados) | ❌ Abierto | El anillo es T-042, sin hacer. La sombra, sin tarea por decisión del usuario |
+| M-2 (cuelgue de escrituras a la vez) | ⚠️ Sin tarea | M-5 de este informe. `pnpm test` pasó una vez, sin E2E a la vez |
+| M-3 (contraste en Safari) | ⚠️ En parte | Comprobado a ojo por el usuario sobre otra tarjeta. Ver M-3 de este informe |
+| M-4 (RF-023 frente a D-26) | ✅ Resuelto | Spec v3.1, que coincide con [task-move.ts:213](../../apps/web/src/lib/task-move.ts#L213) y con `003 RF-023 D-26` |
+| M-5 (documentos) | ❌ Abierto | M-6 de este informe. Es T-043, sin hacer, y las filas del roadmap, que se añaden al cerrar |
 
 ## Matriz de verificación
 
@@ -66,16 +67,16 @@ Leyenda: ✅ cumple · ⚠️ parcial · ❌ no cumple · ❓ no verificable. To
 | ID | Código | Test | Veredicto |
 |---|---|---|---|
 | RF-001 | `task-move.ts` `commit`; `tasks.service.moveTask`; `task.repository.moveTaskOfUser` | `move`, `Board`, `order`, `e2e` | ✅ |
-| RF-002 | `Board.tsx` `DragOverlay`; `TaskCard.tsx` variantes | `TaskCard`, `BoardColumn`, `e2e` | ✅ |
+| RF-002 | `Board.tsx` `DragOverlay`; `TaskCard.tsx` variantes | `TaskCard`, `e2e` | ✅ |
 | RF-003 | `shared` `actualEndDateAfterMove`; `today = todayLocal()` | `shared`, `move`, `service`, `Board`, `queries`, `e2e` | ✅ |
 | RF-004 | Ídem | `shared`, `move`, `service`, `Board`, `queries`, `e2e` | ✅ |
-| RF-005 | `onDragOver`, `onDragCancel`, `inVisibleColumn` | `e2e` (CA-1.7, E-21, CA-4.5) | ⚠️ No se cumple en el margen del tablero, de 768 a 1279 px (I-1) |
+| RF-005 | `onDragOver`, `onDragCancel`, `inVisibleColumn` (D-31) | `e2e` (CA-1.7, D-31, E-21, CA-4.5) | ⚠️ Con ratón cumple, también en el margen. Con el dedo, no al soltar en el mismo instante (I-1) |
 | RF-006 | `TaskCard.tsx` botón de abrir y `event.detail` en el asa; `MouseSensor` `distance: 5` | `TaskCard`, `e2e` | ✅ |
-| RF-007 | `makeRoom`; `stepPlacement`; `placementFromOver` | `move`, `service`, `Board`, `order`, `e2e` | ⚠️ En `webkit`, la vista previa puede quedar una posición más abajo (I-2) |
+| RF-007 | `makeRoom`; `stepPlacement`; `placementFromOver` | `move`, `service`, `Board`, `order`; `e2e`, **`003 RF-007 D-9` falla** | ⚠️ Coloca bien, pero la vista previa oscila (B-1) |
 | RF-008 | `columnOrder` en `findTasksByUser` | `list`, `e2e` | ✅ |
 | RF-009 | `createTask` con `makeRoom(backlog, 0)` | `create` | ✅ |
 | RF-010 | `updateTask` con `toTop` | `list`, `update` | ✅ |
-| RF-011 | `commit` con `samePlacement` | `Board`, `order`, `e2e` | ⚠️ `samePlacement` funciona, pero I-2 hace que el sitio no sea el mismo |
+| RF-011 | `commit` con `samePlacement`; `RemeasureOnPreview` | `Board`, `order`, `e2e` | ✅ 0 fallos reales de 200 en `webkit` |
 | RF-012 | `TaskCard.tsx` asa | `TaskCard`, `e2e` | ✅ |
 | RF-013 | `clickHandle`; `pickedText` | `Board`, `TaskCard`, `messages`, `e2e` | ✅ |
 | RF-014 | `keyDownOnHandle`; `stepPlacement`; `movedText` | `Board`, `order`, `messages`, `e2e` | ✅ |
@@ -83,12 +84,12 @@ Leyenda: ✅ cumple · ⚠️ parcial · ❌ no cumple · ❓ no verificable. To
 | RF-016 | `clickHandle`; `focusedHandle`; `droppedText` | `Board`, `messages`, `e2e` | ✅ |
 | RF-017 | `cancel`; `leaveHandle` en diferido | `Board`, `messages`, `e2e` | ✅ |
 | RF-018 | `TouchSensor` `{ delay: 250, tolerance: 5 }` | `e2e` (CA-4.2 sin `webkit`, R-6) | ✅ |
-| RF-019 | Columnas ocultas sin medidas (D-13); `inVisibleColumn` | `e2e`, con ratón y con el dedo | ✅ |
+| RF-019 | Columnas ocultas sin medidas (D-13); `inVisibleColumn` | `e2e`, con ratón y con el dedo | ⚠️ Soltar sobre «Crear tarea» guarda (M-4); hay que decidir si eso es «fuera» |
 | RF-020 | `useMoveTask.onMutate`; `landing` | `queries`, `e2e` | ✅ |
-| RF-021 | `onError`; `onSettled` sin esperar (D-29); `moveErrorText` | `Board`, `queries`, `messages`, `e2e` con la API caída | ✅ |
+| RF-021 | `onError`; `onSettled` sin esperar (D-29); `moveErrorText` | `Board`, `queries`, `e2e` con la API caída | ✅ |
 | RF-022 | `onError` con `isTaskNotFound`; `onTaskGone` (D-26) | `move`, `Board`, `queries`, `messages`, `e2e` con borrado real | ✅ |
-| RF-023 | `onMobileColumn` (D-13, D-26) | `Board`, `e2e` | ⚠️ Solo vuelve a la columna si el foco sigue en el asa; la spec no lo condiciona (M-4) |
-| RF-024 | `scrollIntoView` (D-23); `max-md:scroll-pb-24` | `e2e` | ✅ |
+| RF-023 | `onMobileColumn` (D-13, D-26) | `Board`, `e2e` | ✅ Coincide con la spec v3.1 |
+| RF-024 | `scrollIntoView` (D-23); `max-md:scroll-pb-24` | `e2e`. Sonda: entre columnas a 768 | ✅ |
 | RF-025 | `PrivateArea` por `tasks.data` (D-30) | `PrivateArea`, `e2e` | ✅ |
 
 ### Criterios de aceptación
@@ -99,21 +100,21 @@ Leyenda: ✅ cumple · ⚠️ parcial · ❌ no cumple · ❓ no verificable. To
 | CA-1.2 | `e2e` | ✅ |
 | CA-1.3 | `e2e` | ✅ |
 | CA-1.4 | `Board`, `queries`, `e2e` con ratón | ✅ |
-| CA-1.5 | `move`, `Board`, `e2e` con ratón. Con la fecha de hoy en vez del 27/10, sin cambiar lo que se comprueba | ✅ |
+| CA-1.5 | `move`, `Board`, `e2e` con ratón | ✅ |
 | CA-1.6 | `e2e` | ✅ |
-| CA-1.7 | `e2e`, soltando sobre el título | ⚠️ I-1 |
+| CA-1.7 | `e2e`, sobre el título y en el margen (D-31) | ✅ |
 | CA-1.8 | `TaskCard`, `e2e` | ✅ |
-| CA-1.9 | `Board`, `e2e` | ✅ |
+| CA-1.9 | `e2e` | ✅ |
 | CA-1.10 | `Board`, `e2e` con borrado real | ✅ |
 | CA-1.11 | `TaskCard`, `e2e` | ✅ |
-| CA-1.12 | `e2e` con `**/api/**` abortado, en `chromium` y `webkit` | ✅ |
+| CA-1.12 | `e2e` con `**/api/**` abortado | ✅ |
 | CA-2.1 | `move`, `e2e` | ✅ |
 | CA-2.2 | `list`, `e2e` (otro contexto de navegador) | ✅ |
 | CA-2.3 | `create` | ✅ |
 | CA-2.4 | `update` | ✅ |
-| CA-2.5 | `Board`, `e2e` | ⚠️ **Falla 3 de 100 en `webkit`** (I-2); pasa la suite porque reintenta |
+| CA-2.5 | `Board`, `e2e`; 200 veces en `webkit` | ✅ |
 | CA-2.6 | `Board`, `e2e` con ratón | ✅ |
-| CA-3.1 | `TaskCard`, `e2e` (foco visible real) | ✅ |
+| CA-3.1 | `TaskCard`, `e2e` (foco visible real) | ⚠️ De 768 a 1023 px, el anillo se corta por la derecha (M-1) |
 | CA-3.2 | `Board`, `TaskCard`, `messages`, `e2e` | ✅ |
 | CA-3.3 | `Board`, `order`, `messages` | ✅ |
 | CA-3.4 | `Board`, `order`, `messages`, `e2e` | ✅ |
@@ -130,18 +131,18 @@ Leyenda: ✅ cumple · ⚠️ parcial · ❌ no cumple · ❓ no verificable. To
 | CA-4.2 | `e2e`, en `chromium` y `chrome` (R-6) | ✅ En `webkit`, sin prueba |
 | CA-4.3 | `e2e`, en los tres proyectos | ✅ |
 | CA-4.4 | `e2e`, en los tres proyectos | ✅ |
-| CA-4.5 | `e2e`, en los tres proyectos | ✅ |
+| CA-4.5 | `e2e`, en los tres proyectos | ⚠️ Pasa en lo que comprueba. «Fuera de la columna» sobre «Crear tarea»: M-4 |
 | CA-4.6 | `e2e`, en los tres proyectos | ✅ |
 
 ### Requisitos no funcionales
 
 | ID | Evidencia | Veredicto |
 |---|---|---|
-| RNF-001 | Cumple: axe sin infracciones con la tarjeta cogida y en pleno arrastre, en los dos temas; `tokens` ≥ 3:1; asa de 44 y 32 px; movimiento reducido. Contraste del texto de la capa ≥ 7:1 en `chromium` (sonda, M-3). **Parcial:** anillo de foco cortado de 768 a 1023 px (M-1). **❓** Contraste de la capa en Safari (M-3) | ⚠️ |
-| RNF-002 | `e2e` en `chromium`: 38,5 / 40,7 / 39 ms, frente a ≤ 100 ms | ✅ |
+| RNF-001 | Cumple: axe sin infracciones con la tarjeta cogida y en pleno arrastre, en los dos temas; `tokens` ≥ 3:1; asa de 44 y 32 px; movimiento reducido. **No cumple:** WCAG 2.5.7 al ordenar una columna (I-2), que axe no detecta. **Parcial:** anillo cortado de 768 a 1023 px (M-1). **❓** Contraste de la capa en Safari sobre «Crear tarea» (M-3) | ⚠️ |
+| RNF-002 | `e2e` en `chromium`: entre columnas, 39 / 36,4 / 36,4 ms; en la columna de 200, 67,8 / 40,4 / 40,1 ms, frente a ≤ 100 ms | ✅ |
 | RNF-003 | `move`, `update`, `service`: tarea ajena → 404, y el orden de su dueño no cambia | ✅ |
-| RNF-004 | Tres proyectos, con emulación táctil (D-17). `chrome` se salta los tests que el plan limita a `chromium` y `webkit`, y CA-4.2 no corre en `webkit` (R-6). I-2 solo se ha visto en `webkit` | ⚠️ I-2 |
-| RNF-005 | `tokens`, `design-rules.test`, `TaskCard` (D-27). La sombra de la tarjeta cogida se recorta contra la lista (M-1) | ✅ |
+| RNF-004 | Tres proyectos, con emulación táctil (D-17). `chrome` se salta los tests que el plan limita a `chromium` y `webkit`, y CA-4.2 no corre en `webkit` (R-6). B-1 e I-1 salen en `chromium` y `webkit` | ⚠️ |
+| RNF-005 | `tokens`, `design-rules.test`, `TaskCard` (D-27). Sombra de la tarjeta cogida recortada contra la lista, sin tarea por decisión del usuario | ⚠️ |
 
 ### Casos límite
 
@@ -151,8 +152,8 @@ Leyenda: ✅ cumple · ⚠️ parcial · ❌ no cumple · ❓ no verificable. To
 | E-2 | `Board` | ✅ |
 | E-3 | `Board`, `order` | ✅ |
 | E-4 | `e2e` (`chromium`), hacia abajo | ✅ |
-| E-5 | `e2e` (`chromium`, 1024 px), hacia la derecha | ✅ El scroll funciona; soltar ahí es I-1 |
-| E-6 | `TaskCard`, `e2e`. Sonda: la capa mide igual | ✅ |
+| E-5 | `e2e` (`chromium`, 1024 px) y `003 E-5 D-31` con el puntero en el margen | ✅ |
+| E-6 | `TaskCard`, `e2e` | ✅ |
 | E-7 | `Board`, `e2e` | ✅ |
 | E-8 | `Board` (`location.replace`) | ✅ |
 | E-9 | `move`, `Board` | ✅ |
@@ -162,97 +163,121 @@ Leyenda: ✅ cumple · ⚠️ parcial · ❌ no cumple · ❓ no verificable. To
 | E-13 | `Board` | ✅ |
 | E-14 | `Board` | ✅ |
 | E-15 | `shared`, `move`, `service` | ✅ |
-| E-16 | `shared`, `Board`. Sonda: con otras zonas horarias | ✅ |
+| E-16 | `shared`, `Board` | ✅ |
 | E-17 | `e2e` | ✅ |
 | E-18 | `e2e` | ✅ |
-| E-19 | Manual: nota de T-002 y verificación anterior; migración sin cambios | ✅ |
+| E-19 | Manual: nota de T-002; migración sin cambios y leída aquí | ✅ |
 | E-20 | `messages` | ✅ |
-| E-21 | `e2e`, con ratón. Con el dedo no hay test | ✅ Salvo el margen de I-1 |
+| E-21 | `e2e`, solo con ratón | ⚠️ Con ratón cumple. **Con el dedo, no** (I-1) y sin test |
 | E-22 | `PrivateArea`, `e2e` | ✅ |
 
 ## Problemas
 
 ### Bloqueantes
 
-Ninguno.
+**B-1 · La suite E2E está en rojo: la vista previa oscila con tarjetas de distinta altura.** Afecta a RF-007, a RNF-004, a D-9 y D-20 (que dicen que no oscila) y al criterio de T-041.
+
+- **Dónde:** [e2e/drag-and-drop.spec.ts:695](../../e2e/drag-and-drop.spec.ts#L695) (el test), [task-move.ts:313-338](../../apps/web/src/lib/task-move.ts#L313-L338) (`onDragOver` y `onDragMove`) y [board-order.ts:93-94](../../apps/web/src/lib/board-order.ts#L93-L94).
+- **Medido en la suite:** 15 cambios de orden en `chromium` y 2 en `webkit`, en 500 ms; el máximo es 1.
+- **Medido (sonda):** «Corta uno» (62,5 px) sobre un título de 200 caracteres (242,5 px), en una malla de 2 px con un temblor de ±1 px. Solo hay cambios a estas alturas desde el borde superior de la tarjeta larga, en 300 ms:
+
+| Altura | `chromium` | `webkit` |
+|---|---|---|
+| 38 px | 10 | 17 |
+| 120 px | 14 | 17 |
+| 128 px | 12 | 16 |
+
+- **Causa probable, por la lectura del código y por el cálculo, sin instrumentar:** en la misma columna, `onDragOver` lleva la tarjeta al índice de la de debajo sin mirar de qué lado está el centro (D-9), y `onDragMove` la devuelve al cruzar (D-20). Las franjas coinciden con las fronteras calculadas: el punto medio entre los dos centros antes del cambio queda a 39,9 px, y el mismo punto después del cambio, a unos 129 px. La de 120 px coincide con el centro de la tarjeta larga, a 121 px. T-041 midió que, con el puntero quieto, no cambia nada; aquí no se repitió.
+- **Por qué importa:** con ese temblor, en esas franjas estrechas, las tarjetas saltan decenas de veces por segundo, y cuanto más altas, más se nota. No se ha medido con una mano real. **No se guarda nada mal:** al soltar se guarda lo que enseña el hueco (`commit(drag)`). Por eso, como fallo de producto, sería importante. Es bloqueante porque deja la suite en rojo, y T-041 exige verla en verde y dice «si oscila, parar y avisar».
+- **Propuesta, a elegir** (es la decisión que T-041 tiene pendiente):
+  1. **Corregirlo (recomendada):** en la misma columna, una sola regla: la tarjeta cambia de sitio solo cuando su centro cruza el de la de debajo, con `onDragOver` sin mover nada ahí. Cambia D-9 y D-20. Esta opción aún no se ha probado: hay que comprobar con ella CA-1.1, CA-2.1 y CA-2.5.
+  2. **Aceptarlo:** anotarlo como riesgo en el plan, corregir D-9 y D-20, y cambiar o quitar el test, con la franja medida.
+
+**B-2 · La fase 7 no está terminada.** Afecta a DoD y a T-037, que depende de T-040 a T-043.
+
+- **Qué falta:** [tasks.md](tasks.md) tiene 39 de 43 tareas `[x]`. Sin hacer:
+  - **T-041:** queda decidir B-1, RNF-002 tres veces (medido aquí, en verde), `pnpm test:e2e` en verde, D-9 en el plan y dos comentarios (M-2).
+  - **T-042:** el anillo de foco (M-1).
+  - **T-043:** limpieza de `plan.md` (M-6).
+  - **T-037:** esta verificación no la cierra, porque no se han cumplido sus dependencias.
+- **Propuesta:** decidir B-1, I-1 e I-2, cerrar el lote y lanzar otra verificación.
 
 ### Importantes
 
-**I-1 · Soltar en el margen del tablero guarda el movimiento en vez de cancelarlo.** Afecta a RF-005 y CA-1.7, de 768 a 1279 px, en `chromium` y `webkit`.
+**I-1 · Con el dedo, soltar fuera justo al salir de la columna guarda el movimiento, si la tarjeta ya había pasado a esa columna.** Afecta a RF-005 y E-21, desde 768 px, en `chromium` y `webkit`. Sin test: la verificación anterior ya anotó que E-21 no tenía test con el dedo.
 
-- **Dónde:** [task-move.ts:84-90](../../apps/web/src/lib/task-move.ts#L84-L90) (`collisionDetection`) y [task-move.ts:97-101](../../apps/web/src/lib/task-move.ts#L97-L101) (`inVisibleColumn`).
-- **Qué pasa:** en esos anchos, las columnas no caben y el tablero hace scroll horizontal ([Board.tsx:193](../../apps/web/src/components/Board.tsx#L193)). Una columna recortada sigue midiendo su rectángulo entero, también por fuera del tablero. `pointerWithin` y `inVisibleColumn` miran ese rectángulo, así que el margen derecho de la página cuenta como columna, aunque debajo del puntero esté `main`.
-- **Medido (sonda):** puntero a 8 px del borde derecho de la ventana, con `elementFromPoint` = `MAIN` en todos los casos, según la espera antes de soltar.
+- **Dónde:** [task-move.ts:183-187](../../apps/web/src/lib/task-move.ts#L183-L187) (el oyente en `window`) y [task-move.ts:343](../../apps/web/src/lib/task-move.ts#L343) (`!releasedAt.current` guarda).
+- **Qué pasa:** con la vista previa en otra columna, React crea otra tarjeta y quita la original. Los eventos táctiles siguen yendo al elemento donde empezó el toque, que ya no está en el documento, así que `touchend` no pasa por `window`. `releasedAt` se queda en `null`, y eso se trata como «soltó en una columna». Es el fallo que D-25 quiere evitar, y T-029 lo probó solo con ratón. Con el ratón no pasa, porque `mouseup` sí llega a `window`.
+- **Medido (sonda):** llevar la tarjeta de To do a In progress, esperar a que se pinte allí, y hacer el último `touchmove` y `touchend` a la vez sobre el título.
 
-| Ancho | `chromium`: 0 / 100 / 300 / 1000 ms | `webkit`: 0 / 100 / 300 / 1000 ms |
+| | `chromium` (CDP) | `webkit` (sintéticos) |
 |---|---|---|
-| 768 px | In progress / Done / no / no | In progress / In progress / Done / no |
-| 1024 px | Done / no / no / no | Done / Done / no / no |
-| 1200 px | no / no / no / no | Done / no / no / no |
+| `touchend` vistos en `window` | 0 de 6 | 0 de 6 |
+| Se guardó en In progress | **6 de 6** | **6 de 6** |
+| Con 500 ms antes de soltar | No se guarda | No se guarda |
 
-  «Done» o «In progress» es la columna donde se guardó; «no», que no se guardó. La ventana dura lo que tarda el scroll automático en acabar, hasta unos 300 ms o más. Depende del scroll: otra pasada a 1024 px con 50 ms guardó en `chromium` y no en `webkit`.
-- **Por qué importa:** E-5 lleva al usuario justo a ese borde. Si suelta en el margen, la tarea cambia de estado sin que lo haya soltado en ninguna columna, a veces en una que aún no se ve y, si es Done, con la fecha real de fin de hoy. El hueco sí se muestra en esa columna, si se ve, y el movimiento se puede deshacer arrastrando de nuevo. Por eso no bloquea.
-- **Propuesta:** recortar el rectángulo de las columnas con el del tablero visible, en los dos sitios, y añadir un E2E con esta medida. Es un cambio pequeño. El requisito ya lo pide, así que no hace falta cambiar la spec.
+  En una pasada sin soltar «a la vez» (`touchmove` y `touchend` seguidos), `webkit` también guardó, y `chromium`, no.
+- **Por qué importa:** con un gesto rápido en una tablet, la tarea cambia de estado sin soltarla en ninguna columna y, si es Done, con la fecha real de fin de hoy. La ventana es estrecha, y se corrige arrastrando otra vez. Por eso no bloquea. Es el mismo tipo de fallo que el I-1 anterior: se guarda lo que la spec dice que no.
+- **Propuesta:** escuchar también en el elemento donde empezó el toque (`active.activatorEvent.target`, como hace el propio sensor de dnd-kit), y añadir `003 E-21` con el dedo cambiando de columna. El requisito ya lo pide, así que no hace falta cambiar la spec.
 
-**I-2 · Al salir de la columna y volver, la tarjeta puede caer una posición más abajo y guardarse.** Afecta a RF-011, RF-007, CA-2.5 y RNF-004, y a D-9. Es el fallo de T-035, sin corregir.
+**I-2 · Ordenar una columna no se puede hacer con un solo puntero sin arrastrar (WCAG 2.2, criterio 2.5.7, AA).** Afecta a RNF-001, RF-007 y C-20. Es una contradicción de la spec, no un fallo del código.
 
-- **Dónde:** [task-move.ts:77-80](../../apps/web/src/lib/task-move.ts#L77-L80) (`measuring`) y [task-move.ts:318-327](../../apps/web/src/lib/task-move.ts#L318-L327) (`onDragMove`). D-9 da por hecho que `MeasuringStrategy.Always` vuelve a medir cuando la lista cambia, y T-035 midió que no: los rectángulos de las tarjetas se quedan viejos. El plan no se ha corregido, y el comentario de [task-move.ts:78](../../apps/web/src/lib/task-move.ts#L78) y el de [helpers.ts:182](../../e2e/helpers.ts#L182) repiten esa idea.
-- **Medido en esta auditoría:**
-  - `003 CA-2.5` en `webkit`, 100 veces sin reintentos: **3 fallos**, los tres iguales: «Comprar pan», «Llamar al banco», «Preparar la demo», en vez de la demo la segunda. T-035 midió que además se guarda (`POST …/move` con `index: 2`); no se ha repetido esa medida.
-  - Sonda, con el mismo recorrido a velocidades controladas: 0 fallos de 185 en `webkit` y 0 de 235 en `chromium`, con 0, 4, 8 y 16 ms entre movimientos y, en `chromium`, con la CPU limitada a 4x y 6x. T-035 tampoco lo vio a 16 ms (0 de 142 y 0 de 100).
-- **Lectura:** solo se ha visto con la secuencia exacta del test, y solo en `webkit`. No hay ninguna medida que lo reproduzca a velocidad de ratón, lo que no lo descarta: la causa está en el código, no en el test. El hueco enseña dónde va a caer antes de soltar, así que no es silencioso del todo y se corrige arrastrando otra vez. Sigue pendiente confirmar si también explica el fallo de `003 RF-006` en `webkit` (T-038).
-- **Efecto en la suite:** con `retries: 1`, el test en rojo pasa al reintentar, así que un fallo real se ve como *flaky*.
-- **Propuesta, a elegir:**
-  1. Corregirlo: volver a medir las tarjetas cuando cambia la vista previa (`measureDroppableContainers`, lo que hace `@dnd-kit/sortable`). Cambia D-9, y hay que comprobar RNF-002, porque con 200 tarjetas se mide más.
-  2. Aceptarlo como riesgo conocido: anotarlo en el plan como D-x, corregir D-9 y dejar claro por qué ese test puede fallar en `webkit`.
+- **Dónde:** [spec.md:154](spec.md#L154) (RNF-001: WCAG 2.2 AA), [spec.md:208](spec.md#L208) (fuera de alcance: «Subir» y «Bajar»: «la alternativa con teclado es el asa») y [TaskCard.tsx:122](../../apps/web/src/components/TaskCard.tsx#L122) (desde la v2.0, un clic en el asa abre el detalle).
+- **Qué dice el criterio:** «All functionality that uses a dragging movement for operation can be achieved by a single pointer without dragging», salvo que arrastrar sea esencial. La guía de la W3C aclara que una equivalencia de teclado no basta por sí sola, y pone como ejemplos un kanban y una lista ordenable con controles para subir y bajar (*Understanding SC 2.5.7*).
+- **Qué se cumple y qué no:**
+  - **Cambiar de columna:** sí tiene alternativa, el estado en el detalle (002/HU-4), aunque entra siempre la primera.
+  - **Ordenar dentro de una columna:** no la tiene. Quien usa un solo puntero y no puede arrastrar (temblor, un conmutador, un puntero de cabeza) no puede ordenar.
+- **Por qué no se había visto:** C-20 pide expresamente «una alternativa sin arrastre usable con teclado», y eso sí se cumple. axe no lo detecta, y el plan lo da por bueno sin citar este criterio.
+- **Propuesta, a elegir con `/sdd-cambiar-spec`:**
+  1. **Cumplirlo (recomendada):** añadir controles «Subir» y «Bajar» activables con clic o toque, en el detalle o en la tarjeta. Ya está en «Ideas sin priorizar».
+  2. **Excepción por escrito:** acotar RNF-001 y anotarla en la comprobación de constitución del plan. Si es permanente, como enmienda de C-20, que es lo que pide la constitución. Queda una barrera conocida.
 
 ### Menores
 
-**M-1 · De 768 a 1023 px, el anillo de foco del asa y la sombra de la tarjeta cogida se recortan.** Afecta a RNF-001, RNF-005 y C-20.
+**M-1 · De 768 a 1023 px, el anillo de foco del asa y la sombra de la tarjeta cogida se recortan.** Afecta a RNF-001, RNF-005, CA-3.1 y C-20. [BoardColumn.tsx:112](../../apps/web/src/components/BoardColumn.tsx#L112) y [TaskCard.tsx:118](../../apps/web/src/components/TaskCard.tsx#L118) no han cambiado desde la medida anterior (2,04 px donde el anillo necesita 4), y no se volvió a medir. **Propuesta:** T-042 para el anillo. La sombra sigue sin tarea por decisión del usuario.
 
-- **Dónde:** [BoardColumn.tsx:112](../../apps/web/src/components/BoardColumn.tsx#L112) (`md:overflow-y-auto`, con solo `p-1` de margen) y [TaskCard.tsx:118](../../apps/web/src/components/TaskCard.tsx#L118) (`end-0 top-0` hasta 1024 px).
-- **Medido (sonda):** con la tarjeta cogida y la escala 1.02, al asa le quedan 2,04 px hasta el borde de la lista, y el anillo necesita 4 px (`outline` 2 + `offset` 2). En la captura a 768 px el círculo sale cortado por la derecha, y la sombra se ve como una banda recta arriba y abajo de la tarjeta. El foco se sigue viendo por los otros tres lados, y a 375 y 1280 px está entero.
-- **Propuesta:** más margen en la lista o el asa más adentro en ese tramo.
+**M-2 · `RemeasureOnPreview` está en el código y no en el plan.** Afecta a D-9, D-20 y T-041.
 
-**M-2 · Tests de escrituras a la vez que agotan los 5 s, de forma intermitente.** Afecta a D-2 y a la fiabilidad de la suite. Viene de T-039.
+- [Board.tsx:32-41](../../apps/web/src/components/Board.tsx#L32-L41) entró en el commit de T-040 (`64f500f`) junto con el test en rojo, aunque es trabajo de T-041. El Registro de T-041 describe el cambio, pero no dice que ya esté en ese commit, que no tiene cuerpo y cuyo título solo habla del margen.
+- [plan.md:378](plan.md#L378) (D-9, «Medidas») sigue diciendo solo `MeasuringStrategy.Always`, y [plan.md:440](plan.md#L440) (D-20) dice «Sin oscilación», que no es cierto (B-1).
+- [task-move.ts:78](../../apps/web/src/lib/task-move.ts#L78) y [helpers.ts:182](../../e2e/helpers.ts#L182) repiten la idea antigua.
+- **Propuesta:** corregirlo al cerrar T-041, que ya lo pide, y decidir allí si `Always` sigue haciendo falta.
 
-- **Medido:** sin nada más corriendo, 0 de 26 pasadas de la suite de la API, y sin errores de 4 a 40 creaciones a la vez (25 repeticiones más la pasada inicial; 125 ms con 40). **Con los E2E corriendo a la vez sobre la misma base, 1 de 8 pasadas:** `003 E-11 D-2 dos move a la vez` agotó los 5 s. Es otro test que el de T-039, con el mismo patrón (`Promise.all` de operaciones que empiezan con `lockUser`).
-- **Lectura:** apoya que tenga que ver con la coincidencia con los E2E, como ya sospechaba T-039, pero **la causa no está confirmada**, y T-039 no dejó claro si su fallo coincidió con ellos. No hay efecto visible esperado para el usuario: si una transacción no termina, Prisma la corta, el movimiento falla y sale el aviso de RF-021. Tampoco se ha comprobado que ese sea el camino real de este fallo.
-- **Propuesta:** no lanzar `pnpm test` y `pnpm test:e2e` a la vez. Si vuelve a salir sin E2E, investigarlo con `pg_stat_activity` en el momento del cuelgue.
+**M-3 · Contraste de la capa en Safari, comprobado solo en parte.** Afecta a RNF-001, «❓ no verificable» sobre «Crear tarea».
 
-**M-3 · Sin comprobar en Safari real: el difuminado de la tarjeta levantada.** Afecta a RNF-001, «❓ no verificable».
+- **Comprobado por el usuario (nota sin confirmar en `tasks.md`):** en Safari real y tema oscuro, sobre otra tarjeta, la capa se ve correcta. Fue a ojo y sin medir. Esta auditoría no lo ha repetido.
+- **Sin mirar:** la capa sobre «Crear tarea», donde la segunda verificación midió 4,39:1 en el `webkit` de Playwright, frente a 7:1. Tampoco se sabe si Safari se comporta igual.
+- **Propuesta:** mirarlo una vez sobre «Crear tarea» en Safari. Si se ve igual, subir la opacidad de la capa, como el respaldo de §6.3.
 
-- **Medido (sonda), peor contraste en la caja del texto de la capa, título / fecha:**
+**M-4 · A 375 px, soltar sobre «Crear tarea» guarda el movimiento.** Afecta a RF-019 y CA-4.5. **Es una decisión, no un fallo claro.**
 
-| Tema y debajo | `chromium` | `webkit` de Playwright |
-|---|---|---|
-| Claro, sobre otra tarjeta | 17,23 / 10,9 | 11,67 / 7,66 |
-| Claro, sobre «Crear tarea» | 12,99 / 8,55 | 12,41 / 8,13 |
-| Oscuro, sobre otra tarjeta | 12,09 / 8,05 | 12,04 / **5,48** |
-| Oscuro, sobre «Crear tarea» | 9,25 / 8,02 | **4,39** / 7,46 |
+- **Dónde:** el botón va fijo encima de la columna ([Board.tsx:161](../../apps/web/src/components/Board.tsx#L161)), y `inVisibleColumn` mira solo el rectángulo.
+- **Medido (sonda):** con 12 tarjetas, soltando sobre el botón, sin esperar y a los 300 ms, se guardó las 4 veces, 2 en `chromium` y 2 en `webkit`, en una posición que dependía de cuánto había avanzado el scroll automático (`index` 6, 7, 10 y 11).
+- **Lectura:** RF-019 dice que soltar fuera de la columna cancela. Debajo del puntero está el botón, pero geométricamente está la columna. Además, ese borde es adonde hay que llevar la tarjeta para que la página haga scroll hacia abajo, así que cancelar ahí también tendría un coste. El hueco enseña dónde cae, y no se abre ningún diálogo.
+- **Propuesta:** decidir qué debe pasar y escribirlo en RF-019. Si se deja como está, una línea en la spec basta; no hace falta tocar el código.
 
-- **Lectura:** el objetivo es 7:1. En `webkit`, `backdrop-filter` figura en el estilo calculado, pero en la captura no se ve difuminado: «Crear tarea» y el texto de otra tarjeta se leen nítidos a través de la capa. No se sabe si es cosa de cómo captura Playwright o si pasa también en Safari. Es solo mientras la capa pasa por encima de algo, y su texto es secundario, porque la tarjeta se está moviendo. axe no lo detecta.
-- **Propuesta:** mirarlo una vez en Safari, en tema oscuro, arrastrando una tarjeta sobre otra. Si se ve igual, subir la opacidad de la capa, como el respaldo de §6.3.
+**M-5 · Tests de escrituras a la vez que pueden agotar los 5 s (M-2 anterior).** Afecta a D-2. Sin tarea por decisión del usuario, y la causa sigue sin confirmar. Aquí, `pnpm test` pasó una vez y sin E2E a la vez, lo que no añade información. **Propuesta:** no lanzar `pnpm test` y `pnpm test:e2e` a la vez.
 
-**M-4 · RF-023 no dice lo que hace el código cuando el foco ya salió del asa.** La spec dice que, si falla el guardado, «DEBE volver a mostrar la columna de partida», sin condiciones. D-26 solo lo hace si el foco sigue en el asa ([task-move.ts:202](../../apps/web/src/lib/task-move.ts#L202)), y el test `003 RF-023 D-26` fija ese comportamiento. La decisión tiene sentido, pero solo está en el plan. **Propuesta:** añadir la condición a RF-023 con `/sdd-cambiar-spec`, como ya la tiene RF-022.
+**M-6 · Limpieza de documentos.**
 
-**M-5 · Limpieza de documentos.**
+- [plan.md](plan.md) §4.4 no lista `PrivateArea.tsx`, y §4.5 cita §9 para el icono de 16 px en vez de §11.3 (T-043).
+- [roadmap.md](../roadmap.md) sigue con `actualizado: 2026-10-31` y su historial termina en la aprobación del plan: faltan las v2.0, v3.0 y v3.1 y las verificaciones. Se añaden al cerrar, según la decisión del usuario.
 
-- [plan.md](plan.md) §4.4 no lista `PrivateArea.tsx`, que cambia por D-23 y D-30.
-- [plan.md](plan.md) §4.5 dice que el icono de 16 px del asa sigue «§9», pero §9 pide el 40 % del diámetro (17,6 y 12,8 px). `DESIGN.md` §11.3 sí fija los 16 px, así que no es un fallo visual: lo que falla es la cita.
-- [roadmap.md](../roadmap.md) no tiene filas de la spec v2.0, de la v3.0 ni de la verificación NO APTO, y sigue con `actualizado: 2026-10-31`. `/sdd-cambiar-spec` no lo exige, pero la spec 001 sí las anotó. Se puede añadir al cerrar.
+**M-7 · `/signup` sin hidratar en `webkit`, 4 de 200 (2 %).** Es M-7 de la 004, ya conocido, y no es de esta spec. Se anota porque obliga a tener `retries: 1` en `webkit`, y ese reintento puede hacer pasar un fallo real por *flaky*, como advirtió la verificación anterior. Sin propuesta nueva.
 
 ## Deriva spec ↔ código
 
-| Spec | Código | Acción |
+| Spec o plan | Código | Acción |
 |---|---|---|
-| RF-005, CA-1.7: soltar fuera de cualquier columna no guarda | Guarda en el margen del tablero, de 768 a 1279 px, durante el scroll | I-1: corregir el código |
-| RF-011, CA-2.5: soltar en el mismo sitio no cambia nada | En `webkit`, a veces la tarjeta cae una posición más abajo | I-2: decidir |
-| RF-023: si falla el guardado, vuelve a la columna de partida | Solo si el foco sigue en el asa | M-4: añadirlo a la spec |
+| E-21, RF-005: soltar fuera al salir no guarda | Con el dedo, sí guarda tras cambiar de columna | I-1: corregir el código |
+| RNF-001: WCAG 2.2 AA; §9: sin «Subir» ni «Bajar» | Ordenar solo arrastrando o con teclado | I-2: decidir, porque la spec se contradice |
+| RF-019: soltar fuera de la columna cancela | Sobre «Crear tarea» fijo, guarda | M-4: decidir y escribirlo |
+| D-9 y D-20: no oscila | Oscila en franjas estrechas, con tarjetas de distinta altura | B-1: decidir |
+| D-9: solo `MeasuringStrategy.Always` | Además, `RemeasureOnPreview` | M-2: corregir el plan |
 
-**Alcance:** sin código de más. No hay nada de «Fuera de alcance» implementado (ni toasts, ni «Subir»/«Bajar», ni deshacer, ni arrastre entre columnas en móvil). `memo`, `landing`, `latestTasks` y `pressHandle` se trazan a RNF-002, RF-020 y D-24. Todo lo de «Fuera de alcance» está ya en «Ideas sin priorizar» del roadmap.
+**Alcance:** sin código de más, salvo que `RemeasureOnPreview` todavía no está en el plan (M-2); se traza a RF-011 y T-041. No hay nada de «Fuera de alcance» implementado. Todo lo de «Fuera de alcance» está ya en «Ideas sin priorizar» del roadmap.
 
-**Plan:** D-23 a D-30 están documentadas y se corresponden con el código. La única desviación sin corregir es D-9 (I-2), más lo de M-5.
+**Plan:** D-23 a D-31 se corresponden con el código, salvo lo de M-2. D-25 no cumple lo que dice con el dedo (I-1).
 
 ## Constitución
 
@@ -260,7 +285,7 @@ Ninguno.
 |---|---|---|
 | C-1 | ✅ | Sin `any` |
 | C-2 | ✅ | `@dnd-kit/core` 6.3.1 fijada y justificada (plan §2, R-1) |
-| C-4 | ✅ | `drag` y `landing` sin datos del servidor; `useTasks` con TanStack Query; `latestTasks` es una referencia, no estado (D-24) |
+| C-4 | ✅ | `drag` y `landing` sin datos del servidor; `useTasks` con TanStack Query |
 | C-5 | ✅ | Migración nueva; ninguna aplicada se ha tocado |
 | C-7 | ✅ | `/api/tasks/:id/move`, relativa |
 | C-8 | ✅ | Rutas → service → repository; `$queryRaw` y Prisma solo en el repository |
@@ -270,32 +295,32 @@ Ninguno.
 | C-13 | ✅ | Tarea ajena → 404 `TASK_NOT_FOUND`, con test de `move`, y el orden del dueño no cambia |
 | C-14 | ✅ | `validateTaskId` y `validateBody(moveTaskInputSchema)` |
 | C-16 | ✅ | `position` no se expone |
-| C-17 | ✅ | Cada RF tiene test |
+| C-17 | ✅ | Cada RF tiene test. E-21 con el dedo, no (I-1) |
 | C-18 | ✅ | Vitest, Supertest con Postgres real y Playwright |
-| C-19 | ✅ | Tests, linter y tipos en verde |
-| C-20 | ⚠️ | Alternativa de teclado completa y foco siempre a la vista; anillo cortado de 768 a 1023 px (M-1) |
+| C-19 | ✅ | `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde. `pnpm test:e2e`, que C-19 no nombra, en rojo (B-1) |
+| C-20 | ⚠️ | Alternativa de teclado completa. **WCAG 2.2 AA no se cumple en 2.5.7 (I-2)**, sin excepción escrita; anillo cortado (M-1) |
 | C-21 | ✅ | Sin nada fuera de la spec |
 | C-22 | ✅ | `placeTask` y `makeRoom` con varios usos |
 | C-23 | ✅ | Identificadores en inglés y textos en castellano |
-| C-24 | ✅ | Formato correcto. Algún commit agrupa tareas, anotado en el Registro |
+| C-24 | ⚠️ | Formato correcto, pero `64f500f` mezcla T-040 con trabajo de T-041 y no lo dice (M-2) |
 | C-25 | ✅ | `pnpm lint` sin errores |
-| C-26 | ⚠️ | X-1 y X-2 justificadas; sombra recortada (M-1) y contraste en Safari sin comprobar (M-3) |
+| C-26 | ⚠️ | X-1 y X-2 justificadas; sombra recortada (M-1) y contraste en Safari sin comprobar del todo (M-3) |
 
 ## Definition of Done
 
 | Punto | Estado | Nota |
 |---|---|---|
-| Todas las tareas `[x]` | ✅ | T-001 a T-036, T-038 y T-039 comprobadas por su resultado y su Registro; T-037 sigue pendiente hasta la tercera verificación (T-040 a T-043) |
-| Cada RF y CA con test que pasa | ⚠️ | 62/62 con test; CA-2.5 falla 3 de 100 en `webkit` (I-2) |
-| Cada caso límite implementado y probado | ✅ | E-19, manual |
-| Sin código que no se trace | ✅ | |
-| Tests, linter y tipos en verde | ⚠️ | En local, sí; el repositorio no tiene CI |
+| Todas las tareas `[x]` | ❌ | 39 de 43: faltan T-037, T-041, T-042 y T-043 (B-2) |
+| Cada RF y CA con test que pasa | ⚠️ | 62/62 con test. `003 RF-007 D-9` falla (B-1) |
+| Cada caso límite implementado y probado | ⚠️ | E-21 con el dedo, sin test y sin cumplir (I-1); E-19, manual |
+| Sin código que no se trace | ✅ | `RemeasureOnPreview` se traza a T-041, abierta |
+| Tests, linter y tipos en verde | ❌ | `pnpm test`, `lint` y `typecheck`, sí; `pnpm test:e2e`, no (B-1). El repositorio no tiene CI |
 | Sin `console.log`, código comentado ni TODO | ✅ | |
-| Accesibilidad revisada | ⚠️ | Automática y con 6 capturas; M-1 y M-3 abiertos; sin lector real (D-22) |
+| Accesibilidad revisada | ⚠️ | Automática. I-2, M-1 y M-3 abiertos; sin lector real (D-22) |
 | Sin secretos ni datos personales | ✅ | |
-| `spec.md` refleja el código | ⚠️ | I-1, I-2 y M-4 |
-| Desviaciones anotadas en el plan | ⚠️ | D-9 sigue sin corregir (I-2); M-5 |
+| `spec.md` refleja el código | ❌ | I-1, I-2 y M-4 |
+| Desviaciones anotadas en el plan | ❌ | D-9 y D-20 (M-2) |
 | ADRs si hubo decisiones transversales | ✅ | No hubo; el plan no los pide |
-| Estado de la spec → `implementada` | ⏳ | Sigue en `en-implementacion` hasta que el usuario decida |
+| Estado de la spec → `implementada` | ⏳ | Sigue en `en-implementacion` |
 | PR con spec, requisitos e informe | ⏳ | Pendiente |
 | Revisada y aprobada | ⏳ | Pendiente |
