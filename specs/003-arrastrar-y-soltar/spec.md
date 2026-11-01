@@ -1,7 +1,7 @@
 ---
 id: 003
 titulo: Arrastrar y soltar
-estado: en-implementacion # borrador | aprobada | en-implementacion | implementada | obsoleta
+estado: implementada # borrador | aprobada | en-implementacion | implementada | obsoleta
 version: 5.0
 autor: Julian Querol Polo
 creada: 2026-10-31

@@ -17,7 +17,7 @@ actualizado: 2026-11-01
 | 001  | Cuentas de usuario | — | hecha | Todo lo demás depende de saber quién es el usuario. Incluye montar el esqueleto del proyecto |
 | 004  | Aplicar el sistema de diseño | 001 | hecha | Da a inicio de sesión, registro y zona privada el aspecto de `DESIGN.md`, con texto más legible (contraste AAA), y deja listos los valores visuales comunes. Va antes de la 002 para que el tablero nazca ya con el sistema de diseño y no haya que rehacerlo |
 | 002  | Tablero de tareas | 001, 004 | hecha | Crear, ver por columnas, editar, borrar y cambiar de estado sin arrastrar. Con esta spec la app ya es útil |
-| 003  | Arrastrar y soltar | 002 | en curso | Mejora de uso con más riesgo (accesibilidad, orden dentro de la columna). Si se retrasa, la 002 ya funciona |
+| 003  | Arrastrar y soltar | 002 | hecha | Mejora de uso con más riesgo (accesibilidad, orden dentro de la columna). Si se retrasa, la 002 ya funciona |
 
 ## Ideas sin priorizar
 
@@ -76,6 +76,9 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 - ~~Acciones «Subir» y «Bajar» en el detalle de la tarea~~ → entra en la spec 003 v4.0 (HU-5) — *origen: spec 003, aclaración*
 - Animar las tarjetas al soltar y al reordenar (hoy pasan a su sitio sin desplazarse; `DESIGN.md` §8, `--dur`) — *origen: spec 003, plan X-2; plan 003, X-2*
 - Quitar el aviso «No hemos podido mover la tarea…» cuando el siguiente movimiento sale bien (hoy sigue hasta abrir un diálogo, como marca 002/D-20) — *origen: spec 003, T-016*
+- Bug: el aviso de error del diálogo de tarea no se ve si el diálogo está desplazado (afecta a 002 y 003) — *origen: spec 003, quinta verificación (I-2)*
+- Investigar el fallo intermitente de `pnpm test` en `003 RF-009 D-2` — *origen: spec 003, quinta verificación (I-1)*
+- Deuda de la spec 003: M-1 a M-7 de su quinta verificación (`specs/003-arrastrar-y-soltar/verificacion.md`) — *origen: spec 003, `/sdd-verificar`*
 
 ## Historial
 
@@ -110,3 +113,4 @@ Lo que sale durante el trabajo y no entra en ninguna spec (incluido lo que acaba
 | 2026-11-01 | 003: segunda verificación APTO CON OBSERVACIONES; pasa a spec v3.1 (RF-023 recoge la condición de D-26) | `/sdd-verificar` y `/sdd-cambiar-spec` de la spec 003 |
 | 2026-11-01 | 003: tercera verificación NO APTO; pasa a spec v4.0 (HU-5, RF-026 a RF-029: «Subir» y «Bajar» en el detalle, que salen de las ideas; CA-4.7, E-23, E-24; cambian RF-019 y RNF-001) | `/sdd-verificar` y `/sdd-cambiar-spec` de la spec 003 |
 | 2026-11-01 | 003: cuarta verificación APTO CON OBSERVACIONES; pasa a spec v5.0 (CA-5.12 a CA-5.14, E-25, E-26; cambian RF-028 y RF-029) | `/sdd-verificar` y `/sdd-cambiar-spec` de la spec 003 |
+| 2026-11-01 | 003 `hecha` (spec v5.0 `implementada`, APTO CON OBSERVACIONES en la quinta verificación); ideas nuevas: el aviso del diálogo fuera de la vista (I-2), el fallo intermitente de `pnpm test` (I-1) y la deuda M-1 a M-7. Ya estaba en las ideas todo lo de su «Fuera de alcance» | `/sdd-verificar` de la spec 003, con la decisión del usuario de cerrar |
