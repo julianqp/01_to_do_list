@@ -1,8 +1,10 @@
 import {
   createTaskInputSchema,
+  moveTaskInputSchema,
   taskIdSchema,
   updateTaskInputSchema,
   type CreateTaskInput,
+  type MoveTaskInput,
   type UpdateTaskInput,
 } from '@todo/shared';
 import { Router, type RequestHandler } from 'express';
@@ -43,6 +45,21 @@ tasksRouter.put('/:id', validateTaskId, validateBody(updateTaskInputSchema), asy
   );
   res.json({ task });
 });
+
+// Spec 003, D-3: mover no es editar; el PUT sustituye la tarea entera.
+tasksRouter.post(
+  '/:id/move',
+  validateTaskId,
+  validateBody(moveTaskInputSchema),
+  async (req, res) => {
+    const task = await tasksService.moveTask(
+      res.locals.user.id,
+      req.params.id as string,
+      req.body as MoveTaskInput,
+    );
+    res.json({ task });
+  },
+);
 
 // D-13 de la 001: el cuerpo es `{}`; requireJson ya exige application/json.
 tasksRouter.delete('/:id', validateTaskId, async (req, res) => {

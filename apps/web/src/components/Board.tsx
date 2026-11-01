@@ -1,13 +1,18 @@
+import { DndContext, DragOverlay, useDndContext } from '@dnd-kit/core';
 import { TASK_STATUSES, type Task, type TaskStatus } from '@todo/shared';
 import { ListTodo } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { groupByStatus, type Placement } from '../lib/board-order';
 import { tasksCount, todayLocal } from '../lib/dates';
 import type { TaskFormMode } from '../lib/task-form';
+import { isTaskNotFound, moveErrorText, STATUS_NAMES } from '../lib/task-messages';
+import { useTaskMove, type BoardNotice } from '../lib/task-move';
 import { Alert } from './Alert';
-import { BoardColumn, STATUS_NAMES } from './BoardColumn';
+import { BoardColumn } from './BoardColumn';
 import { Button } from './Button';
 import { Icon } from './Icon';
 import { SegmentedControl } from './SegmentedControl';
+import { TaskCard } from './TaskCard';
 import { TaskDialog, type DialogResult } from './TaskDialog';
 
 export type BoardProps = { tasks: Task[] };
@@ -17,11 +22,22 @@ export type BoardProps = { tasks: Task[] };
 type FocusTarget =
   { kind: 'card'; id: string; status: TaskStatus } | { kind: 'create'; removedId?: string };
 
-// D-7: el orden lo da el servidor (RF-002); aquí solo se reparte por estado, sin reordenar.
-function groupByStatus(tasks: Task[]) {
-  const groups = Object.fromEntries(TASK_STATUSES.map((status) => [status, [] as Task[]]));
-  for (const task of tasks) groups[task.status]!.push(task);
-  return groups as Record<TaskStatus, Task[]>;
+// D-10: la capa no abre nada: es `inert`.
+const noop = () => undefined;
+
+// Spec 003, D-32: dnd-kit no vuelve a medir cuando las mismas tarjetas cambian de orden, así que sin esto
+// la detección trabaja con rectángulos viejos. `measureDroppableContainers` sale de un contexto que solo
+// existe dentro de DndContext, y `useTaskMove` está por encima. D-21: no pinta nada ni pasa nada a las
+// tarjetas, así que su `memo` sigue sirviendo.
+function RemeasureOnPreview({ preview }: { preview?: Placement }) {
+  const { measureDroppableContainers } = useDndContext();
+  const status = preview?.status;
+  const index = preview?.index;
+  useLayoutEffect(() => {
+    // Sin ids, todas.
+    if (status) measureDroppableContainers([]);
+  }, [measureDroppableContainers, status, index]);
+  return null;
 }
 
 // §12 «Vacío (primera vez)»: círculo glass de 72 px con icono 26, el mensaje y un primario.
@@ -47,17 +63,27 @@ export function Board({ tasks }: BoardProps) {
   const today = todayLocal();
   // RF-034: en móvil se empieza por Backlog.
   const [mobileColumn, setMobileColumn] = useState<TaskStatus>('backlog');
-  const groups = groupByStatus(tasks);
-  const empty = tasks.length === 0;
   // D-12: un solo diálogo, el de crear o el detalle de una tarea.
   const [dialog, setDialog] = useState<TaskFormMode | null>(null);
-  // D-20: aviso del tablero (RF-030). Se vacía al abrir otro diálogo.
-  const [notice, setNotice] = useState<string>();
-  const createRef = useRef<HTMLButtonElement>(null);
-  const boardRef = useRef<HTMLDivElement>(null);
+  // D-20: aviso del tablero (RF-030; spec 003, RF-021 y RF-022, D-12). Se vacía al abrir otro diálogo.
+  const [notice, setNotice] = useState<BoardNotice>();
   // D-14: adónde va el foco al cerrar el diálogo: una tarjeta (en el estado en que tiene que estar)
   // o «Crear tarea».
   const focusTarget = useRef<FocusTarget | null>(null);
+  // Spec 003, D-8: la lista con la vista previa del movimiento en curso.
+  const { displayTasks, drag, draggedTask, announcement, handleProps, dndProps } = useTaskMove({
+    tasks,
+    onMobileColumn: setMobileColumn,
+    onNotice: setNotice,
+    // D-26, RF-022: el mismo destino que al borrarla desde el detalle.
+    onTaskGone: (id) => {
+      focusTarget.current = { kind: 'create', removedId: id };
+    },
+  });
+  const groups = groupByStatus(displayTasks);
+  const empty = tasks.length === 0;
+  const createRef = useRef<HTMLButtonElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
 
   // D-14: se aplica después de pintar; la restauración nativa del <dialog> volvería a un elemento que
   // puede haber desaparecido (R-2). El diálogo se cierra antes de que llegue el render con la lista
@@ -81,10 +107,24 @@ export function Board({ tasks }: BoardProps) {
     focusTarget.current = null;
   });
 
-  function openDialog(mode: TaskFormMode) {
+  // Spec 003, D-21: estable, para que el `memo` de las tarjetas sirva (RNF-002).
+  const openDialog = useCallback((mode: TaskFormMode) => {
     setNotice(undefined);
     setDialog(mode);
-  }
+  }, []);
+  // Spec 003, D-24: desde el asa de una tarjeta cogida llega la vista previa, con el estado de la
+  // columna a la que se ha pasado; el detalle abre la tarea real.
+  const latestTasks = useRef(tasks);
+  useLayoutEffect(() => {
+    latestTasks.current = tasks;
+  });
+  const openTask = useCallback(
+    (shown: Task) => {
+      const task = latestTasks.current.find(({ id }) => id === shown.id) ?? shown;
+      openDialog({ kind: 'edit', task });
+    },
+    [openDialog],
+  );
 
   // D-14: adónde va el foco según cómo se cerró el diálogo.
   function handleClose(result: DialogResult) {
@@ -99,7 +139,7 @@ export function Board({ tasks }: BoardProps) {
       case 'notFound':
         // RF-027, RF-030: a «Crear tarea», que puede ser el del estado vacío (CA-5.5), cuando la
         // tarjeta ya no está (la lista se volvió a pedir, D-7).
-        if (result.kind === 'notFound') setNotice(result.message);
+        if (result.kind === 'notFound') setNotice({ tone: 'info', text: result.message });
         focusTarget.current = {
           kind: 'create',
           removedId: dialog?.kind === 'edit' ? dialog.task.id : undefined,
@@ -113,6 +153,25 @@ export function Board({ tasks }: BoardProps) {
             : { kind: 'create' };
     }
     setDialog(null);
+  }
+
+  // Spec 003, D-36, RF-029: como en `commit`. El foco solo se mueve si seguía en la tarjeta (el botón de
+  // abrir o el asa) o se ha perdido, también si aún no había llegado a ella. Con otro diálogo abierto, el
+  // foco está dentro de él (E-25). Solo usa setNotice y focusTarget, estables: la que llega aquí es la
+  // del render en que se pulsó.
+  function handleMoveFailedAfterClose(id: string, error: unknown) {
+    const gone = isTaskNotFound(error);
+    setNotice({ tone: gone ? 'info' : 'offline', text: moveErrorText(error) });
+    if (!gone) return;
+    const active = document.activeElement;
+    const target = focusTarget.current;
+    if (
+      active === document.body ||
+      active?.closest(`[data-task-id="${id}"], [data-task-handle="${id}"]`) ||
+      (target?.kind === 'card' && target.id === id)
+    ) {
+      focusTarget.current = { kind: 'create', removedId: id };
+    }
   }
 
   // X-8: un solo primario por vista; sin tareas, va dentro del estado vacío.
@@ -138,8 +197,13 @@ export function Board({ tasks }: BoardProps) {
       </div>
       {/* D-20: siempre presente y vacía hasta que hay un aviso (004 D-14). */}
       <div role="alert" className="empty:sr-only">
-        {notice && <Alert tone="info">{notice}</Alert>}
+        {notice && <Alert tone={notice.tone}>{notice.text}</Alert>}
       </div>
+      {/* Spec 003, D-7: siempre presente, para que el lector anuncie cada paso. `assertive`, porque cada
+          flecha sustituye el anuncio anterior. */}
+      <p className="sr-only" aria-live="assertive" aria-atomic="true">
+        {announcement}
+      </p>
       {empty ? (
         <EmptyBoard createButton={createButton} />
       ) : (
@@ -159,25 +223,42 @@ export function Board({ tasks }: BoardProps) {
           </div>
           {/* D-16: dos columnas visibles de 768 a 1023 px y cuatro desde 1024; si no caben, el scroll
               horizontal es del tablero, no de la página (RNF-002). */}
-          <div className="grid gap-4 md:min-h-0 md:flex-1 md:grid-rows-1 md:overflow-x-auto md:board-columns-two lg:board-columns">
-            {TASK_STATUSES.map((status) => (
-              <BoardColumn
-                key={status}
-                status={status}
-                tasks={groups[status]}
-                today={today}
-                hiddenOnMobile={status !== mobileColumn}
-                onOpen={(task) => openDialog({ kind: 'edit', task })}
-              />
-            ))}
-          </div>
+          <DndContext {...dndProps}>
+            <RemeasureOnPreview preview={drag?.mode === 'pointer' ? drag.current : undefined} />
+            <div className="grid gap-4 md:min-h-0 md:flex-1 md:grid-rows-1 md:overflow-x-auto md:board-columns-two lg:board-columns">
+              {TASK_STATUSES.map((status) => (
+                <BoardColumn
+                  key={status}
+                  status={status}
+                  tasks={groups[status]}
+                  today={today}
+                  hiddenOnMobile={status !== mobileColumn}
+                  onOpen={openTask}
+                  handleProps={handleProps}
+                  dragTaskId={drag?.taskId}
+                  dragMode={drag?.mode}
+                />
+              ))}
+            </div>
+            {/* D-10: el contenedor deja la capa interna de DragOverlay dentro de --z-popover (§7). X-2:
+                sin animación al soltar. */}
+            <div className="pointer-events-none fixed inset-0 z-(--z-popover)">
+              <DragOverlay dropAnimation={null}>
+                {drag?.mode === 'pointer' && draggedTask && (
+                  <TaskCard task={draggedTask} today={today} onOpen={noop} variant="overlay" />
+                )}
+              </DragOverlay>
+            </div>
+          </DndContext>
         </>
       )}
       {dialog && (
         <TaskDialog
           key={dialog.kind === 'edit' ? dialog.task.id : 'new'}
           mode={dialog}
+          tasks={tasks}
           onClose={handleClose}
+          onMoveFailedAfterClose={handleMoveFailedAfterClose}
         />
       )}
     </div>

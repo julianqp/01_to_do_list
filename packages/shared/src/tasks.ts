@@ -105,3 +105,25 @@ export const updateTaskInputSchema: z.ZodType<UpdateTaskInput> = z
 export function isActualEndDateAllowed(actualEndDate: IsoDate, latestAllowed: IsoDate): boolean {
   return actualEndDate <= latestAllowed;
 }
+
+// Spec 003, D-3: el sitio de destino. `index` es la posición (desde 0) en la columna de destino sin
+// contar la tarea; la API la recorta al final si se pasa. `today` es la fecha local del navegador
+// (RF-003, E-16).
+export type MoveTaskInput = { status: TaskStatus; index: number; today: IsoDate };
+
+export const moveTaskInputSchema: z.ZodType<MoveTaskInput> = z.object({
+  status: z.enum(TASK_STATUSES),
+  index: z.number().int().min(0),
+  today: z.iso.date(),
+});
+
+// Spec 003, D-4: RF-003 (entra en Done → hoy), RF-004 (sale de Done → null), E-15 (dentro de Done →
+// la que tenía). La usan la API y la actualización optimista del front (C-10).
+export function actualEndDateAfterMove(
+  task: Pick<Task, 'status' | 'actualEndDate'>,
+  toStatus: TaskStatus,
+  today: IsoDate,
+): IsoDate | null {
+  if (toStatus !== 'done') return null;
+  return task.status === 'done' ? task.actualEndDate : today;
+}

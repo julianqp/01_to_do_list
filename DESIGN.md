@@ -1,4 +1,4 @@
-# DESIGN.md — Tinta & Niebla · adaptación To do list · v1.3.1-todo.1
+# DESIGN.md — Tinta & Niebla · adaptación To do list · v1.5.0-todo.1
 
 Reglas de diseño de la **app de tareas con tablero kanban** (`01_to_do_list`). Es la fuente de verdad de **lo visual**: color, tipografía, espaciado, forma, superficies, movimiento, iconos, componentes y tono de los textos.
 
@@ -126,6 +126,7 @@ Cada acento tiene su versión `*-soft` para fondos (insignias, tintes de fila y 
 | `--surface-header` | `rgba(227,230,230,.80)` (lienzo al 80 %) | `rgba(6,20,27,.80)` | — |
 | `--surface-tooltip` · `--text-on-tooltip` | ink‑950 · ink‑50 | ink‑950 · ink‑50 | 16.34:1 |
 | `--ring-error` | `oklch(0.55 0.11 15)` (`#A8545D`) | `--rose` | anillo e icono de error ≥ 4.17:1 |
+| `--ring-drop` | ink‑500 | ink‑400 | anillo del hueco de destino (spec 003) ≥ 3:1 sobre la columna |
 | `--border-contrast` | `transparent` (con «aumentar contraste», ink‑600; §17) | igual | — |
 | `--surface-veil` | `rgba(6,20,27,.32)` (velo de los diálogos, §6.3) | igual | — |
 
@@ -265,7 +266,7 @@ En `tokens.css`, los `--bp-*` se llaman `--breakpoint-*` (`--breakpoint-sm` … 
 ### 6.2 Sombras
 `--shadow-pill` (reposo) · `--shadow-glass` (tarjeta, seleccionado, foco) · `--shadow-float` (flotantes) · `--shadow-accent` (píldoras de acento).
 - Siempre con tinte `rgba(6,20,27,…)`, nunca negro.
-- **Sin bordes sólidos.** La arista es `inset 0 1px 0 rgba(255,255,255,.85)`. Excepciones: anillos de estado de 1.5px (selección en el tono, error rose, casilla vacía ink‑400) y `0 0 0 1px var(--border-glass)` en flotantes.
+- **Sin bordes sólidos.** La arista es `inset 0 1px 0 rgba(255,255,255,.85)`. Excepciones: anillos de estado de 1.5px (selección en el tono, error rose, casilla vacía ink‑400, hueco de destino `--ring-drop`) y `0 0 0 1px var(--border-glass)` en flotantes.
 
 | Token | Claro | Oscuro |
 |---|---|---|
@@ -319,7 +320,7 @@ Usa siempre el token. Si algo no encaja, el problema es de estructura, no de nú
 - **Hover:** la superficie sube un nivel. Tarjetas de tarea: `translateY(-1px)`.
 - **Press:** `scale(0.97)`, o `0.94` en botones de icono.
 - **Foco:** anillo `--focus-halo` (`0 0 0 3px rgba(74,92,106,.18)`; oscuro: `0 0 0 3px rgba(204,208,207,.18)`) + superficie al 96%. Además, `outline: 2px solid var(--focus-outline)` con `outline-offset: 2px` en `:focus-visible`. `--focus-outline` es ink‑800 en claro e ink‑200 en oscuro: ink‑800 sobre el lienzo oscuro da 1.52:1, y el foco necesita 3:1.
-- **Arrastrar (spec 003):** la tarjeta se levanta con `--shadow-float` y `scale(1.02)`; la columna de destino muestra un hueco en `--surface-sunken` con la altura de la tarjeta.
+- **Arrastrar (spec 003):** la tarjeta se levanta con `--shadow-float` y `scale(1.02)` (solo con `motion-safe`); la columna de destino muestra un hueco en `--surface-sunken` con la altura de la tarjeta y un anillo interior de 1.5px en `--ring-drop`, porque el hueco solo da 1.04–1.16:1 contra la columna y necesita 3:1 (X-1 de la spec 003). Al soltar y al reordenar, las tarjetas pasan a su sitio sin desplazarse: `--dur` no se aplica a la tarjeta que cambia de columna, porque desplazar las demás exigiría transformaciones en línea (X-2 de la spec 003).
 - **Toast:** entra desde abajo a la derecha (en móvil, arriba), dura 4s y lleva «Deshacer» cuando aplica.
 - Solo se animan `transform`, `opacity`, `background` y `box-shadow`. Nada dura más de 420ms.
 - `prefers-reduced-motion`: se quitan los desplazamientos y se mantienen los cambios de color.
@@ -360,15 +361,17 @@ Usa siempre el token. Si algo no encaja, el problema es de estructura, no de nú
 ### 11.3 Tablero kanban *(spec 002)*
 - Título display «Tablero» (el h1 de la vista; «Mis tareas» sigue siendo el nombre de la app en la cabecera y en la pestaña) y, debajo, el recuento («6 tareas», «1 tarea») en `--text-2`. A la derecha, el primario «Crear tarea».
 - Cuatro columnas glass de radio 34, una por estado y en este orden: Backlog, To do, In progress y Done. Cabecera h2 con el estilo h3: icono del estado en `--text-2`, nombre en `--text-1` y «· 3» en `--text-2`. Cada columna es una región con nombre «In progress, 3 tareas».
-- Las tarjetas van de la creada más recientemente a la más antigua; una tarea nueva entra siempre en Backlog.
-- **Tarjeta de tarea:** un botón raised de radio 30 y padding 16–20. Título en `--text-body` y `--text-1`, que parte las palabras largas. Fechas en `--text-xs` tabular y `--text-2`, con `calendar-days`: «14 nov → 28 nov», o «Fin estimado: 28 nov» / «Inicio estimado: 14 nov» si solo hay una; con año si no es del año en curso. En Done, la fecha real de fin con `calendar-check` («Fecha real de fin:» para lectores de pantalla). La insignia «Retrasada» de §1.3 cuando aplique.
+- Las tarjetas van en el orden en que las deja el usuario. Una tarea nueva entra la primera de Backlog, y una tarea que cambia de estado desde el detalle o con el teclado entra la primera de su columna nueva.
+- **Tarjeta de tarea:** un contenedor raised de radio 30 con el botón de abrir, de padding 16–20, y el asa (spec 003). Título en `--text-body` y `--text-1`, que parte las palabras largas. Fechas en `--text-xs` tabular y `--text-2`, con `calendar-days`: «14 nov → 28 nov», o «Fin estimado: 28 nov» / «Inicio estimado: 14 nov» si solo hay una; con año si no es del año en curso. En Done, la fecha real de fin con `calendar-check` («Fecha real de fin:» para lectores de pantalla). La insignia «Retrasada» de §1.3 cuando aplique.
 - Con hover, la tarjeta no sube de superficie: pasa a `--shadow-glass` y se eleva 1px con `motion-safe` (X-2: con `--surface-raised-hover`, el `--text-2` de las fechas baja de 7:1 en oscuro).
 - Clic o Enter en la tarjeta abre su detalle (§11.4).
+- **Asa (spec 003):** arriba a la derecha, un botón de icono con `grip-vertical` de 16px en `--text-2`, de 44px por debajo de 1024px y de 32px desde 1024px, con el nombre «Mover «<título>»». Desde ella se mueve la tarjeta con teclado.
+- **Mover (spec 003):** con el ratón o el dedo, desde cualquier punto de la tarjeta. Con el puntero, la tarjeta levantada sigue al puntero en `--z-popover` y la lista muestra el hueco con anillo (§8); con teclado, la tarjeta se levanta en su sitio. Por debajo de 768px, el arrastre solo ordena la columna visible.
 - Columna vacía: hueco en `--surface-sunken` con su frase en `--text-2` («Nada en el backlog», «Nada por hacer», «Nada en curso», «Nada terminado todavía»), nunca una columna en blanco.
 - **Textos en `--text-2`, no `--text-3`** (X-1): el recuento, las fechas de la tarjeta, la frase del hueco vacío y las opciones no elegidas de los selectores. `--text-3` no llega a 7:1 sobre el lienzo con punto, en el hueco ni en la tarjeta oscura sin blur.
 - **Sin tareas:** el estado vacío de §12 en lugar de las columnas, con el «Crear tarea» dentro del bloque, no junto al título (X-8: un solo primario).
 - **Móvil (< 768px):** una sola columna y, encima, un control segmentado con los cuatro estados y su recuento («Done · 0»); se empieza en Backlog. «Crear tarea» va fijo abajo y a todo el ancho (X-8). De 768 a 1023px se ven dos columnas y el resto con scroll horizontal dentro del tablero.
-- El aviso «Esta tarea ya no existe.» sale en una zona de alerta del tablero, debajo de la cabecera.
+- Los avisos «Esta tarea ya no existe.» y «No hemos podido mover la tarea. Revisa tu conexión e inténtalo de nuevo.» salen en una zona de alerta del tablero, debajo de la cabecera.
 
 ### 11.4 Detalle y edición de una tarea *(spec 002)*
 - Un `<dialog>` modal de 460px como máximo y radio 34, en `--surface-raised` con blur y `--shadow-float`, sobre el velo de §6.3. En móvil, panel inferior a todo el ancho, con radio arriba, un asa de 36 × 4 y el 92% del alto como máximo.
@@ -376,10 +379,11 @@ Usa siempre el token. Si algo no encaja, el problema es de estructura, no de nú
 - Campos agrupados en dos carpetas: **Datos** (título, descripción y, al editar, el estado) y **Fechas** (inicio estimado, fin estimado y, solo en Done, fin real). Etiquetas en `--text-2`; «(opcional)» y la ayuda («Ejemplo: 14/11/2026») en `--text-3`, que dentro de la carpeta opaca sí llega a 7:1.
 - Las fechas se escriben a mano como «14/11/2026»; no hay selector de calendario.
 - Al crear no se elige estado: la tarea entra en Backlog. Al editar, el estado se cambia con el control segmentado de §14 (radios nativos, con flechas), con opciones de 44px como mínimo (X-4: no 38); la elegida lleva el tono de §1.3. Al elegir Done, la fecha real de fin se rellena con hoy, y el usuario la puede cambiar (nunca a un día futuro).
+- Al editar, debajo del estado y en la misma carpeta, la posición en la columna («To do, posición 2 de 3.», etiqueta en `--text-2`) y los botones glass «Subir» y «Bajar», de 44px de alto. Sin sitio al que ir, o con el estado cambiado sin guardar, quedan inactivos: el «Deshabilitado» del Button de §14, a opacidad .45, sin reaccionar al puntero y sin perder el foco. Con el estado cambiado sin guardar, debajo, en `--text-3` como la ayuda: «Guarda el cambio de estado para poder subirla o bajarla.».
 - Si la tarea va retrasada, un aviso en `--amber-soft` con `clock-alert`: «Esta tarea tenía que terminar el 28 oct.».
 - Acciones al pie, a la derecha: secundario «Cancelar» y primario «Crear tarea» / «Guardar cambios». «Borrar tarea» va aparte, a la izquierda, en glass: el único acento del detalle es la opción elegida del estado (un solo acento fuerte por vista, §21); `destructive` solo aparece en la confirmación.
 - **Confirmaciones en el mismo diálogo** (X-7: solo un diálogo abierto a la vez, §7): «¿Descartar los cambios?» con «Descartar cambios» (glass) y «Seguir editando» (primario, con el foco), y «¿Borrar «<título>»? No se puede deshacer.» con «Cancelar» (glass, con el foco) y «Borrar tarea» (`destructive`).
-- Los errores al guardar o borrar salen como Alert amber dentro del diálogo, encima de las carpetas.
+- Los errores al guardar, borrar o mover con «Subir» y «Bajar» salen como Alert amber dentro del diálogo, encima de las carpetas.
 
 ---
 
@@ -573,6 +577,8 @@ Alturas de control: **32 (sm, solo escritorio) · 44 (md) · 52–56 (inputs, lg
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| 1.5.0-todo.1 | 2026-11-01 | Spec 003 v4.0 (T-048): §11.4 añade, en la carpeta Datos y debajo del estado, la posición y los botones glass «Subir» y «Bajar», con su estado inactivo y el texto cuando el estado está cambiado sin guardar. Los errores de mover salen en la misma Alert del diálogo. |
+| 1.4.0-todo.1 | 2026-11-01 | Spec 003: token nuevo `--ring-drop` (§1.4, §6.2). §8 «Arrastrar» recoge el anillo del hueco (X-1) y que las tarjetas no se desplazan al soltar (X-2). §11.3: el orden es el que deja el usuario, la tarjeta es un contenedor con botón de abrir y asa, y se añaden el movimiento y el aviso de mover |
 | 1.3.1-todo.1 | 2026-10-31 | Spec 002 (T-031, verificación M-4): en el detalle, «Borrar tarea» pasa a glass; `destructive` queda solo en la confirmación de borrado, para cumplir «un solo acento fuerte por vista» (§21) |
 | 1.3.0-todo.1 | 2026-10-30 | Spec 002: tokens nuevos `--surface-veil`, `--veil-filter` y `--board-column-min` (§1.4, §3.2, §6.3). §1.3: mapa de estados confirmado y dónde se usa el tono (sale de «Pendiente de decidir»). §11.2–§11.4 dejan de ser orientativos y recogen el tablero y el detalle de la spec 002, con sus desviaciones X-1, X-2, X-4, X-6, X-7 y X-8 |
 | 1.2.1-todo.1 | 2026-10-29 | Spec 004 (T-029, X-12): el texto de los botones md y lg es `--text-body`, porque la escala de §2.2 no tiene 16 px en escritorio |

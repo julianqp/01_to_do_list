@@ -2,7 +2,7 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
 import { prisma } from '../src/repositories/prisma';
-import { NEW_TASK, signupCookie } from './helpers';
+import { createTaskFor, NEW_TASK, signupCookie } from './helpers';
 
 const app = createApp();
 
@@ -12,6 +12,16 @@ const create = (cookie: string | undefined, body: object) => {
 };
 
 const errorBody = (code: string) => ({ error: { code, message: expect.any(String) } });
+
+// Spec 003: el orden guardado de una columna, directamente de la base de datos (D-1).
+const columnOrder = async (status: 'backlog' | 'todo' | 'in_progress') =>
+  (
+    await prisma.task.findMany({
+      where: { status },
+      orderBy: { position: 'asc' },
+      select: { title: true },
+    })
+  ).map(({ title }) => title);
 
 describe('POST /api/tasks', () => {
   it('CA-2.1 CA-2.2 RF-011 crea la tarea a nombre del usuario, en Backlog, con sus datos', async () => {
@@ -78,6 +88,57 @@ describe('POST /api/tasks', () => {
     expect(res.status).toBe(400);
     expect(res.body).toEqual(errorBody('VALIDATION_ERROR'));
     expect(await prisma.task.count()).toBe(0);
+  });
+
+  it('003 CA-2.3 RF-009 la tarea nueva sale la primera de Backlog y el orden de las demás columnas no cambia', async () => {
+    const ana = await signupCookie('ana@example.com');
+    for (const [title, status] of [
+      ['Comprar pan', 'backlog'],
+      ['Llamar al banco', 'todo'],
+      ['Preparar la demo', 'todo'],
+      ['Pagar el alquiler', 'in_progress'],
+    ] as const) {
+      const task = await createTaskFor(ana, { title });
+      if (status === 'backlog') continue;
+      await prisma.task.update({ where: { id: task.id }, data: { status } });
+    }
+    const todo = await columnOrder('todo');
+    const inProgress = await columnOrder('in_progress');
+
+    const res = await create(ana, { ...NEW_TASK, title: 'Revisar el correo' });
+
+    expect(res.status).toBe(201);
+    expect(await columnOrder('backlog')).toEqual(['Revisar el correo', 'Comprar pan']);
+    expect(await columnOrder('todo')).toEqual(todo);
+    expect(await columnOrder('in_progress')).toEqual(inProgress);
+    // Cada columna numera por su cuenta: el orden se mira por columna (002/D-7).
+    const list = await request(app).get('/api/tasks').set('Cookie', ana);
+    expect(
+      (list.body.tasks as { title: string; status: string }[])
+        .filter(({ status }) => status === 'backlog')
+        .map(({ title }) => title),
+    ).toEqual(['Revisar el correo', 'Comprar pan']);
+  });
+
+  it('003 RF-009 D-2 tres creaciones seguidas quedan de la más reciente a la más antigua, sin posiciones repetidas', async () => {
+    const ana = await signupCookie('ana@example.com');
+
+    for (const title of ['Uno', 'Dos', 'Tres']) await createTaskFor(ana, { title });
+
+    const rows = await prisma.task.findMany({ orderBy: { position: 'asc' } });
+    expect(rows.map(({ title }) => title)).toEqual(['Tres', 'Dos', 'Uno']);
+    expect(new Set(rows.map(({ position }) => position)).size).toBe(3);
+  });
+
+  it('003 RF-009 D-2 creaciones a la vez no repiten posición', async () => {
+    const ana = await signupCookie('ana@example.com');
+
+    await Promise.all(
+      ['Uno', 'Dos', 'Tres', 'Cuatro'].map((title) => createTaskFor(ana, { title })),
+    );
+
+    const rows = await prisma.task.findMany({ select: { position: true } });
+    expect(new Set(rows.map(({ position }) => position)).size).toBe(4);
   });
 
   it('C-13 sin sesión → 401 UNAUTHENTICATED y no crea la tarea', async () => {

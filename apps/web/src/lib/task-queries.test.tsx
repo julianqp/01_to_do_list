@@ -2,9 +2,17 @@ import type { Task } from '@todo/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { apiError, json, mockBrowser } from '../components/test-utils';
-import { useCreateTask, useDeleteTask, useTasks, useUpdateTask } from './task-queries';
+import type { Placement } from './board-order';
+import {
+  useCreateTask,
+  useDeleteTask,
+  useMoveTask,
+  useTasks,
+  useUpdateTask,
+  type MoveVariables,
+} from './task-queries';
 
 const browser = mockBrowser();
 
@@ -175,5 +183,225 @@ describe('task-queries', () => {
 
     expect(getsOfList()).toBe(1);
     expect(result.current.tasks.data).toEqual([TASK]);
+  });
+});
+
+describe('useMoveTask', () => {
+  const TODAY = '2026-10-31';
+  const task = (id: string, status: Task['status'], overrides: Partial<Task> = {}): Task => ({
+    ...TASK,
+    id,
+    title: id,
+    status,
+    ...overrides,
+  });
+  const BREAD = task('pan', 'todo');
+  const DEMO = task('demo', 'todo');
+  const MAIL = task('correo', 'in_progress');
+  const SEED = [BREAD, DEMO, MAIL];
+
+  const moveTo = (moved: Task, from: Placement, to: Placement): MoveVariables => ({
+    task: moved,
+    from,
+    to,
+    today: TODAY,
+  });
+  const DEMO_TO_PROGRESS = moveTo(
+    DEMO,
+    { status: 'todo', index: 1 },
+    { status: 'in_progress', index: 0 },
+  );
+  const moveRoute = (id: string) => `POST /api/tasks/${id}/move`;
+
+  // Una respuesta que no llega hasta llamar a `settle`.
+  function hold(id: string) {
+    let settle!: (response: Response | Error) => void;
+    browser.routes[moveRoute(id)] = () =>
+      new Promise<Response>((resolve, reject) => {
+        settle = (response) => (response instanceof Error ? reject(response) : resolve(response));
+      });
+    return { settle: (response: Response | Error) => settle(response) };
+  }
+
+  async function renderBoard(tasks: Task[] = SEED) {
+    browser.routes['GET /api/tasks'] = () => json(200, { tasks });
+    const view = renderTasksWith(useMoveTask);
+    await waitFor(() => expect(view.result.current.tasks.data).toEqual(tasks));
+    return view;
+  }
+
+  // "estado:id" en el orden de la caché, por columna.
+  const column = (view: Awaited<ReturnType<typeof renderBoard>>, status: Task['status']) =>
+    (view.result.current.tasks.data ?? [])
+      .filter((candidate) => candidate.status === status)
+      .map(({ id }) => id);
+
+  it('003 RF-020 con el `fetch` pendiente, la caché ya tiene la tarjeta en su sitio nuevo', async () => {
+    const view = await renderBoard();
+    const response = hold('demo');
+
+    act(() => view.result.current.mutation.mutate(DEMO_TO_PROGRESS));
+
+    await waitFor(() => expect(column(view, 'in_progress')).toEqual(['demo', 'correo']));
+    expect(column(view, 'todo')).toEqual(['pan']);
+    expect(browser.callsTo('POST', '/api/tasks/demo/move')).toHaveLength(1);
+    expect(browser.callsTo('POST', '/api/tasks/demo/move')[0]?.[1]?.body).toBe(
+      JSON.stringify({ status: 'in_progress', index: 0, today: TODAY }),
+    );
+
+    await act(async () => response.settle(new Response(JSON.stringify({ task: DEMO }))));
+  });
+
+  it('003 CA-1.4 RF-003 la tarjeta optimista lleva el estado nuevo y la fecha de hoy al entrar en Done', async () => {
+    const view = await renderBoard();
+    const response = hold('demo');
+
+    act(() =>
+      view.result.current.mutation.mutate(
+        moveTo(DEMO, { status: 'todo', index: 1 }, { status: 'done', index: 0 }),
+      ),
+    );
+
+    await waitFor(() =>
+      expect(view.result.current.tasks.data?.find(({ id }) => id === 'demo')).toMatchObject({
+        status: 'done',
+        actualEndDate: TODAY,
+      }),
+    );
+    await act(async () => response.settle(new Response(JSON.stringify({ task: DEMO }))));
+  });
+
+  it('003 RF-004 la tarjeta optimista se queda sin fecha real de fin al salir de Done', async () => {
+    const finished = task('fin', 'done', { actualEndDate: '2026-10-27' });
+    const view = await renderBoard([finished]);
+    const response = hold('fin');
+
+    act(() =>
+      view.result.current.mutation.mutate(
+        moveTo(finished, { status: 'done', index: 0 }, { status: 'todo', index: 0 }),
+      ),
+    );
+
+    await waitFor(() =>
+      expect(view.result.current.tasks.data?.[0]).toMatchObject({
+        status: 'todo',
+        actualEndDate: null,
+      }),
+    );
+    await act(async () => response.settle(new Response(JSON.stringify({ task: finished }))));
+  });
+
+  it.each([
+    ['NetworkError', () => Promise.reject(new TypeError('Failed to fetch'))],
+    ['500', () => Promise.resolve(new Response('', { status: 500 }))],
+  ])('003 RF-021 con %s, la tarjeta vuelve a `from`', async (_name, handler) => {
+    const view = await renderBoard();
+    browser.routes[moveRoute('demo')] = handler;
+
+    await act(() => run(view.result.current.mutation, DEMO_TO_PROGRESS).catch(() => undefined));
+
+    await waitFor(() => expect(column(view, 'todo')).toEqual(['pan', 'demo']));
+    expect(column(view, 'in_progress')).toEqual(['correo']);
+    // D-12: sin reintentos.
+    expect(browser.callsTo('POST', '/api/tasks/demo/move')).toHaveLength(1);
+  });
+
+  it('003 RF-021 D-29 al fallar, `mutateAsync` rechaza sin esperar a que responda `GET /api/tasks`', async () => {
+    const view = await renderBoard();
+    browser.routes[moveRoute('demo')] = () => Promise.reject(new TypeError('Failed to fetch'));
+    const before = getsOfList();
+    browser.routes['GET /api/tasks'] = () => new Promise<Response>(() => undefined);
+    const rejected = vi.fn();
+
+    act(() => {
+      run(view.result.current.mutation, DEMO_TO_PROGRESS).catch(rejected);
+    });
+
+    await waitFor(() => expect(getsOfList()).toBe(before + 1));
+    await waitFor(() => expect(rejected).toHaveBeenCalledTimes(1));
+  });
+
+  it('003 RF-022 con TASK_NOT_FOUND, la tarjeta se quita de la caché', async () => {
+    const view = await renderBoard();
+    browser.routes[moveRoute('demo')] = () => apiError(404, 'TASK_NOT_FOUND');
+    let lists = 0;
+    browser.routes['GET /api/tasks'] = () => {
+      lists += 1;
+      return json(200, { tasks: [BREAD, MAIL] });
+    };
+
+    await act(() => run(view.result.current.mutation, DEMO_TO_PROGRESS).catch(() => undefined));
+
+    await waitFor(() => expect(column(view, 'in_progress')).toEqual(['correo']));
+    expect(column(view, 'todo')).toEqual(['pan']);
+    expect(lists).toBeGreaterThan(0);
+  });
+
+  it('003 E-26 RF-029 D-36 si la tarea ya no está en la lista, el fallo no la vuelve a poner', async () => {
+    const view = await renderBoard();
+    const response = hold('demo');
+    act(() => view.result.current.mutation.mutate(DEMO_TO_PROGRESS));
+    await waitFor(() => expect(column(view, 'in_progress')).toEqual(['demo', 'correo']));
+
+    // Se ha borrado mientras tanto: la lista nueva ya no la tiene.
+    browser.routes['GET /api/tasks'] = () => json(200, { tasks: [BREAD, MAIL] });
+    await act(() => view.result.current.tasks.refetch());
+    await waitFor(() => expect(column(view, 'in_progress')).toEqual(['correo']));
+    await act(async () => response.settle(new TypeError('Failed to fetch')));
+
+    await waitFor(() => expect(view.result.current.mutation.isPending).toBe(false));
+    expect(column(view, 'todo')).toEqual(['pan']);
+    expect(column(view, 'in_progress')).toEqual(['correo']);
+  });
+
+  it('003 E-12 dos movimientos, el primero falla y el segundo va bien: solo el primero vuelve', async () => {
+    const view = await renderBoard();
+    const demo = hold('demo');
+    const bread = hold('pan');
+    const after = [task('pan', 'done', { actualEndDate: TODAY }), DEMO, MAIL];
+
+    act(() => view.result.current.mutation.mutate(DEMO_TO_PROGRESS));
+    await waitFor(() => expect(column(view, 'in_progress')).toEqual(['demo', 'correo']));
+    act(() =>
+      view.result.current.mutation.mutate(
+        moveTo(BREAD, { status: 'todo', index: 0 }, { status: 'done', index: 0 }),
+      ),
+    );
+    await waitFor(() => expect(column(view, 'done')).toEqual(['pan']));
+
+    await act(async () => demo.settle(new TypeError('Failed to fetch')));
+
+    // Vuelve solo la primera; la segunda sigue en su sitio nuevo.
+    await waitFor(() => expect(column(view, 'todo')).toEqual(['demo']));
+    expect(column(view, 'in_progress')).toEqual(['correo']);
+    expect(column(view, 'done')).toEqual(['pan']);
+
+    browser.routes['GET /api/tasks'] = () => json(200, { tasks: after });
+    await act(async () => bread.settle(new Response(JSON.stringify({ task: after[0] }))));
+    await waitFor(() => expect(view.result.current.mutation.isPending).toBe(false));
+    expect(column(view, 'done')).toEqual(['pan']);
+  });
+
+  it('003 D-12 GET /api/tasks se vuelve a pedir solo cuando no queda ningún movimiento pendiente', async () => {
+    const view = await renderBoard();
+    const demo = hold('demo');
+    const bread = hold('pan');
+    const before = getsOfList();
+
+    act(() => view.result.current.mutation.mutate(DEMO_TO_PROGRESS));
+    await waitFor(() => expect(browser.callsTo('POST', '/api/tasks/demo/move')).toHaveLength(1));
+    act(() =>
+      view.result.current.mutation.mutate(
+        moveTo(BREAD, { status: 'todo', index: 0 }, { status: 'done', index: 0 }),
+      ),
+    );
+    await waitFor(() => expect(browser.callsTo('POST', '/api/tasks/pan/move')).toHaveLength(1));
+
+    await act(async () => demo.settle(new Response(JSON.stringify({ task: DEMO }))));
+    await waitFor(() => expect(column(view, 'in_progress')).toEqual(['demo', 'correo']));
+    expect(getsOfList()).toBe(before);
+
+    await act(async () => bread.settle(new Response(JSON.stringify({ task: BREAD }))));
+    await waitFor(() => expect(getsOfList()).toBe(before + 1));
   });
 });

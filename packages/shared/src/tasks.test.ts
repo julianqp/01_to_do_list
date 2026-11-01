@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
+  actualEndDateAfterMove,
   createTaskInputSchema,
   isActualEndDateAllowed,
+  moveTaskInputSchema,
   TASK_MESSAGES,
   taskIdSchema,
   updateTaskInputSchema,
@@ -227,5 +229,56 @@ describe('TASK_MESSAGES', () => {
   it('D-4 RF-017 RF-039 expone los textos que el formulario pone por su cuenta', () => {
     expect(TASK_MESSAGES.invalidDate).toBe(INVALID_DATE);
     expect(TASK_MESSAGES.actualEndInFuture).toBe(ACTUAL_END_IN_FUTURE);
+  });
+});
+
+describe('moveTaskInputSchema', () => {
+  const move = { status: 'in_progress', index: 0, today: '2026-10-31' };
+
+  it('003 D-3 acepta un destino válido', () => {
+    expect(moveTaskInputSchema.parse(move)).toEqual(move);
+  });
+
+  it.each([-1, 1.5, undefined, '0'])('003 D-3 rechaza el índice %j', (index) => {
+    expect(moveTaskInputSchema.safeParse({ ...move, index }).success).toBe(false);
+  });
+
+  it.each(['Done', 'archived', null, undefined])('003 D-3 rechaza el estado %j', (status) => {
+    expect(moveTaskInputSchema.safeParse({ ...move, status }).success).toBe(false);
+  });
+
+  it.each(['2026-02-31', '2026-10-31T00:30:00', '31/10/2026', null, undefined])(
+    '003 E-16 C-11 rechaza hoy %j',
+    (today) => {
+      expect(moveTaskInputSchema.safeParse({ ...move, today }).success).toBe(false);
+    },
+  );
+});
+
+describe('actualEndDateAfterMove', () => {
+  const today = '2026-10-31';
+
+  it('003 RF-003 al entrar en Done, la fecha de hoy', () => {
+    expect(
+      actualEndDateAfterMove({ status: 'in_progress', actualEndDate: null }, 'done', today),
+    ).toBe(today);
+  });
+
+  it('003 RF-004 al salir de Done, sin fecha real de fin', () => {
+    expect(
+      actualEndDateAfterMove({ status: 'done', actualEndDate: '2026-10-27' }, 'todo', today),
+    ).toBeNull();
+  });
+
+  it('003 E-15 dentro de Done, la fecha que tenía', () => {
+    expect(
+      actualEndDateAfterMove({ status: 'done', actualEndDate: '2026-10-27' }, 'done', today),
+    ).toBe('2026-10-27');
+  });
+
+  it('003 D-4 entre dos columnas que no son Done, sin fecha real de fin', () => {
+    expect(
+      actualEndDateAfterMove({ status: 'todo', actualEndDate: null }, 'backlog', today),
+    ).toBeNull();
   });
 });

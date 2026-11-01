@@ -1,7 +1,10 @@
-import type { Task } from '@todo/shared';
+import type { MoveTaskInput, Task } from '@todo/shared';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { placeTask } from '../lib/board-order';
+import { todayLocal } from '../lib/dates';
 import type { TaskFormMode } from '../lib/task-form';
 import { useTasks } from '../lib/task-queries';
 import { Board } from './Board';
@@ -23,7 +26,10 @@ const DISCARD_QUESTION = '¿Descartar los cambios?';
 
 function renderDialog(mode: TaskFormMode = { kind: 'create' }) {
   const onClose = vi.fn();
-  renderWithClient(<TaskDialog mode={mode} onClose={onClose} />);
+  const tasks = mode.kind === 'edit' ? [mode.task] : [];
+  renderWithClient(
+    <TaskDialog mode={mode} tasks={tasks} onClose={onClose} onMoveFailedAfterClose={vi.fn()} />,
+  );
   const dialog = screen.getByRole('dialog');
   return { onClose, dialog, user: userEvent.setup() };
 }
@@ -930,5 +936,716 @@ describe('TaskDialog · borrar', () => {
       await screen.findByText('Todavía no tienes tareas. Crea la primera y empieza a organizarte.'),
     ).toBeDefined();
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Crear tarea' }));
+  });
+});
+
+// --- Spec 003, T-047: «Subir» y «Bajar» (D-34) ---
+
+const MOVE_ERROR = 'No hemos podido mover la tarea. Revisa tu conexión e inténtalo de nuevo.';
+const NEEDS_SAVE = 'Guarda el cambio de estado para poder subirla o bajarla.';
+
+describe('TaskDialog · Subir y Bajar', () => {
+  const todoTasks = () =>
+    ['Comprar pan', 'Preparar la demo', 'Llamar al banco'].map((title) =>
+      taskFixture({ title, status: 'todo' }),
+    );
+
+  // La lista y `POST …/move` y `PUT` sobre ella, como la API (D-3, RF-010).
+  function serveOrder(initial: Task[]) {
+    let server = initial;
+    browser.routes['GET /api/tasks'] = () => json(200, { tasks: server });
+    for (const { id } of initial) {
+      const current = () => server.find((candidate) => candidate.id === id)!;
+      browser.routes[`POST /api/tasks/${id}/move`] = () => {
+        const { status, index } = JSON.parse(
+          String(browser.fetch.mock.lastCall![1]!.body),
+        ) as MoveTaskInput;
+        server = placeTask(server, current(), { status, index });
+        return json(200, { task: current() });
+      };
+      browser.routes[`PUT /api/tasks/${id}`] = () => {
+        const input = JSON.parse(String(browser.fetch.mock.lastCall![1]!.body)) as Partial<Task>;
+        server = server.map((task) => (task.id === id ? { ...task, ...input } : task));
+        return json(200, { task: current() });
+      };
+    }
+  }
+
+  async function openOrder(tasks: Task[], title = 'Preparar la demo') {
+    serveOrder(tasks);
+    renderWithClient(<LiveBoard />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: new RegExp(`^${title}`) }));
+    const dialog = screen.getByRole('dialog', { name: 'Detalle de la tarea' });
+    const id = tasks.find((task) => task.title === title)!.id;
+    return {
+      user,
+      dialog,
+      moves: () => browser.callsTo('POST', `/api/tasks/${id}/move`),
+      failWith: (handler: () => Promise<Response>) => {
+        browser.routes[`POST /api/tasks/${id}/move`] = handler;
+      },
+    };
+  }
+
+  const position = (dialog: HTMLElement) =>
+    dialog.querySelector('p[aria-live="polite"]')?.textContent;
+  const up = (dialog: HTMLElement) => within(dialog).getByRole('button', { name: 'Subir' });
+  const down = (dialog: HTMLElement) => within(dialog).getByRole('button', { name: 'Bajar' });
+  const cancel = (dialog: HTMLElement) => within(dialog).getByRole('button', { name: 'Cancelar' });
+  const todoOrder = () =>
+    [
+      ...screen
+        .getByRole('region', { name: /^To do,/ })
+        .querySelectorAll<HTMLElement>('[data-task-id]'),
+    ].map((button) => button.textContent);
+  const expectTitlesInOrder = (titles: string[]) => {
+    const order = todoOrder();
+    expect(order).toHaveLength(titles.length);
+    titles.forEach((title, index) => expect(order[index]).toContain(title));
+  };
+
+  it('003 CA-5.1 RF-026 debajo de «Estado», en Datos, la posición y los botones glass; al crear no aparecen', async () => {
+    const { dialog } = await openOrder(todoTasks());
+
+    const datos = within(dialog).getByRole('group', { name: 'Datos' });
+    const live = position(dialog);
+    expect(live).toBe('To do, posición 2 de 3.');
+    const button = within(datos).getByRole('button', { name: 'Subir' });
+    expect(within(datos).getByRole('button', { name: 'Bajar' })).toBeDefined();
+    expect(button.classList).toContain('bg-glass');
+    expect(button.classList).toContain('h-11');
+    const status = within(datos).getByRole('group', { name: 'Estado' });
+    expect(status.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(button.getAttribute('aria-disabled')).toBeNull();
+    expect(button.getAttribute('type')).toBe('button');
+  });
+
+  it('003 CA-5.1 RF-026 en el diálogo de crear no están la posición ni los botones', async () => {
+    const { dialog } = await openCreate();
+
+    expect(position(dialog)).toBeUndefined();
+    expect(within(dialog).queryByRole('button', { name: 'Subir' })).toBeNull();
+    expect(within(dialog).queryByRole('button', { name: 'Bajar' })).toBeNull();
+  });
+
+  it('003 RF-026 D-34 si la tarea ya no está en la lista, no se pinta el bloque', () => {
+    const task = taskFixture();
+    renderWithClient(
+      <TaskDialog
+        mode={{ kind: 'edit', task }}
+        tasks={[]}
+        onClose={vi.fn()}
+        onMoveFailedAfterClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Subir' })).toBeNull();
+  });
+
+  it('003 CA-5.2 RF-027 RF-007 «Subir» guarda con index 0 y el texto cambia, sin cerrar el diálogo; al cerrar, el orden nuevo', async () => {
+    const { user, dialog, moves } = await openOrder(todoTasks());
+
+    await user.click(up(dialog));
+
+    expect(moves()).toHaveLength(1);
+    expect(JSON.parse(String(moves()[0]![1]!.body))).toEqual({
+      status: 'todo',
+      index: 0,
+      today: todayLocal(),
+    });
+    await waitFor(() => expect(position(dialog)).toBe('To do, posición 1 de 3.'));
+    expect((dialog as HTMLDialogElement).open).toBe(true);
+
+    await user.click(cancel(dialog));
+
+    expectTitlesInOrder(['Preparar la demo', 'Comprar pan', 'Llamar al banco']);
+  });
+
+  it('003 CA-5.3 RF-027 «Bajar» la deja la última', async () => {
+    const { user, dialog, moves } = await openOrder(todoTasks());
+
+    await user.click(down(dialog));
+
+    expect(JSON.parse(String(moves()[0]![1]!.body))).toMatchObject({ status: 'todo', index: 2 });
+    await waitFor(() => expect(position(dialog)).toBe('To do, posición 3 de 3.'));
+    expectTitlesInOrder(['Comprar pan', 'Llamar al banco', 'Preparar la demo']);
+  });
+
+  it('003 RF-020 D-34 el texto y la tarjeta cambian antes de la respuesta', async () => {
+    const { user, dialog, failWith } = await openOrder(todoTasks());
+    failWith(() => new Promise<Response>(() => {}));
+
+    await user.click(up(dialog));
+
+    await waitFor(() => expect(position(dialog)).toBe('To do, posición 1 de 3.'));
+    expectTitlesInOrder(['Preparar la demo', 'Comprar pan', 'Llamar al banco']);
+  });
+
+  it('003 RF-027 con el movimiento guardándose, otra pulsación no manda otra petición', async () => {
+    const { user, dialog, moves, failWith } = await openOrder(todoTasks());
+    failWith(() => new Promise<Response>(() => {}));
+
+    await user.click(down(dialog));
+    await waitFor(() => expect(position(dialog)).toBe('To do, posición 3 de 3.'));
+    await user.click(up(dialog));
+    await user.click(up(dialog));
+
+    expect(moves()).toHaveLength(1);
+    expect(position(dialog)).toBe('To do, posición 3 de 3.');
+  });
+
+  it.each([
+    ['Enter', '{Enter}'],
+    ['Espacio', ' '],
+  ])(
+    '003 CA-5.4 RF-026 con %s sube, el foco sigue en «Subir» y cambia la región viva',
+    async (_name, key) => {
+      const { user, dialog, moves } = await openOrder(todoTasks());
+      up(dialog).focus();
+
+      await user.keyboard(key);
+
+      expect(moves()).toHaveLength(1);
+      await waitFor(() => expect(position(dialog)).toBe('To do, posición 1 de 3.'));
+      expect(dialog.querySelector('p[aria-live="polite"]')?.getAttribute('aria-atomic')).toBe(
+        'true',
+      );
+      expect(document.activeElement).toBe(up(dialog));
+    },
+  );
+
+  it('003 CA-5.5 RF-028 la primera: «Subir» inactivo, al pulsarlo nada cambia y no se guarda', async () => {
+    const { user, dialog, moves } = await openOrder(todoTasks(), 'Comprar pan');
+
+    expect(up(dialog).getAttribute('aria-disabled')).toBe('true');
+    expect(up(dialog).hasAttribute('disabled')).toBe(false);
+    expect(down(dialog).getAttribute('aria-disabled')).toBeNull();
+    await user.click(up(dialog));
+
+    expect(moves()).toHaveLength(0);
+    expect(position(dialog)).toBe('To do, posición 1 de 3.');
+    expect((dialog as HTMLDialogElement).open).toBe(true);
+  });
+
+  it('003 CA-5.5 RF-028 la última: «Bajar» inactivo, al pulsarlo nada cambia y no se guarda', async () => {
+    const { user, dialog, moves } = await openOrder(todoTasks(), 'Llamar al banco');
+
+    expect(down(dialog).getAttribute('aria-disabled')).toBe('true');
+    expect(up(dialog).getAttribute('aria-disabled')).toBeNull();
+    await user.click(down(dialog));
+
+    expect(moves()).toHaveLength(0);
+    expect(position(dialog)).toBe('To do, posición 3 de 3.');
+  });
+
+  it('003 CA-5.5 RF-028 al llegar al borde, el botón queda inactivo y conserva el foco', async () => {
+    const { user, dialog } = await openOrder(todoTasks());
+    up(dialog).focus();
+
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => expect(up(dialog).getAttribute('aria-disabled')).toBe('true'));
+    expect(document.activeElement).toBe(up(dialog));
+  });
+
+  it('003 CA-5.6 RF-027 conserva el título escrito, «Cancelar» pregunta y, al descartar, la posición se queda', async () => {
+    const { user, dialog } = await openOrder(todoTasks());
+    await user.type(field(dialog, 'Título'), ' final');
+
+    await user.click(up(dialog));
+
+    await waitFor(() => expect(position(dialog)).toBe('To do, posición 1 de 3.'));
+    expect(field(dialog, 'Título').value).toBe('Preparar la demo final');
+
+    await user.click(cancel(dialog));
+    expect(screen.getByRole('heading', { level: 2, name: DISCARD_QUESTION })).toBeDefined();
+    await user.click(screen.getByRole('button', { name: 'Descartar cambios' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expectTitlesInOrder(['Preparar la demo', 'Comprar pan', 'Llamar al banco']);
+    expect(todoOrder()[0]).not.toContain('final');
+  });
+
+  it('003 CA-5.7 RF-027 sin otros cambios, «Cancelar» cierra sin preguntar y la posición se queda', async () => {
+    const { user, dialog } = await openOrder(todoTasks());
+
+    await user.click(up(dialog));
+    await waitFor(() => expect(position(dialog)).toBe('To do, posición 1 de 3.'));
+    await user.click(cancel(dialog));
+
+    expect(screen.queryByText(DISCARD_QUESTION)).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expectTitlesInOrder(['Preparar la demo', 'Comprar pan', 'Llamar al banco']);
+  });
+
+  it('003 CA-5.8 RF-028 con el estado cambiado, inactivos y el texto; al volver al estado, activos y sin texto', async () => {
+    const { user, dialog, moves } = await openOrder(todoTasks());
+    const radio = (name: string) => within(dialog).getByRole('radio', { name });
+    expect(within(dialog).queryByText(NEEDS_SAVE)).toBeNull();
+
+    await user.click(radio('In progress'));
+
+    expect(up(dialog).getAttribute('aria-disabled')).toBe('true');
+    expect(down(dialog).getAttribute('aria-disabled')).toBe('true');
+    expect(within(dialog).getByText(NEEDS_SAVE)).toBeDefined();
+    expect(position(dialog)).toBe('To do, posición 2 de 3.');
+    await user.click(up(dialog));
+    await user.click(down(dialog));
+    expect(moves()).toHaveLength(0);
+
+    await user.click(radio('To do'));
+
+    expect(up(dialog).getAttribute('aria-disabled')).toBeNull();
+    expect(down(dialog).getAttribute('aria-disabled')).toBeNull();
+    expect(within(dialog).queryByText(NEEDS_SAVE)).toBeNull();
+  });
+
+  it.each([
+    ['NetworkError', () => Promise.reject(new TypeError('Failed to fetch'))],
+    ['500', () => apiError(500, 'INTERNAL_ERROR')],
+  ])(
+    '003 CA-5.9 RF-029 con %s vuelve el texto de antes, aviso en la alerta del diálogo, y sigue abierto',
+    async (_name, handler) => {
+      const { user, dialog, failWith } = await openOrder(todoTasks());
+      failWith(handler);
+
+      await user.click(up(dialog));
+
+      expect(await within(dialog).findByText(MOVE_ERROR)).toBeDefined();
+      expect(within(dialog).getByRole('alert').textContent).toContain(MOVE_ERROR);
+      expect(position(dialog)).toBe('To do, posición 2 de 3.');
+      expect((dialog as HTMLDialogElement).open).toBe(true);
+      expectTitlesInOrder(['Comprar pan', 'Preparar la demo', 'Llamar al banco']);
+    },
+  );
+
+  it('003 RF-029 D-34 solo se ve el error de la última acción: al volver a pulsar se quita el aviso', async () => {
+    const { user, dialog, failWith } = await openOrder(todoTasks());
+    failWith(() => Promise.reject(new TypeError('Failed to fetch')));
+    await user.click(up(dialog));
+    await within(dialog).findByText(MOVE_ERROR);
+    failWith(() => new Promise<Response>(() => {}));
+
+    await user.click(up(dialog));
+
+    await waitFor(() => expect(within(dialog).queryByText(MOVE_ERROR)).toBeNull());
+  });
+
+  it('003 RF-029 D-34 guardar con un aviso de mover lo quita', async () => {
+    const { user, dialog, failWith } = await openOrder(todoTasks());
+    failWith(() => Promise.reject(new TypeError('Failed to fetch')));
+    await user.click(up(dialog));
+    await within(dialog).findByText(MOVE_ERROR);
+
+    await user.type(field(dialog, 'Título'), ' final');
+    await user.click(save(dialog));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.queryByText(MOVE_ERROR)).toBeNull();
+  });
+
+  it('003 CA-5.10 RF-029 con TASK_NOT_FOUND se cierra, con el aviso en el tablero, sin la tarjeta y el foco en «Crear tarea»', async () => {
+    const tasks = todoTasks();
+    const { user, dialog, failWith } = await openOrder(tasks);
+    const rest = tasks.filter(({ title }) => title !== 'Preparar la demo');
+    failWith(() => {
+      browser.routes['GET /api/tasks'] = () => json(200, { tasks: rest });
+      return apiError(404, 'TASK_NOT_FOUND');
+    });
+
+    await user.click(up(dialog));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.getByText(NOT_FOUND)).toBeDefined();
+    await waitFor(() => expectTitlesInOrder(['Comprar pan', 'Llamar al banco']));
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Crear tarea' })),
+    );
+  });
+
+  it('003 E-8 RF-029 SESSION_EXPIRED redirige como hasta ahora', async () => {
+    const Island = withQueryClient(LiveBoard, { requireSession: true });
+    const tasks = todoTasks();
+    serveOrder(tasks);
+    browser.routes[`POST /api/tasks/${tasks[1]!.id}/move`] = () => apiError(401, 'SESSION_EXPIRED');
+    render(<Island />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: /^Preparar la demo/ }));
+
+    await user.click(up(screen.getByRole('dialog')));
+
+    await waitFor(() => expect(browser.replace).toHaveBeenCalledWith('/login?expired=1'));
+  });
+
+  it('003 CA-5.11 RF-027 RF-010 guardar sin cambiar el estado conserva la posición: el PUT no lleva posición', async () => {
+    const tasks = todoTasks();
+    const { user, dialog } = await openOrder(tasks);
+    await user.click(up(dialog));
+    await waitFor(() => expect(position(dialog)).toBe('To do, posición 1 de 3.'));
+    await waitFor(() => expect(up(dialog).getAttribute('aria-disabled')).toBe('true'));
+
+    await user.type(field(dialog, 'Título'), ' final');
+    await user.click(save(dialog));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    const body = JSON.parse(
+      String(browser.callsTo('PUT', `/api/tasks/${tasks[1]!.id}`)[0]![1]!.body),
+    ) as object;
+    expect(body).not.toHaveProperty('position');
+    expect(body).not.toHaveProperty('index');
+    expect(body).toMatchObject({ title: 'Preparar la demo final', status: 'todo' });
+    await waitFor(() =>
+      expectTitlesInOrder(['Preparar la demo final', 'Comprar pan', 'Llamar al banco']),
+    );
+  });
+
+  it('003 E-23 RF-028 la única de su columna: posición 1 de 1 y los dos botones inactivos', async () => {
+    const { dialog } = await openOrder([taskFixture({ status: 'done' })]);
+
+    expect(position(dialog)).toBe('Done, posición 1 de 1.');
+    expect(up(dialog).getAttribute('aria-disabled')).toBe('true');
+    expect(down(dialog).getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('003 E-24 C-4 D-34 la posición y el index salen de la lista recibida, no de la foto del borrador', async () => {
+    const [comprar, demo, llamar] = todoTasks() as [Task, Task, Task];
+    serveOrder([comprar, demo, llamar]);
+    const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const dialogWith = (tasks: Task[]) => (
+      <QueryClientProvider client={client}>
+        <TaskDialog
+          mode={{ kind: 'edit', task: demo }}
+          tasks={tasks}
+          onClose={vi.fn()}
+          onMoveFailedAfterClose={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+    const { rerender } = render(dialogWith([comprar, demo, llamar]));
+    const dialog = screen.getByRole('dialog');
+    expect(position(dialog)).toBe('To do, posición 2 de 3.');
+
+    // Otra pestaña la ha pasado a la última.
+    rerender(dialogWith([comprar, llamar, demo]));
+
+    expect(position(dialog)).toBe('To do, posición 3 de 3.');
+    expect(down(dialog).getAttribute('aria-disabled')).toBe('true');
+    await userEvent.setup().click(up(dialog));
+    const [, init] = browser.callsTo('POST', `/api/tasks/${demo.id}/move`)[0]!;
+    expect(JSON.parse(String(init!.body))).toMatchObject({ status: 'todo', index: 1 });
+  });
+
+  describe('con un guardado en camino (D-37)', () => {
+    // «Guardar cambios» con el título cambiado y el `PUT` retenido hasta llamar a `settle`.
+    async function saveHeld(tasks = todoTasks()) {
+      const opened = await openOrder(tasks);
+      let settle!: (response: Response) => void;
+      const route = `PUT /api/tasks/${tasks[1]!.id}`;
+      browser.routes[route] = () =>
+        new Promise<Response>((resolve) => {
+          settle = resolve;
+        });
+      await opened.user.type(field(opened.dialog, 'Título'), ' final');
+      await opened.user.click(save(opened.dialog));
+      await within(opened.dialog).findByRole('button', { name: 'Guardando…' });
+      return { ...opened, settle: (response: Response) => settle(response) };
+    }
+
+    it('003 CA-5.12 RF-028 durante «Guardando…», los dos inactivos, pulsarlos no manda ninguna petición, y sin el texto de RF-028', async () => {
+      const { user, dialog, moves } = await saveHeld();
+
+      expect(up(dialog).getAttribute('aria-disabled')).toBe('true');
+      expect(down(dialog).getAttribute('aria-disabled')).toBe('true');
+      expect(up(dialog).hasAttribute('disabled')).toBe(false);
+      expect(within(dialog).queryByText(NEEDS_SAVE)).toBeNull();
+
+      await user.click(up(dialog));
+      await user.click(down(dialog));
+
+      expect(moves()).toHaveLength(0);
+      expect(position(dialog)).toBe('To do, posición 2 de 3.');
+    });
+
+    it('003 CA-5.12 RF-028 si el guardado va bien, el diálogo se cierra', async () => {
+      const { user, dialog, settle } = await saveHeld();
+      await user.click(up(dialog));
+
+      settle(
+        new Response(JSON.stringify({ task: taskFixture({ status: 'todo' }) }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    });
+
+    it('003 CA-5.12 RF-028 con 500, sale el error de guardar y los botones se activan de nuevo', async () => {
+      const { user, dialog, settle } = await saveHeld();
+      await user.click(up(dialog));
+
+      settle(
+        new Response(JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: '' } }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+      expect(await within(dialog).findByText(SAVE_ERROR)).toBeDefined();
+      expect((dialog as HTMLDialogElement).open).toBe(true);
+      expect(up(dialog).getAttribute('aria-disabled')).toBeNull();
+      expect(down(dialog).getAttribute('aria-disabled')).toBeNull();
+    });
+  });
+
+  describe('con el diálogo ya cerrado (D-36)', () => {
+    // Una respuesta de `…/move` que no llega hasta llamar a `settle`.
+    function holdMove(failWith: (handler: () => Promise<Response>) => void) {
+      let settle!: (response: Response | Error) => void;
+      failWith(
+        () =>
+          new Promise<Response>((resolve, reject) => {
+            settle = (response) =>
+              response instanceof Error ? reject(response) : resolve(response);
+          }),
+      );
+      return (response: Response | Error) => settle(response);
+    }
+    const notFound = () =>
+      new Response(JSON.stringify({ error: { code: 'TASK_NOT_FOUND', message: '' } }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    const boardAlert = () => screen.getAllByRole('alert').at(-1)!;
+    const card = (title: string) => screen.getByRole('button', { name: new RegExp(`^${title}`) });
+
+    async function upAndCancel(tasks = todoTasks()) {
+      const opened = await openOrder(tasks);
+      const settle = holdMove(opened.failWith);
+      await opened.user.click(up(opened.dialog));
+      await waitFor(() => expect(opened.moves()).toHaveLength(1));
+      await opened.user.click(cancel(opened.dialog));
+      expect(screen.queryByRole('dialog')).toBeNull();
+      await waitFor(() => expect(document.activeElement).toBe(card('Preparar la demo')));
+      return { ...opened, settle, tasks };
+    }
+
+    it.each([
+      ['NetworkError', () => new TypeError('Failed to fetch')],
+      ['500', () => new Response('', { status: 500 })],
+    ])(
+      '003 CA-5.13 RF-029 con %s vuelve a su sitio, aviso en el tablero y el foco no cambia',
+      async (_name, failure) => {
+        const { settle } = await upAndCancel();
+
+        settle(failure());
+
+        await waitFor(() => expect(boardAlert().textContent).toContain(MOVE_ERROR));
+        expect(boardAlert().querySelector('[data-tone="offline"]')).not.toBeNull();
+        await waitFor(() =>
+          expectTitlesInOrder(['Comprar pan', 'Preparar la demo', 'Llamar al banco']),
+        );
+        expect(document.activeElement).toBe(card('Preparar la demo'));
+      },
+    );
+
+    it('003 CA-5.14 RF-029 con TASK_NOT_FOUND y el foco en su tarjeta: aviso, sin la tarjeta y el foco en «Crear tarea»', async () => {
+      const tasks = todoTasks();
+      const { settle } = await upAndCancel(tasks);
+      const rest = tasks.filter(({ title }) => title !== 'Preparar la demo');
+      browser.routes['GET /api/tasks'] = () => json(200, { tasks: rest });
+
+      settle(notFound());
+
+      await waitFor(() => expect(boardAlert().textContent).toContain(NOT_FOUND));
+      expect(boardAlert().querySelector('[data-tone="info"]')).not.toBeNull();
+      await waitFor(() => expectTitlesInOrder(['Comprar pan', 'Llamar al banco']));
+      await waitFor(() =>
+        expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Crear tarea' })),
+      );
+    });
+
+    it('003 CA-5.14 RF-029 D-36 con el foco en el asa de su tarjeta, también va a «Crear tarea»', async () => {
+      const tasks = todoTasks();
+      const { settle } = await upAndCancel(tasks);
+      screen.getByRole('button', { name: 'Mover «Preparar la demo»' }).focus();
+      const rest = tasks.filter(({ title }) => title !== 'Preparar la demo');
+      browser.routes['GET /api/tasks'] = () => json(200, { tasks: rest });
+
+      settle(notFound());
+
+      await waitFor(() =>
+        expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Crear tarea' })),
+      );
+    });
+
+    it('003 CA-5.14 RF-029 con el foco perdido, va a «Crear tarea»', async () => {
+      const tasks = todoTasks();
+      const { settle } = await upAndCancel(tasks);
+      (document.activeElement as HTMLElement).blur();
+      const rest = tasks.filter(({ title }) => title !== 'Preparar la demo');
+      browser.routes['GET /api/tasks'] = () => json(200, { tasks: rest });
+
+      settle(notFound());
+
+      await waitFor(() =>
+        expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Crear tarea' })),
+      );
+    });
+
+    it('003 CA-5.14 RF-029 con la última tarea, el foco va al «Crear tarea» del estado vacío', async () => {
+      const [demo, other] = [
+        taskFixture({ status: 'todo' }),
+        taskFixture({ title: 'Otra', status: 'todo' }),
+      ];
+      const { user, dialog, failWith, moves } = await openOrder([demo, other]);
+      const settle = holdMove(failWith);
+      await user.click(down(dialog));
+      await waitFor(() => expect(moves()).toHaveLength(1));
+      await user.click(cancel(dialog));
+      // La otra se borra aquí, con la lista nueva: la tarea es la última al llegar el fallo.
+      browser.routes[`DELETE /api/tasks/${other.id}`] = () => {
+        browser.routes['GET /api/tasks'] = () => json(200, { tasks: [demo] });
+        return Promise.resolve(new Response(null, { status: 204 }));
+      };
+      await user.click(card('Otra'));
+      await user.click(
+        within(screen.getByRole('dialog')).getByRole('button', { name: 'Borrar tarea' }),
+      );
+      await user.click(
+        within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Borrar tarea' }).at(-1)!,
+      );
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      await waitFor(() => expectTitlesInOrder(['Preparar la demo']));
+      card('Preparar la demo').focus();
+      browser.routes['GET /api/tasks'] = () => json(200, { tasks: [] });
+
+      settle(notFound());
+
+      await screen.findByText('Todavía no tienes tareas. Crea la primera y empieza a organizarte.');
+      await waitFor(() =>
+        expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Crear tarea' })),
+      );
+    });
+
+    it('003 CA-5.14 RF-029 con el foco ya en otra tarjeta, no se mueve', async () => {
+      const tasks = todoTasks();
+      const { settle } = await upAndCancel(tasks);
+      card('Llamar al banco').focus();
+      const rest = tasks.filter(({ title }) => title !== 'Preparar la demo');
+      browser.routes['GET /api/tasks'] = () => json(200, { tasks: rest });
+
+      settle(notFound());
+
+      await waitFor(() => expectTitlesInOrder(['Comprar pan', 'Llamar al banco']));
+      expect(boardAlert().textContent).toContain(NOT_FOUND);
+      expect(document.activeElement).toBe(card('Llamar al banco'));
+    });
+
+    it('003 E-25 RF-029 con otro detalle abierto: el foco sigue en él y, al cerrarlo, el aviso está en el tablero', async () => {
+      const tasks = todoTasks();
+      const { user, settle } = await upAndCancel(tasks);
+      await user.click(card('Llamar al banco'));
+      const other = screen.getByRole('dialog');
+      const inside = within(other).getByRole('button', { name: 'Cancelar' });
+      inside.focus();
+      const rest = tasks.filter(({ title }) => title !== 'Preparar la demo');
+      browser.routes['GET /api/tasks'] = () => json(200, { tasks: rest });
+
+      settle(notFound());
+
+      await waitFor(() => expectTitlesInOrder(['Comprar pan', 'Llamar al banco']));
+      expect(screen.getByRole('dialog')).toBe(other);
+      expect(document.activeElement).toBe(inside);
+      await user.click(inside);
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(screen.getByRole('alert').textContent).toContain(NOT_FOUND);
+      await waitFor(() => expect(document.activeElement).toBe(card('Llamar al banco')));
+    });
+
+    it.each([
+      ['TASK_NOT_FOUND', notFound],
+      ['NetworkError', () => new TypeError('Failed to fetch')],
+    ])(
+      '003 E-26 RF-029 «Subir» y «Borrar tarea» con %s: sin aviso y sin la tarjeta',
+      async (_name, failure) => {
+        const tasks = todoTasks();
+        const { user, dialog, failWith, moves } = await openOrder(tasks);
+        const settle = holdMove(failWith);
+        const demo = tasks[1]!;
+        const rest = tasks.filter(({ id }) => id !== demo.id);
+        browser.routes[`DELETE /api/tasks/${demo.id}`] = () => {
+          browser.routes['GET /api/tasks'] = () => json(200, { tasks: rest });
+          return Promise.resolve(new Response(null, { status: 204 }));
+        };
+        await user.click(up(dialog));
+        await waitFor(() => expect(moves()).toHaveLength(1));
+
+        await user.click(within(dialog).getByRole('button', { name: 'Borrar tarea' }));
+        await user.click(
+          within(screen.getByRole('dialog'))
+            .getAllByRole('button', { name: 'Borrar tarea' })
+            .at(-1)!,
+        );
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+        await waitFor(() => expectTitlesInOrder(['Comprar pan', 'Llamar al banco']));
+
+        settle(failure());
+
+        await waitFor(() => expect(browser.callsTo('GET', '/api/tasks').length).toBeGreaterThan(2));
+        await new Promise((resolve) => setTimeout(resolve));
+        expect(screen.getByRole('alert').textContent).toBe('');
+        expectTitlesInOrder(['Comprar pan', 'Llamar al banco']);
+      },
+    );
+
+    it('003 E-26 RF-029 D-36 si el borrado falla, un fallo posterior del movimiento sí avisa', async () => {
+      const tasks = todoTasks();
+      const { user, dialog, failWith, moves } = await openOrder(tasks);
+      const settle = holdMove(failWith);
+      browser.routes[`DELETE /api/tasks/${tasks[1]!.id}`] = () => apiError(500, 'INTERNAL_ERROR');
+      await user.click(up(dialog));
+      await waitFor(() => expect(moves()).toHaveLength(1));
+      await user.click(within(dialog).getByRole('button', { name: 'Borrar tarea' }));
+      await user.click(
+        within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Borrar tarea' }).at(-1)!,
+      );
+      await within(dialog).findByText(DELETE_ERROR);
+      await user.click(cancel(dialog));
+      expect(screen.queryByRole('dialog')).toBeNull();
+
+      settle(new TypeError('Failed to fetch'));
+
+      await waitFor(() => expect(screen.getByRole('alert').textContent).toContain(MOVE_ERROR));
+    });
+
+    it('003 E-8 RF-029 con 401 y el diálogo cerrado: redirige, sin aviso', async () => {
+      const Island = withQueryClient(LiveBoard, { requireSession: true });
+      const tasks = todoTasks();
+      serveOrder(tasks);
+      let settle!: (response: Response) => void;
+      browser.routes[`POST /api/tasks/${tasks[1]!.id}/move`] = () =>
+        new Promise<Response>((resolve) => {
+          settle = resolve;
+        });
+      render(<Island />);
+      const user = userEvent.setup();
+      await user.click(await screen.findByRole('button', { name: /^Preparar la demo/ }));
+      const dialog = screen.getByRole('dialog');
+      await user.click(up(dialog));
+      await waitFor(() => expect(settle).toBeDefined());
+      await user.click(cancel(dialog));
+
+      settle(
+        new Response(JSON.stringify({ error: { code: 'SESSION_EXPIRED', message: '' } }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+      await waitFor(() => expect(browser.replace).toHaveBeenCalledWith('/login?expired=1'));
+      expect(screen.getByRole('alert').textContent).toBe('');
+    });
   });
 });

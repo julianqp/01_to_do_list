@@ -1,6 +1,13 @@
-import type { CreateTaskInput, Task, UpdateTaskInput } from '@todo/shared';
+import {
+  actualEndDateAfterMove,
+  type CreateTaskInput,
+  type IsoDate,
+  type Task,
+  type UpdateTaskInput,
+} from '@todo/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from './api';
+import { placeTask, type Placement } from './board-order';
 import { isTaskNotFound } from './task-messages';
 
 const TASKS_KEY = ['tasks'];
@@ -51,5 +58,48 @@ export function useDeleteTask() {
   return useMutation({
     mutationFn: (id: string) => apiFetch<void>(`/api/tasks/${id}`, { method: 'DELETE' }),
     ...useRefetchTasks(),
+  });
+}
+
+export type MoveVariables = { task: Task; from: Placement; to: Placement; today: IsoDate };
+
+const MOVE_KEY = ['moveTask'];
+
+// Spec 003, D-12: al revés que el diálogo (D-7), la tarjeta se ve en su sitio antes de la respuesta
+// (RF-020). Si falla, solo esa tarjeta vuelve, sobre la caché actual: los demás movimientos no se
+// tocan (RF-021, E-12). La lista se vuelve a pedir cuando no queda ninguno pendiente: si no, pisaría
+// los que siguen en camino (R-7).
+export function useMoveTask() {
+  const queryClient = useQueryClient();
+  const updateTasks = (update: (tasks: Task[]) => Task[]) =>
+    queryClient.setQueryData<Task[]>(TASKS_KEY, (tasks) => tasks && update(tasks));
+  return useMutation({
+    mutationKey: MOVE_KEY,
+    // D-19: sin conexión se intenta igual, para que falle y la tarjeta vuelva (E-7), en vez de pausarse.
+    networkMode: 'always',
+    mutationFn: ({ task, to, today }: MoveVariables) =>
+      apiFetch<TaskResponse>(`/api/tasks/${task.id}/move`, {
+        method: 'POST',
+        body: { status: to.status, index: to.index, today },
+      }).then(({ task: moved }) => moved),
+    onMutate: async ({ task, to, today }) => {
+      await queryClient.cancelQueries({ queryKey: TASKS_KEY });
+      const actualEndDate = actualEndDateAfterMove(task, to.status, today);
+      updateTasks((tasks) => placeTask(tasks, { ...task, actualEndDate }, to));
+    },
+    onError: (error, { task, from }) => {
+      updateTasks((tasks) => {
+        if (isTaskNotFound(error)) return tasks.filter(({ id }) => id !== task.id);
+        // D-36: si ya no está (se borró mientras tanto, E-26), `placeTask` la volvería a añadir.
+        return tasks.some(({ id }) => id === task.id) ? placeTask(tasks, task, from) : tasks;
+      });
+    },
+    // D-29: sin devolver la promesa. Si no, el fallo esperaría a la lista, que con la API caída se
+    // reintenta unos 7 s, y con él el aviso y la vuelta a la columna (RF-021, RF-023).
+    onSettled: () => {
+      if (queryClient.isMutating({ mutationKey: MOVE_KEY }) === 1) {
+        void queryClient.invalidateQueries({ queryKey: TASKS_KEY });
+      }
+    },
   });
 }

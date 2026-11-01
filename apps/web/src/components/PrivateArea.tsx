@@ -25,7 +25,7 @@ function useReloadWhenRestoredFromCache() {
 }
 
 // Spec 002 D-8: una sesión que no vale redirige (withQueryClient); cualquier otro error, después de
-// los reintentos, es el error de carga de RF-008.
+// los reintentos, es el error de carga de RF-008. Spec 003 D-30: solo si no hay datos que enseñar.
 const isSessionError = (error: Error | null) =>
   error instanceof ApiError &&
   (error.code === 'UNAUTHENTICATED' || error.code === 'SESSION_EXPIRED');
@@ -47,12 +47,14 @@ function LoadError({ onRetry }: { onRetry: () => void }) {
 
 function PrivateAreaContent() {
   const me = useMe();
-  const tasks = useTasks({ enabled: me.isSuccess });
+  // Spec 003 D-30: una consulta que falla al volver a pedirse pasa a `error` aunque conserve `data`,
+  // así que se mira `data`: ni apaga la lista ni quita el tablero (RF-025, E-22).
+  const tasks = useTasks({ enabled: Boolean(me.data) });
   const logout = useLogout();
   useReloadWhenRestoredFromCache();
 
-  const meFailed = me.isError && !isSessionError(me.error);
-  const tasksFailed = tasks.isError && !isSessionError(tasks.error);
+  const meFailed = !me.data && me.isError && !isSessionError(me.error);
+  const tasksFailed = !tasks.data && tasks.isError && !isSessionError(tasks.error);
   const loadFailed = meFailed || tasksFailed;
 
   // D-8: «Reintentar» vuelve a pedir lo que falló; sin `me` no se piden las tareas.
@@ -70,11 +72,12 @@ function PrivateAreaContent() {
       {/* RF-015. Spec 004 RF-006, RF-007: email y «Cerrar sesión» en la cabecera. Spec 002 D-8: si no
           se ha podido comprobar la sesión, solo el nombre de la app. Plan §4.1: no sale hasta tener
           las tareas. */}
-      {(tasks.isSuccess || loadFailed) && (
+      {(tasks.data || loadFailed) && (
         <AppHeader email={me.data?.email} loggingOut={logout.isPending} onLogout={onLogout} />
       )}
-      {/* RF-036: en móvil, el relleno de abajo deja sitio a «Crear tarea», fijo abajo. */}
-      <main className="mx-auto flex min-h-0 w-full max-w-420 flex-1 flex-col gap-6 overflow-y-auto px-4 py-8 max-md:pb-24 md:px-7">
+      {/* RF-036: en móvil, el relleno de abajo deja sitio a «Crear tarea», fijo abajo. Spec 003, D-23: el
+          `scroll-padding`, con la misma medida, para que tampoco tape la tarjeta cogida con teclado. */}
+      <main className="mx-auto flex min-h-0 w-full max-w-420 flex-1 flex-col gap-6 overflow-y-auto px-4 py-8 max-md:scroll-pb-24 max-md:pb-24 md:px-7">
         {/* D-11: si no se ha podido cerrar la sesión, se avisa y se sigue dentro. Spec 004 RF-008:
             debajo de la cabecera. RNF-001: la zona de alerta está siempre y solo cambia su contenido
             (ver LoginForm). Spec 002 D-8: también lleva el error de carga. */}
@@ -84,7 +87,7 @@ function PrivateAreaContent() {
         </div>
         {/* Plan §4.1: mientras se comprueba la sesión (o se redirige, D-10) o se piden las tareas, no
             se ve nada. */}
-        {tasks.isSuccess ? (
+        {tasks.data ? (
           <Board tasks={tasks.data} />
         ) : (
           !loadFailed && <p className="sr-only">Cargando…</p>

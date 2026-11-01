@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
+import type { Task } from '@todo/shared';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
+import { prisma } from '../src/repositories/prisma';
 import { createTaskFor, NEW_TASK, signupCookie, utcIsoDate } from './helpers';
 
 const app = createApp();
@@ -15,8 +17,82 @@ const put = (cookie: string | undefined, id: string, body: object) => {
 const list = (cookie: string) => request(app).get('/api/tasks').set('Cookie', cookie);
 
 const errorBody = (code: string) => ({ error: { code, message: expect.any(String) } });
+const prismaPosition = (id: string, position: number) =>
+  prisma.task.update({ where: { id }, data: { position } });
+
+// Crea las tareas en este orden y las pasa a `status`: quedan de la última a la primera (RF-010).
+async function column(cookie: string, status: 'todo' | 'in_progress', titles: string[]) {
+  const tasks = [];
+  for (const title of titles) {
+    const task = await createTaskFor(cookie, { title });
+    expect((await put(cookie, task.id, { ...UPDATE, title, status })).status).toBe(200);
+    tasks.push(task);
+  }
+  return tasks;
+}
+
+const titlesIn = async (cookie: string, status: string) =>
+  ((await list(cookie)).body.tasks as Task[])
+    .filter((task) => task.status === status)
+    .map(({ title }) => title);
 
 describe('PUT /api/tasks/:id', () => {
+  it('003 CA-2.4 RF-010 la segunda de To do pasa a In progress: sale la primera, y el orden relativo del resto no cambia', async () => {
+    const ana = await signupCookie('ana@example.com');
+    // «Preparar la demo» es la más antigua: por `createdAt` saldría la última de In progress.
+    const [demo] = await column(ana, 'todo', ['Preparar la demo']);
+    await column(ana, 'in_progress', ['Pagar el alquiler', 'Revisar el correo']);
+    // To do: Comprar pan, Preparar la demo, Llamar al banco.
+    const [bank, bread] = await column(ana, 'todo', ['Llamar al banco', 'Comprar pan']);
+    await prismaPosition(bank!.id, 10);
+    await prismaPosition(demo!.id, 5);
+    await prismaPosition(bread!.id, 0);
+
+    const res = await put(ana, demo!.id, {
+      ...UPDATE,
+      title: 'Preparar la demo',
+      status: 'in_progress',
+    });
+
+    expect(res.status).toBe(200);
+    expect(await titlesIn(ana, 'in_progress')).toEqual([
+      'Preparar la demo',
+      'Revisar el correo',
+      'Pagar el alquiler',
+    ]);
+    expect(await titlesIn(ana, 'todo')).toEqual(['Comprar pan', 'Llamar al banco']);
+  });
+
+  it('003 RF-010 un PUT sin cambio de estado no la mueve', async () => {
+    const ana = await signupCookie('ana@example.com');
+    const [last] = await column(ana, 'todo', [
+      'Llamar al banco',
+      'Comprar pan',
+      'Preparar la demo',
+    ]);
+
+    const res = await put(ana, last!.id, { ...UPDATE, title: 'Llamar a la gestoría' });
+
+    expect(res.status).toBe(200);
+    expect(await titlesIn(ana, 'todo')).toEqual([
+      'Preparar la demo',
+      'Comprar pan',
+      'Llamar a la gestoría',
+    ]);
+  });
+
+  it('003 RNF-003 C-13 el PUT de una tarea ajena da 404 TASK_NOT_FOUND y no cambia el orden de su dueño', async () => {
+    const ana = await signupCookie('ana@example.com');
+    const luis = await signupCookie('luis@example.com');
+    const [bank] = await column(luis, 'todo', ['Llamar al banco', 'Comprar pan']);
+
+    const res = await put(ana, bank!.id, { ...UPDATE, status: 'in_progress' });
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual(errorBody('TASK_NOT_FOUND'));
+    expect(await titlesIn(luis, 'todo')).toEqual(['Comprar pan', 'Llamar al banco']);
+  });
+
   it('CA-3.2 CA-4.1 RF-013 D-2 sustituye la tarea completa y la devuelve', async () => {
     const ana = await signupCookie('ana@example.com');
     const task = await createTaskFor(ana, {

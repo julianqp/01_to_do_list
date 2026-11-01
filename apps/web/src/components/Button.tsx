@@ -12,6 +12,8 @@ export type ButtonProps = {
   // RF-013: Spinner + loadingLabel, aria-disabled e ignora la activación (D-9).
   loading?: boolean;
   loadingLabel?: string;
+  // Spec 003 D-34: sin sitio al que ir (RF-028). aria-disabled e ignora la activación, sin Spinner.
+  inactive?: boolean;
   // Las dos etiquetas se apilan en la misma celda: el ancho no cambia (D-9).
   children: string;
   // Spec 002 D-12, D-14: la opción segura de una confirmación recibe el foco; el tablero devuelve el
@@ -22,8 +24,7 @@ export type ButtonProps = {
 
 const VARIANTS = {
   primary: 'bg-(image:--grad-primary) text-on-accent shadow-(--shadow-accent)',
-  glass:
-    'border border-contrast bg-glass backdrop-glass text-1 shadow-(--shadow-pill) hover:bg-raised',
+  glass: 'border border-contrast bg-glass backdrop-glass text-1 shadow-(--shadow-pill)',
   // Spec 002 D-9: 7.71:1 en la parada más oscura (R-1).
   destructive: 'bg-(image:--pill-rose) text-on-pill shadow-(--shadow-pill)',
 };
@@ -40,6 +41,7 @@ export function Button({
   onClick,
   loading = false,
   loadingLabel,
+  inactive = false,
   children,
   autoFocus,
   ref,
@@ -47,7 +49,7 @@ export function Button({
   // D-9: con `disabled` el botón perdería el foco. preventDefault también cancela el envío
   // implícito de Enter en un campo, que el navegador hace como un clic en este botón.
   function handleClick(event: MouseEvent<HTMLButtonElement>) {
-    if (loading) {
+    if (loading || inactive) {
       event.preventDefault();
       return;
     }
@@ -56,8 +58,11 @@ export function Button({
 
   const className = [
     'inline-grid place-items-center rounded-pill text-body whitespace-nowrap',
-    'transition duration-(--dur-fast) ease-out motion-safe:active:scale-97',
+    'transition duration-(--dur-fast) ease-out',
+    // §14: deshabilitado a opacidad .45. No reacciona al puntero, porque pulsarlo no hace nada.
+    inactive ? 'opacity-45' : 'motion-safe:active:scale-97',
     VARIANTS[variant],
+    variant === 'glass' && !inactive && 'hover:bg-raised',
     SIZES[size],
     fullWidth && 'w-full',
   ]
@@ -69,7 +74,7 @@ export function Button({
       ref={ref}
       type={type}
       autoFocus={autoFocus}
-      aria-disabled={loading || undefined}
+      aria-disabled={loading || inactive || undefined}
       onClick={handleClick}
       className={className}
     >

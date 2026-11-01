@@ -43,7 +43,8 @@ model Task {
   estimatedStartDate DateTime?  @db.Date // C-11
   estimatedEndDate   DateTime?  @db.Date
   actualEndDate      DateTime?  @db.Date // solo con status = done (RF-041)
-  createdAt          DateTime   @default(now()) // RF-002: orden; no se expone
+  position           Int // Spec 003, D-1: orden dentro de su columna (ascendente, con huecos)
+  createdAt          DateTime   @default(now()) // desempate de `position` (D-1); no se expone
 
-  @@index([userId, createdAt])
+  @@index([userId, status, position])
 }

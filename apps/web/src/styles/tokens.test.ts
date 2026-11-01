@@ -195,6 +195,8 @@ const EXPECTED: Record<string, string> = {
   '--surface-veil': 'rgba(6,20,27,.32)',
   '--veil-filter': 'blur(8px)',
   '--board-column-min': '280px',
+  // Spec 003, plan §4.5 (X-1)
+  '--ring-drop': 'var(--ink-500)',
 };
 
 const tailwindName = (token: string) => token.replace(/^--bp-/, '--breakpoint-');
@@ -349,6 +351,8 @@ function catalog(theme: Theme, variant: Variant) {
     // Spec 002, research R-1. La columna es la tarjeta de la 004 y la tarjeta de tarea, su campo.
     column: card,
     taskCard: field,
+    // Spec 003 D-27: el asa con hover, encima de la tarjeta.
+    taskHandleHover: over(field, color('--surface-raised-hover')),
     emptySlot: stack(underGlass, '--surface-glass', '--surface-sunken'),
     badgeLate: over(field, color('--amber-soft')),
     dialog,
@@ -642,6 +646,7 @@ const SEMANTIC = [
   '--focus-outline',
   '--focus-halo',
   '--ring-error',
+  '--ring-drop',
 ];
 
 describe('tokens.css · variantes y contraste', () => {
@@ -649,6 +654,11 @@ describe('tokens.css · variantes y contraste', () => {
     const dark = declarationsAt(DARK);
     expect(SEMANTIC.filter((token) => !dark.has(token))).toEqual([]);
     expect(dark.get('color-scheme')).toBe('dark');
+  });
+
+  it('003 X-1 --ring-drop vale --ink-500 en claro y --ink-400 en oscuro', () => {
+    expect(topLevel(ROOT).get('--ring-drop')).toBe('var(--ink-500)');
+    expect(declarationsAt(DARK).get('--ring-drop')).toBe('var(--ink-400)');
   });
 
   it('RNF-006 la escala de móvil (< 768 px) sigue DESIGN.md §2.2', () => {
@@ -742,6 +752,24 @@ describe('tokens.css · variantes y contraste', () => {
           const focus = ratio(color('--focus-outline'), surfaces[surface]);
           expect(focus, `foco sobre ${surface} (${variant})`).toBeGreaterThanOrEqual(3);
         }
+      }
+    });
+
+    it(`003 RNF-001 RNF-005 X-1 ${theme}: el anillo del hueco sobre la columna y el icono del asa sobre la tarjeta ≥ 3:1 en N, SB y C+`, () => {
+      for (const variant of VARIANTS) {
+        const { color, surfaces } = catalog(theme, variant);
+        const ring = ratio(color('--ring-drop'), surfaces.column);
+        expect(ring, `--ring-drop sobre la columna (${variant})`).toBeGreaterThanOrEqual(3);
+        const grip = ratio(color('--text-2'), surfaces.taskCard);
+        expect(grip, `icono del asa sobre la tarjeta (${variant})`).toBeGreaterThanOrEqual(3);
+      }
+    });
+
+    it(`003 RNF-001 D-27 ${theme}: el icono del asa con hover ≥ 3:1 en N, SB y C+`, () => {
+      for (const variant of VARIANTS) {
+        const { color, surfaces } = catalog(theme, variant);
+        const grip = ratio(color('--text-2'), surfaces.taskHandleHover);
+        expect(grip, `icono del asa con hover (${variant})`).toBeGreaterThanOrEqual(3);
       }
     });
 
