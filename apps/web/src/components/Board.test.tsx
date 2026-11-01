@@ -405,6 +405,34 @@ describe('Board · mover con teclado', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reponer' }));
     expect(handleOf('Preparar la demo').parentElement!.className).not.toContain('--shadow-float');
   });
+
+  it('003 C-4 D-8 en pleno movimiento, la vista previa y el anuncio de soltar usan el título que llega en la lista', async () => {
+    const tasks = boardTasks();
+    const renamed = tasks.map((task) =>
+      task.title === 'Preparar la demo' ? { ...task, title: 'Demo renombrada' } : task,
+    );
+    function Host() {
+      const [list, setList] = useState(tasks);
+      return (
+        <>
+          <button onClick={() => setList(renamed)}>Renombrar</button>
+          <Board tasks={list} />
+        </>
+      );
+    }
+    serve(tasks);
+    renderWithClient(<Host />);
+    const user = userEvent.setup();
+    handleOf('Preparar la demo').focus();
+    await user.keyboard(' {ArrowRight}');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Renombrar' }));
+    expect(titles('In progress')[0]).toBe('Demo renombrada');
+
+    await user.keyboard(' ');
+    expect(live()).toBe('Has soltado «Demo renombrada» en In progress, posición 1 de 4.');
+    await waitFor(() => expect(movesOf(tasks)).toHaveLength(1));
+  });
 });
 
 const MOVE_ERROR = 'No hemos podido mover la tarea. Revisa tu conexión e inténtalo de nuevo.';
@@ -522,6 +550,39 @@ describe('Board · guardar el movimiento', () => {
       expect(document.activeElement).toBe(handleOf('Preparar la demo'));
     },
   );
+
+  it('003 RF-021 D-18 al fallar, vuelve a su sitio sin esperar a que se vuelva a pedir la lista', async () => {
+    const tasks = boardTasks();
+    const { user } = await renderLive(tasks);
+    let failMove!: (error: Error) => void;
+    failWith(
+      tasks,
+      'Preparar la demo',
+      () =>
+        new Promise<Response>((_resolve, reject) => {
+          failMove = reject;
+        }),
+    );
+
+    await user.keyboard(' {ArrowRight} ');
+    await waitFor(() => expect(movesOf(tasks)).toHaveLength(1));
+    // Ya ha llegado la actualización optimista, y la lista no vuelve hasta que el test lo diga.
+    await waitFor(() => expect(column('In progress').getAttribute('aria-label')).toContain('4'));
+    let serveList!: (response: Response) => void;
+    browser.routes['GET /api/tasks'] = () =>
+      new Promise<Response>((resolve) => {
+        serveList = resolve;
+      });
+
+    failMove(new TypeError('Failed to fetch'));
+
+    await waitFor(() => expect(browser.callsTo('GET', '/api/tasks').length).toBeGreaterThan(1));
+    await waitFor(() => expect(titles('To do')).toEqual(TODO_ORDER));
+    expect(titles('In progress')).not.toContain('Preparar la demo');
+
+    serveList(await json(200, { tasks }));
+    await waitFor(() => expect(notice()?.textContent).toBe(MOVE_ERROR));
+  });
 
   it('003 E-7 D-19 sin conexión de verdad (la mutación no se queda en pausa): vuelve y avisa', async () => {
     const tasks = boardTasks();

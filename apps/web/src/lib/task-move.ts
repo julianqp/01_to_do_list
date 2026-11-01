@@ -41,13 +41,17 @@ import {
 import { useMoveTask } from './task-queries';
 
 // Spec 003, D-8: el mismo estado para el puntero y el teclado. Estado de interfaz, no datos del
-// servidor (C-4): la lista que se pinta se calcula en cada render a partir de `tasks`.
+// servidor (C-4): un id y dos posiciones; la tarea y la lista que se pinta salen de `tasks` en cada
+// render.
 export type DragState = {
-  task: Task;
+  taskId: string;
   origin: Placement;
   current: Placement;
   mode: 'pointer' | 'keyboard';
 };
+
+// D-18: al soltar, la vista previa sigue mientras la tarea no se haya movido de `before`.
+type Landing = { taskId: string; to: Placement; before: Placement };
 
 const MOVE_KEYS: readonly string[] = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
 
@@ -98,21 +102,29 @@ export function useTaskMove({
   onNotice: (notice: BoardNotice) => void;
 }) {
   const [drag, setDrag] = useState<DragState | null>(null);
-  // D-12: al soltar, la vista previa sigue hasta que la caché cambia. La actualización optimista llega
-  // un instante después: sin esto habría un render con la tarjeta en su sitio de antes.
-  const [landing, setLanding] = useState<{ task: Task; to: Placement } | null>(null);
+  // D-18: la actualización optimista llega un instante después de soltar: sin esto habría un render
+  // con la tarjeta en su sitio de antes.
+  const [landing, setLanding] = useState<Landing | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const move = useMoveTask();
 
-  const [seenTasks, setSeenTasks] = useState(tasks);
-  if (tasks !== seenTasks) {
-    setSeenTasks(tasks);
-    if (landing) setLanding(null);
-    // D-7: la tarea ha desaparecido de la lista (la borró otra mutación): sin anuncio.
-    if (drag && !tasks.some(({ id }) => id === drag.task.id)) setDrag(null);
-  }
+  const draggedTask = drag ? tasks.find(({ id }) => id === drag.taskId) : undefined;
+  // D-7: la tarea ha desaparecido de la lista (la borró otra mutación): sin anuncio.
+  if (drag && !draggedTask) setDrag(null);
 
-  const preview = drag ? { task: drag.task, to: drag.current } : landing;
+  const landingTask = landing ? tasks.find(({ id }) => id === landing.taskId) : undefined;
+  const landingAt = landing && placementOf(tasks, landing.taskId);
+  const stillBefore = landing && landingAt ? samePlacement(landingAt, landing.before) : false;
+  // D-18: ya se ha movido. Si se esperara al final de la mutación, que espera a volver a pedir la
+  // lista, al fallar reaparecería en su sitio nuevo durante ese tiempo.
+  if (landing && landingAt && !stillBefore) setLanding(null);
+
+  const preview =
+    drag && draggedTask
+      ? { task: draggedTask, to: drag.current }
+      : landing && landingTask && stillBefore
+        ? { task: landingTask, to: landing.to }
+        : null;
   const displayTasks = preview ? placeTask(tasks, preview.task, preview.to) : tasks;
   const groups = groupByStatus(displayTasks);
   const totalAt = (at: Placement) =>
@@ -127,32 +139,43 @@ export function useTaskMove({
     if (handle !== document.activeElement) handle?.focus();
   });
 
-  function commit({ task, origin, current }: DragState) {
+  function commit({ taskId, origin, current }: DragState) {
     if (samePlacement(origin, current)) return; // RF-011, E-3
-    setLanding({ task, to: current });
+    const task = tasks.find(({ id }) => id === taskId);
+    const before = placementOf(tasks, taskId);
+    if (!task || !before) return;
+    const next = { taskId, to: current, before };
+    setLanding(next);
     // E-16: «hoy» es la fecha local del navegador. Con la promesa de cada llamada, porque el `onError`
     // de `mutate` solo se dispara para la última (E-12).
-    move.mutateAsync({ task, from: origin, to: current, today: todayLocal() }).catch((error) => {
-      // E-8: con la sesión caducada, redirige withQueryClient; no hay nada que avisar aquí.
-      if (error instanceof ApiError && error.status === 401) return;
-      onNotice({
-        tone: isTaskNotFound(error) ? 'info' : 'offline',
-        text: moveErrorText(error),
-      });
-    });
+    move
+      .mutateAsync({ task, from: origin, to: current, today: todayLocal() })
+      .catch((error) => {
+        // E-8: con la sesión caducada, redirige withQueryClient; no hay nada que avisar aquí.
+        if (error instanceof ApiError && error.status === 401) return;
+        onNotice({
+          tone: isTaskNotFound(error) ? 'info' : 'offline',
+          text: moveErrorText(error),
+        });
+      })
+      // D-18: por si la lista no llegó a cambiar. Sin tocar el `landing` de un movimiento posterior.
+      .finally(() => setLanding((latest) => (latest === next ? null : latest)));
   }
 
-  function cancel({ task, origin }: DragState) {
+  function cancel({ origin }: DragState) {
     setDrag(null);
     onMobileColumn(origin.status);
-    setAnnouncement(cancelledText(task.title, origin, groupByStatus(tasks)[origin.status].length));
+    if (!draggedTask) return;
+    setAnnouncement(
+      cancelledText(draggedTask.title, origin, groupByStatus(tasks)[origin.status].length),
+    );
   }
 
   // D-7: Espacio y Enter en un botón son un `click`, y la activación de VoiceOver también.
   function clickHandle(id: string) {
-    if (drag?.mode === 'keyboard' && drag.task.id === id) {
+    if (drag?.mode === 'keyboard' && draggedTask?.id === id) {
       setDrag(null);
-      setAnnouncement(droppedText(drag.task.title, drag.current, totalAt(drag.current)));
+      setAnnouncement(droppedText(draggedTask.title, drag.current, totalAt(drag.current)));
       commit(drag);
       return;
     }
@@ -160,12 +183,12 @@ export function useTaskMove({
     const origin = drag ? undefined : placementOf(tasks, id);
     if (!task || !origin) return;
     focusedHandle.current = id;
-    setDrag({ task, origin, current: origin, mode: 'keyboard' });
+    setDrag({ taskId: id, origin, current: origin, mode: 'keyboard' });
     setAnnouncement(pickedText(task.title, origin, groups[origin.status].length));
   }
 
   function keyDownOnHandle(id: string, event: KeyboardEvent<HTMLButtonElement>) {
-    if (drag?.mode !== 'keyboard' || drag.task.id !== id) return;
+    if (drag?.mode !== 'keyboard' || drag.taskId !== id) return;
     if (event.key === 'Escape') {
       event.preventDefault();
       cancel(drag);
@@ -185,7 +208,7 @@ export function useTaskMove({
     if (handleOf(id) === document.activeElement) return;
     // Ha salido de verdad: ya no se le devuelve el foco.
     if (focusedHandle.current === id) focusedHandle.current = null;
-    if (drag?.mode === 'keyboard' && drag.task.id === id) cancel(drag);
+    if (drag?.mode === 'keyboard' && drag.taskId === id) cancel(drag);
   }
 
   const latest = useRef({ clickHandle, keyDownOnHandle, leaveHandle });
@@ -214,9 +237,9 @@ export function useTaskMove({
   // teclado (D-6).
   const dragHandlers = {
     onDragStart({ active }: DragStartEvent) {
-      const task = tasks.find(({ id }) => id === active.id);
-      const origin = task && placementOf(tasks, task.id);
-      if (task && origin) setDrag({ task, origin, current: origin, mode: 'pointer' });
+      const taskId = String(active.id);
+      const origin = placementOf(tasks, taskId);
+      if (origin) setDrag({ taskId, origin, current: origin, mode: 'pointer' });
     },
     onDragOver({ active, over }: DragOverEvent) {
       if (drag?.mode !== 'pointer') return;
@@ -231,7 +254,7 @@ export function useTaskMove({
       const moving = active.rect.current.translated;
       const below =
         moving !== null && moving.top + moving.height / 2 > over.rect.top + over.rect.height / 2;
-      setDrag({ ...drag, current: placementFromOver(groups, drag.task.id, target, below) });
+      setDrag({ ...drag, current: placementFromOver(groups, drag.taskId, target, below) });
     },
     // D-20: dentro de la columna donde ya está, se recoloca al cruzar el centro de la de debajo.
     onDragMove({ active, over }: DragMoveEvent) {
@@ -257,6 +280,7 @@ export function useTaskMove({
   return {
     displayTasks,
     drag,
+    draggedTask,
     announcement,
     handleProps,
     dndProps: {

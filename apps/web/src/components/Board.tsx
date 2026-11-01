@@ -52,7 +52,7 @@ export function Board({ tasks }: BoardProps) {
   // D-20: aviso del tablero (RF-030; spec 003, RF-021 y RF-022, D-12). Se vacía al abrir otro diálogo.
   const [notice, setNotice] = useState<BoardNotice>();
   // Spec 003, D-8: la lista con la vista previa del movimiento en curso.
-  const { displayTasks, drag, announcement, handleProps, dndProps } = useTaskMove({
+  const { displayTasks, drag, draggedTask, announcement, handleProps, dndProps } = useTaskMove({
     tasks,
     onMobileColumn: setMobileColumn,
     onNotice: setNotice,
@@ -183,7 +183,7 @@ export function Board({ tasks }: BoardProps) {
                   hiddenOnMobile={status !== mobileColumn}
                   onOpen={openTask}
                   handleProps={handleProps}
-                  dragTaskId={drag?.task.id}
+                  dragTaskId={drag?.taskId}
                   dragMode={drag?.mode}
                 />
               ))}
@@ -192,8 +192,8 @@ export function Board({ tasks }: BoardProps) {
                 sin animación al soltar. */}
             <div className="pointer-events-none fixed inset-0 z-(--z-popover)">
               <DragOverlay dropAnimation={null}>
-                {drag?.mode === 'pointer' && (
-                  <TaskCard task={drag.task} today={today} onOpen={noop} variant="overlay" />
+                {drag?.mode === 'pointer' && draggedTask && (
+                  <TaskCard task={draggedTask} today={today} onOpen={noop} variant="overlay" />
                 )}
               </DragOverlay>
             </div>

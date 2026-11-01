@@ -1,7 +1,7 @@
 ---
 spec: 003
 plan_aprobado: 2026-10-31
-progreso: 25/37
+progreso: 26/37
 ---
 
 # Tareas · Spec 003 · Arrastrar y soltar
@@ -321,7 +321,7 @@ Todas tocan `Board.tsx`, `BoardColumn.tsx`, `TaskCard.tsx` o `task-move.ts`: van
 
 Resuelven `verificacion.md` (T-025, NO APTO), con las decisiones del usuario del 2026-11-01. Van en orden: casi todas tocan `task-move.ts`. Cada una, test primero, termina con `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde; los E2E que nombra tienen que pasar.
 
-- [ ] **T-026** Guardar `drag` y `landing` por id, sin copias de la lista
+- [x] **T-026** Guardar `drag` y `landing` por id, sin copias de la lista
   - Ficheros: `apps/web/src/lib/task-move.ts`, `apps/web/src/components/Board.tsx` (la capa usa `draggedTask`), `apps/web/src/components/Board.test.tsx` si hace falta
   - Cubre: C-4, D-7, D-8, D-18 (verificación M-5). Sin cambio de comportamiento
   - Pasos:
@@ -458,3 +458,4 @@ Resuelven `verificacion.md` (T-025, NO APTO), con las decisiones del usuario del
 | T-024 | | El `grep` de los tests que empiezan por `003 ` encuentra los **78 IDs** pedidos: RF-001…RF-023 (23), CA-1.1…CA-1.10, CA-2.1…CA-2.6, CA-3.1…CA-3.10 y CA-4.1…CA-4.5 (31), E-1…E-20 salvo E-19 (19; E-19 se comprueba con la nota de T-002) y RNF-001…RNF-005 (5). La tarea decía 79, pero la suma de su propia lista es 78. Faltaba RNF-004, añadido al nombre del E2E de CA-4.1, que corre con el dedo en los tres proyectos. El `grep` también tiene que mirar los títulos que Prettier parte en otra línea, tras `it.each(…)(`. Pasada final: `pnpm test` (880), `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` en verde (252 pasan, 11 saltados según lo previsto, 1 «flaky» en `webkit` por hidratación, M-7). Un fallo de `toHaveText` en CA-2.5 en `webkit` se vio una vez y pasó al reintentar; no se ha reproducido en 42 repeticiones ni en 3 pasadas del fichero: queda sin explicar |
 | T-025 | | `verificacion.md`: **NO APTO**, por un bloqueante (B-1: al bajar una tarjeta con teclado en una columna con scroll, sale de la vista). Además, I-1 (clic o toque en el asa frente a RF-006, pendiente de decidir) y ocho menores. La spec sigue en `en-implementacion`. Hechos en una sesión nueva: `pnpm test` (880), `pnpm lint`, `pnpm typecheck` y `pnpm test:e2e` (252 pasan, 11 saltados, 1 «flaky» en `webkit`). Se usó una sonda E2E temporal, ya borrada |
 | — | | 2026-11-01, `/sdd-cambiar-spec` tras T-025 (NO APTO), con las decisiones del usuario. Spec v2.0, plan D-23 a D-28 y fase 6 (T-026 a T-037). **B-1, I-1, M-1, M-2, M-3, M-5, M-7 y M-8** pasan a tareas. **M-4** queda resuelta en este cambio: el plan ya recoge `backdrop-glass` (D-10), `focusedHandle` (D-7), `onDragMove` y `columnDropId` (§4.3). **M-6:** un commit por tarea desde T-026; el historial no se reescribe y las filas anteriores se quedan sin hash. Riesgo aceptado: D-24 con lectores de pantalla (D-22) |
+| T-026 | | `drag` y `landing` guardan el id y `draggedTask` se busca en `tasks` en cada render; fuera `seenTasks` (M-5). Test primero: `003 C-4 D-8` fallaba con el título viejo («Preparar la demo» en vez de «Demo renombrada»). **Desviación de D-18, anotada en el plan:** `landing` también se vacía en cuanto la tarea sale de `before`, porque la mutación espera a volver a pedir la lista y, al fallar, la tarjeta reaparecería en su sitio nuevo durante esa petición. Test añadido que la tarea no listaba: `003 RF-021 D-18` (ya pasaba antes del cambio; protege este riesgo). `pnpm test` (882), `pnpm lint` y `pnpm typecheck` en verde. `pnpm test:e2e e2e/drag-and-drop.spec.ts` en `chromium` y `webkit`: 50 pasan, 4 saltados según lo previsto, ninguno «flaky». **RNF-002: 41,5 ms** |
