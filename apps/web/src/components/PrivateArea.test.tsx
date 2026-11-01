@@ -283,4 +283,64 @@ describe('PrivateArea · tablero', () => {
     await waitFor(() => expect(replace).toHaveBeenCalledWith('/login?expired=1'));
     expect(screen.queryByText(LOAD_ERROR)).toBeNull();
   });
+
+  // apiFetch trata un 500 como NetworkError, así que un refresco que falla es la petición y 3 reintentos.
+  const FAILED_REFRESH_REQUESTS = 4;
+
+  // Spec 003 D-30: volver a la pestaña vuelve a pedir las dos consultas, con el tablero ya cargado.
+  async function refreshInBackground() {
+    await act(async () => {
+      window.dispatchEvent(new Event('visibilitychange'));
+    });
+    await exhaustRetries();
+  }
+
+  async function renderLoadedBoard() {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    browser.routes['GET /api/tasks'] = () =>
+      json(200, { tasks: [taskFixture({ title: 'Preparar la demo', status: 'todo' })] });
+    browser.routes['GET /api/auth/me'] = () => json(200, { user: USER });
+    renderPrivateArea();
+    await screen.findByRole('button', { name: 'Preparar la demo' });
+  }
+
+  function expectBoardStillShown() {
+    expect(screen.getByRole('button', { name: 'Preparar la demo' })).toBeDefined();
+    expect(screen.getByRole('heading', { level: 1, name: 'Tablero' })).toBeDefined();
+    expect(screen.queryByText(LOAD_ERROR)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).toBeNull();
+  }
+
+  it('003 RF-025 E-22 con el tablero cargado, si falla el refresco de tasks (500) sigue el tablero, sin el error de carga; la lista se actualiza la próxima vez que se pide', async () => {
+    await renderLoadedBoard();
+
+    browser.routes['GET /api/tasks'] = () => apiError(500, 'INTERNAL_ERROR');
+    await refreshInBackground();
+
+    expect(browser.callsTo('GET', '/api/tasks')).toHaveLength(1 + FAILED_REFRESH_REQUESTS);
+    expectBoardStillShown();
+
+    browser.routes['GET /api/tasks'] = () =>
+      json(200, { tasks: [taskFixture({ title: 'Demo renombrada', status: 'todo' })] });
+    await refreshInBackground();
+
+    expect(screen.getByRole('button', { name: 'Demo renombrada' })).toBeDefined();
+  });
+
+  it('003 RF-025 E-22 con el tablero cargado, si falla el refresco de me (500) sigue el tablero, la cabecera con el email y la lista se sigue pidiendo', async () => {
+    await renderLoadedBoard();
+
+    browser.routes['GET /api/auth/me'] = () => apiError(500, 'INTERNAL_ERROR');
+    await refreshInBackground();
+
+    expect(browser.callsTo('GET', '/api/auth/me')).toHaveLength(1 + FAILED_REFRESH_REQUESTS);
+    expectBoardStillShown();
+    expect(within(screen.getByRole('banner')).getByText(USER.email)).toBeDefined();
+    const listRequests = browser.callsTo('GET', '/api/tasks').length;
+
+    await refreshInBackground();
+
+    expect(browser.callsTo('GET', '/api/tasks')).toHaveLength(listRequests + 1);
+    expectBoardStillShown();
+  });
 });

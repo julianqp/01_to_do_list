@@ -973,6 +973,38 @@ test.describe('toda la API caída, no solo `…/move`', () => {
     await expect(handle).toBeFocused(AT_ONCE);
     await expectOrder(page, 'To do', TODO);
   });
+
+  test('003 CA-1.12 RF-025 E-22 pasados los reintentos de la lista, el tablero y el aviso siguen a la vista, sin «Reintentar»', async ({
+    page,
+  }) => {
+    await openBoard(page);
+    await seedBoard(page);
+    await stopApi(page);
+    let failedListRequests = 0;
+    page.on('requestfailed', (request) => {
+      if (request.method() === 'GET' && new URL(request.url()).pathname === '/api/tasks') {
+        failedListRequests++;
+      }
+    });
+
+    await dragCard(
+      page,
+      taskCard(page, 'Preparar la demo'),
+      taskCard(boardColumn(page, 'In progress'), IN_PROGRESS[0]!),
+    );
+    await expect(page.getByText(MOVE_ERROR)).toBeVisible(AT_ONCE);
+
+    // withQueryClient: la petición y sus 3 reintentos (1 + 2 + 4 s). Después, margen para pintar.
+    await expect.poll(() => failedListRequests, { timeout: 15_000 }).toBe(4);
+    await page.waitForTimeout(500);
+
+    await expect(boardTitle(page)).toBeVisible();
+    await expect(page.getByText(MOVE_ERROR)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Reintentar' })).toHaveCount(0);
+    await expectOrder(page, 'To do', TODO);
+    await expectCount(page, 'To do', 3);
+    await expectCount(page, 'In progress', 3);
+  });
 });
 
 test.describe('accesibilidad y aspecto', () => {
